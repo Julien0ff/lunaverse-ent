@@ -851,14 +851,27 @@ export async function updateCanteenMenuMessage() {
     }
 
     const components = []
+    const row = new ActionRowBuilder<ButtonBuilder>()
+
     if (futureMenus.length > 0) {
-      const btn = new ButtonBuilder()
-        .setCustomId('cantine_show_more')
-        .setLabel('Afficher les menus suivants')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('📅')
-      components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(btn))
+      row.addComponents(
+        new ButtonBuilder()
+          .setCustomId('cantine_show_more')
+          .setLabel('Menus suivants')
+          .setStyle(ButtonStyle.Secondary)
+          .setEmoji('📅')
+      )
     }
+
+    row.addComponents(
+      new ButtonBuilder()
+        .setCustomId('cantine_admin_refresh')
+        .setLabel('Actualiser')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🔄')
+    )
+
+    components.push(row)
 
     const messageId = await getServerSetting('discord_canteen_menu_message_id')
     let message = null
@@ -1506,6 +1519,49 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
       } else {
         await interaction.reply({ content: '❌ **Accès Refusé**. Vous n\'avez pas d\'abonnement cantine. Scannez de nouveau ou rechargez votre Carte LunaVerse sur l\'ENT.', ephemeral: true })
       }
+      return
+    }
+
+    if (interaction.customId === 'cantine_admin_refresh') {
+      if (!await isAdmin(interaction.user.id, interaction)) {
+        await interaction.reply({ content: '❌ Seuls les administrateurs peuvent rafraîchir le menu.', ephemeral: true })
+        return
+      }
+      await interaction.reply({ content: '🔄 Mise à jour du menu en cours...', ephemeral: true })
+      await updateCanteenMenuMessage()
+      return
+    }
+
+    if (interaction.customId === 'cantine_show_more') {
+      const menus = await supabase.from('canteen_menus').select('*').gte('menu_date', new Date().toISOString().split('T')[0]).order('menu_date', { ascending: true })
+      const upcoming = (menus.data || []).filter(m => {
+        const sat = new Date(); sat.setDate(sat.getDate() + (6 - sat.getDay()))
+        const sun = new Date(); sun.setDate(sun.getDate() + (7 - sun.getDay()))
+        const d = m.menu_date
+        return d > sun.toISOString().split('T')[0]
+      })
+
+      if (upcoming.length === 0) {
+        await interaction.reply({ content: '📅 Aucun autre menu n\'est programmé pour le moment.', ephemeral: true })
+        return
+      }
+
+      const embeds = upcoming.slice(0, 5).map(m => {
+        const [y, mon, d] = m.menu_date.split('-').map(Number)
+        const dateStr = new Date(y, mon - 1, d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+        return new EmbedBuilder()
+          .setTitle(`Menu du ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)}`)
+          .setColor(0xF97316)
+          .setDescription(`**Horaire :** ${m.time_start.slice(0, 5)} - ${m.time_end.slice(0, 5)}\n\n` + 
+            (m.starter ? `🥗 **Entrée :** ${m.starter}\n` : '') +
+            `🍖 **Plat :** ${m.main}\n` +
+            (m.side ? `🍚 **Accompagnement :** ${m.side}\n` : '') +
+            (m.dessert ? `🍰 **Dessert :** ${m.dessert}\n` : '') +
+            (m.drink ? `🥤 **Boisson :** ${m.drink}\n` : '') +
+            (m.note ? `\n*💡 ${m.note}*` : ''))
+      })
+
+      await interaction.reply({ embeds, ephemeral: true })
       return
     }
 
