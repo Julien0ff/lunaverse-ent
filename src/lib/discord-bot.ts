@@ -753,16 +753,21 @@ client.on('ready', async () => {
           }
         } catch {}
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'canteen_menus' }, async () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'canteen_menus' }, async (payload) => {
         try {
-          console.log('🍽️ Canteen menu change detected, updating message...')
+          console.log('🍽️ Canteen menu change detected!', payload.eventType, (payload.new as any)?.id || (payload.old as any)?.id)
           await updateCanteenMenuMessage()
+          console.log('✅ Canteen message successfully synced to Discord.')
         } catch (err) {
-          console.error('Failed to sync canteen menu to Discord:', err)
+          console.error('❌ Failed to sync canteen menu to Discord:', err)
         }
       })
-      .subscribe((status) => {
+      .subscribe((status, err) => {
+        if (err) console.error('📡 Realtime subscription error:', err)
         console.log(`📡 Realtime subscription status: ${status}`)
+        if (status === 'SUBSCRIBED') {
+          console.log('🚀 Bot is now listening for canteen menu updates!')
+        }
       })
 
   // Helper for DM notification
@@ -827,7 +832,9 @@ export async function updateCanteenMenuMessage() {
       embed.setDescription('_Aucun menu prévu pour ce week-end._')
     } else {
       for (const m of weekendMenus) {
-        const dateObj = new Date(m.menu_date)
+        // Parse date manually to avoid timezone shifts (YYYY-MM-DD)
+        const [y, mon, d] = m.menu_date.split('-').map(Number)
+        const dateObj = new Date(y, mon - 1, d)
         const dateStr = dateObj.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
         const title = `Menu du ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)}`
         
