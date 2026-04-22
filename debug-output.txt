@@ -1,0 +1,17 @@
+Checking Discord ID: 1064801165201641592
+Profile: id=9928bc84-aba0-488f-b74a-25466d0d2fad username=🦊・𝐅𝐨𝐱𝐲
+user_roles (4):
+  role=admin discord_role_id=1264659843667591259
+  role=PRINCIPAL discord_role_id=1484612147727171826
+  role=eleve discord_role_id=1487571354323648582
+  role=nova discord_role_id=1487572001542508626
+All roles (9):
+  admin | 1264659843667591259 | can_connect=true
+  CPE | 1487405040233746502 | can_connect=true
+  PRINCIPAL | 1484612147727171826 | can_connect=true
+  RD | 1487405138950881412 | can_connect=true
+  PROF | 1485225307244859422 | can_connect=true
+  AED | 1485225722804174898 | can_connect=true
+  eleve | 1487571354323648582 | can_connect=true
+  nova | 1487572001542508626 | can_connect=true
+  nebuleuse | 1487571897364254841 | can_connect=true

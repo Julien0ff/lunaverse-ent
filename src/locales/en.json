@@ -1,0 +1,52 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "close": "Close",
+    "loading": "Loading...",
+    "search": "Search",
+    "back": "Back"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "bank": "Bank",
+    "social": "Social Network",
+    "messages": "Messages",
+    "dating": "Luna Match",
+    "cantine": "Canteen",
+    "impots": "Taxes",
+    "casino": "Casino",
+    "shop": "Shop",
+    "admin": "Administration"
+  },
+  "settings": {
+    "title": "Settings",
+    "general": "General",
+    "appearance": "Appearance",
+    "notifications": "Notifications",
+    "language": "Language",
+    "privacy": "Privacy",
+    "theme": {
+      "light": "Light",
+      "dark": "Dark",
+      "glass": "Glassmorphism",
+      "blurple": "Discord Blurple"
+    }
+  },
+  "bank": {
+    "balance": "Balance",
+    "dirty_money": "Dirty Money",
+    "declare": "Declare",
+    "declarations_tab": "Declarations",
+    "select_source": "Select a source",
+    "no_dirty_money": "You have no dirty money to declare."
+  },
+  "casino": {
+    "play": "Play",
+    "bet": "Bet",
+    "win_streak": "Win Streak",
+    "risk": "Amount at Risk",
+    "notify_win": " are waiting to be laundered. Click here to declare."
+  }
+}

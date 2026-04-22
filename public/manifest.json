@@ -1,0 +1,21 @@
+{
+  "name": "LunaVerse ENT",
+  "short_name": "LunaVerse",
+  "description": "Portail ENT LunaVerse RP",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F1013",
+  "theme_color": "#5865F2",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

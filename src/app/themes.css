@@ -1,0 +1,52 @@
+/* ─── Themes ───────────────────────────────────────────────── */
+:root {
+  --accent-color: var(--discord-blurple);
+  --accent-color-glow: rgba(88, 101, 242, 0.45);
+}
+
+.theme-space {
+  --accent-color: #8B5CF6; /* Vibrant Purple */
+  --accent-color-glow: rgba(139, 92, 246, 0.45);
+  --discord-blurple: #8B5CF6;
+  --discord-blurple-dark: #6D28D9;
+  
+  /* Background overrides */
+  background-color: #0F0821;
+}
+
+.theme-space body {
+  background-color: #0F0821 !important;
+  background-image: radial-gradient(circle at top right, rgba(139, 92, 246, 0.15), transparent 40%),
+                    radial-gradient(circle at bottom left, rgba(88, 101, 242, 0.1), transparent 40%) !important;
+}
+
+.theme-space .glass-card,
+.theme-space .card {
+  background: rgba(20, 12, 45, 0.7) !important;
+  border-color: rgba(139, 92, 246, 0.15) !important;
+}
+
+.theme-neon {
+  --accent-color: #00F5FF; /* Electric Cyan */
+  --accent-color-glow: rgba(0, 245, 255, 0.45);
+  --discord-blurple: #00F5FF;
+  --discord-blurple-dark: #00B2BB;
+  
+  /* Background overrides */
+  background-color: #050F0F;
+}
+
+.theme-neon body {
+  background-color: #050F0F !important;
+  background-image: radial-gradient(circle at top right, rgba(0, 245, 255, 0.1), transparent 40%),
+                    linear-gradient(rgba(0, 245, 255, 0.02) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0, 245, 255, 0.02) 1px, transparent 1px) !important;
+  background-size: 100% 100%, 40px 40px, 40px 40px !important;
+}
+
+.theme-neon .glass-card,
+.theme-neon .card {
+  background: rgba(10, 25, 25, 0.7) !important;
+  border-color: rgba(0, 245, 255, 0.15) !important;
+  box-shadow: 0 0 20px rgba(0, 245, 255, 0.05) !important;
+}

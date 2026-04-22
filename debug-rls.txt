@@ -1,0 +1,9 @@
+Profile: {"id":"9928bc84-aba0-488f-b74a-25466d0d2fad","discord_id":"1064801165201641592","username":"🦊・𝐅𝐨𝐱𝐲"}
+
+Roles in DB: admin(e7b24e13-e095-45ca-8e90-281c80327ad1), CPE(82885484-0f77-4f00-892c-ea6bc03e290d), RD(29ec2141-f2bf-470c-a804-cdc9c8f7772a), PROF(8f4df47e-d826-481d-9ce0-3ead79bc443e), AED(148a0917-ae63-4292-bd14-d622dfbbcc2a), eleve(155fd9fd-e82b-41c7-9207-605e54efe26d), nova(9a94da07-5211-4a88-a2d7-edd9d85730cb), nebuleuse(02c9afea-6798-444e-8082-347726f1be15), PRINCIPAL(25d80fdc-af05-42a5-bb69-eb553f852768)
+
+Existing user_roles for user 9928bc84-aba0-488f-b74a-25466d0d2fad: 4
+
+Insert admin role: OK
+
+user_roles after insert: admin, eleve, nova, PRINCIPAL

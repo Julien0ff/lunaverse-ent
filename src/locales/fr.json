@@ -1,0 +1,52 @@
+{
+  "common": {
+    "save": "Sauvegarder",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "close": "Fermer",
+    "loading": "Chargement...",
+    "search": "Rechercher",
+    "back": "Retour"
+  },
+  "nav": {
+    "dashboard": "Tableau de Bord",
+    "bank": "Banque",
+    "social": "Réseau Social",
+    "messages": "Messages",
+    "dating": "Luna Match",
+    "cantine": "Cantine",
+    "impots": "Impôts",
+    "casino": "Casino",
+    "shop": "Boutique",
+    "admin": "Administration"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "general": "Général",
+    "appearance": "Apparence",
+    "notifications": "Notifications",
+    "language": "Langue",
+    "privacy": "Confidentialité",
+    "theme": {
+      "light": "Clair",
+      "dark": "Sombre",
+      "glass": "Glassmorphism",
+      "blurple": "Blurple Discord"
+    }
+  },
+  "bank": {
+    "balance": "Solde",
+    "dirty_money": "Argent Sale",
+    "declare": "Déclarer",
+    "declarations_tab": "Déclarations",
+    "select_source": "Sélectionner une source",
+    "no_dirty_money": "Vous n'avez pas d'argent sale à déclarer."
+  },
+  "casino": {
+    "play": "Jouer",
+    "bet": "Mise",
+    "win_streak": "Série de Victoires",
+    "risk": "Montant à Risque",
+    "notify_win": " attendent d'être blanchis. Cliquez ici pour déclarer."
+  }
+}

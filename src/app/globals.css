@@ -1,0 +1,1143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Google Fonts Import ─────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+/* ─── Design Tokens ────────────────────────────────────────── */
+:root {
+  --discord-blurple: #5865F2;
+  --discord-blurple-dark: #4752C4;
+  --discord-dark: #2C2F33;
+  --discord-darker: #1E2124;
+  --discord-darkest: #18191C;
+  --discord-success: #57F287;
+  --discord-error: #ED4245;
+  --discord-warning: #FEE75C;
+  --discord-muted: #8D9299;
+  --sidebar-w: 260px;
+}
+
+/* ─── Reset ────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--discord-dark);
+  color: white;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ─── Scrollbar ────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(88, 101, 242, 0.35);
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--discord-blurple);
+}
+
+/* Custom Scrollbar for inner components */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ─── Animations ───────────────────────────────────────────── */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* fadeIn sans transform — pour les conteneurs parents de fixed/sticky */
+@keyframes fadeInSafe {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseGlow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(88, 101, 242, 0.45);
+  }
+
+  50% {
+    box-shadow: 0 0 0 12px rgba(88, 101, 242, 0);
+  }
+}
+
+@keyframes bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: translateY(-8px);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(88, 101, 242, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 20px 4px rgba(88, 101, 242, 0.2);
+  }
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes orbit {
+  from {
+    transform: scale(1.1) translateX(0) rotate(0deg) translateX(200px) rotate(0deg);
+  }
+
+  to {
+    transform: scale(1.1) translateX(0) rotate(360deg) translateX(200px) rotate(-360deg);
+  }
+}
+
+/* Loading screen orbs */
+.loading-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+.loading-orb-1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(88, 101, 242, 0.25) 0%, transparent 70%);
+  top: -100px;
+  left: -100px;
+  animation: floatY 8s ease-in-out infinite;
+}
+
+.loading-orb-2 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(87, 242, 135, 0.12) 0%, transparent 70%);
+  bottom: -100px;
+  right: -100px;
+  animation: floatY 10s ease-in-out infinite reverse;
+}
+
+.loading-grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes orb {
+
+  0%,
+  100% {
+    transform: scale(1) translate(0, 0);
+  }
+
+  33% {
+    transform: scale(1.08) translate(30px, -20px);
+  }
+
+  66% {
+    transform: scale(0.95) translate(-20px, 15px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes slotSpin {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  40% {
+    transform: translateY(-8px);
+    opacity: 0.5;
+  }
+
+  60% {
+    transform: translateY(8px);
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.4s ease-out forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.4s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s ease-in-out infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-bounce {
+  animation: bounce 1s ease-in-out infinite;
+}
+
+@keyframes bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/*
+  page-container : animation SANS transform pour ne pas piéger
+  les éléments position:fixed enfants (panneau panier, modals...)
+  Règle CSS : un ancestre avec transform devient le containing block des fixed.
+*/
+.page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  animation: fadeInSafe 0.35s ease forwards;
+}
+
+.grid-layout {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+/* ─── Cards ────────────────────────────────────────────────── */
+.card {
+  background: rgba(30, 33, 36, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+.glass-card {
+  background: rgba(24, 25, 28, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* ─── Inputs ───────────────────────────────────────────────── */
+.glass-input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  outline: none;
+  width: 100%;
+}
+
+/* When an icon is placed inside a relative wrapper, add left padding via Tailwind pl-11 on the input */
+.glass-input.pl-10 {
+  padding-left: 2.5rem;
+}
+
+.glass-input.pl-11 {
+  padding-left: 2.75rem;
+}
+
+.glass-input.pl-12 {
+  padding-left: 3rem;
+}
+
+.glass-input::placeholder {
+  color: var(--discord-muted);
+}
+
+.glass-input:focus {
+  border-color: var(--discord-blurple);
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.2);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+textarea.glass-input {
+  resize: none;
+  min-height: 90px;
+}
+
+/* ─── Buttons ──────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background: var(--discord-blurple);
+  color: white;
+  box-shadow: 0 4px 15px rgba(88, 101, 242, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--discord-blurple-dark);
+  box-shadow: 0 6px 20px rgba(88, 101, 242, 0.45);
+  transform: translateY(-1px);
+}
+
+.btn-success {
+  background: var(--discord-success);
+  color: #1E2124;
+  box-shadow: 0 4px 15px rgba(87, 242, 135, 0.3);
+}
+
+.btn-success:hover:not(:disabled) {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 20px rgba(87, 242, 135, 0.45);
+  transform: translateY(-1px);
+}
+
+.btn-error {
+  background: var(--discord-error);
+  color: white;
+  box-shadow: 0 4px 15px rgba(237, 66, 69, 0.3);
+}
+
+.btn-error:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+/* ─── Sidebar — styles résiduels (la sidebar utilise des inline styles) ── */
+/* Les classes .sidebar, .sidebar-nav etc. sont gardées pour compatibilité */
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 260px;
+  z-index: 100;
+}
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.875rem;
+  border-radius: 10px;
+  color: var(--discord-muted);
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  margin-bottom: 2px;
+}
+
+.sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+}
+
+.sidebar-link.active {
+  background: rgba(88, 101, 242, 0.18);
+  color: white;
+}
+
+.sidebar-footer {
+  padding: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ─── ═══════════════════════════════════════════════════════ */
+/* ─── LOGIN PAGE ──────────────────────────────────────────── */
+/* ─── ═══════════════════════════════════════════════════════ */
+
+.login-page {
+  min-height: 100vh;
+  background: var(--discord-darkest);
+  position: relative;
+  overflow: hidden;
+}
+
+.login-bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  animation: orb 12s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.login-bg-orb-1 {
+  width: 600px;
+  height: 600px;
+  background: rgba(88, 101, 242, 0.18);
+  top: -200px;
+  left: -200px;
+  animation-delay: 0s;
+}
+
+.login-bg-orb-2 {
+  width: 500px;
+  height: 500px;
+  background: rgba(87, 242, 135, 0.08);
+  bottom: -100px;
+  right: -100px;
+  animation-delay: -4s;
+}
+
+.login-bg-orb-3 {
+  width: 350px;
+  height: 350px;
+  background: rgba(235, 69, 158, 0.07);
+  top: 40%;
+  left: 60%;
+  animation-delay: -8s;
+}
+
+.login-bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 64px 64px;
+  pointer-events: none;
+}
+
+.login-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.875rem;
+  background: rgba(88, 101, 242, 0.15);
+  border: 1px solid rgba(88, 101, 242, 0.3);
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 2rem;
+}
+
+.login-logo {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.login-logo-icon {
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, var(--discord-blurple), var(--discord-blurple-dark));
+  border-radius: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 40px rgba(88, 101, 242, 0.5);
+  animation: float 4s ease-in-out infinite;
+  position: relative;
+  z-index: 1;
+}
+
+.login-logo-ring {
+  position: absolute;
+  inset: -12px;
+  border-radius: 38px;
+  border: 1px solid rgba(88, 101, 242, 0.25);
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+.login-title {
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: white;
+  margin-bottom: 1.25rem;
+  line-height: 1;
+}
+
+.login-title-accent {
+  background: linear-gradient(135deg, var(--discord-blurple), #7C8EFF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.login-subtitle {
+  font-size: 1.1rem;
+  color: var(--discord-muted);
+  max-width: 540px;
+  line-height: 1.7;
+  margin-bottom: 2.5rem;
+  font-weight: 400;
+}
+
+.login-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, var(--discord-blurple), var(--discord-blurple-dark));
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 30px rgba(88, 101, 242, 0.45);
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-cta-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.15) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+.login-cta-btn:hover:not(:disabled) {
+  box-shadow: 0 12px 40px rgba(88, 101, 242, 0.6);
+  transform: translateY(-2px);
+}
+
+.login-cta-btn:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.login-stats {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 2rem;
+  padding: 0.875rem 1.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--discord-muted);
+}
+
+.login-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.login-stat-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.login-feature-card {
+  background: rgba(24, 25, 28, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  padding: 1.5rem;
+  transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+}
+
+.login-feature-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.login-feature-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+/* ─── Casino ───────────────────────────────────────────────── */
+.casino-card {
+  background: linear-gradient(135deg, rgba(24, 25, 28, 0.9), rgba(30, 33, 36, 0.8));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 1.75rem;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.casino-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(88, 101, 242, 0.04), transparent);
+  pointer-events: none;
+}
+
+.casino-card:hover {
+  border-color: rgba(88, 101, 242, 0.3);
+  box-shadow: 0 0 30px rgba(88, 101, 242, 0.12);
+  transform: translateY(-2px);
+}
+
+.slot-reel {
+  font-size: 3rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  transition: transform 0.15s;
+}
+
+.slot-reel.spinning {
+  animation: slotSpin 0.4s ease-in-out;
+}
+
+/* ─── Shop ─────────────────────────────────────────────────── */
+.shop-item-card {
+  background: rgba(24, 25, 28, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
+  overflow: hidden;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+}
+
+.shop-item-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+.shop-item-thumb {
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 3.5rem;
+}
+
+.shop-item-body {
+  padding: 1.25rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Social posts ─────────────────────────────────────────── */
+.post-card {
+  background: rgba(24, 25, 28, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
+  padding: 1.25rem;
+  transition: border-color 0.2s;
+}
+
+.post-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ─── Discord Markdown rendering ────────────────────────── */
+.discord-content code.discord-code {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 0.15em 0.35em;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 0.82em;
+  color: #e9e3c8;
+}
+
+.discord-content blockquote.discord-quote {
+  border-left: 4px solid var(--discord-blurple);
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+  background: rgba(88, 101, 242, 0.06);
+}
+
+.login-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, var(--discord-blurple), var(--discord-blurple-dark));
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 30px rgba(88, 101, 242, 0.45);
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-cta-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.15) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+.login-cta-btn:hover:not(:disabled) {
+  box-shadow: 0 12px 40px rgba(88, 101, 242, 0.6);
+  transform: translateY(-2px);
+}
+
+.login-cta-btn:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.login-stats {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 2rem;
+  padding: 0.875rem 1.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--discord-muted);
+}
+
+.login-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.login-stat-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.login-feature-card {
+  background: rgba(24, 25, 28, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  padding: 1.5rem;
+  transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+}
+
+.login-feature-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.login-feature-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+/* ─── Casino ───────────────────────────────────────────────── */
+.casino-card {
+  background: linear-gradient(135deg, rgba(24, 25, 28, 0.9), rgba(30, 33, 36, 0.8));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 1.75rem;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.casino-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(88, 101, 242, 0.04), transparent);
+  pointer-events: none;
+}
+
+.casino-card:hover {
+  border-color: rgba(88, 101, 242, 0.3);
+  box-shadow: 0 0 30px rgba(88, 101, 242, 0.12);
+  transform: translateY(-2px);
+}
+
+.slot-reel {
+  font-size: 3rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  transition: transform 0.15s;
+}
+
+.slot-reel.spinning {
+  animation: slotSpin 0.4s ease-in-out;
+}
+
+/* ─── Shop ─────────────────────────────────────────────────── */
+.shop-item-card {
+  background: rgba(24, 25, 28, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
+  overflow: hidden;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+}
+
+.shop-item-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+.shop-item-thumb {
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 3.5rem;
+}
+
+.shop-item-body {
+  padding: 1.25rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Social posts ─────────────────────────────────────────── */
+.post-card {
+  background: rgba(24, 25, 28, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
+  padding: 1.25rem;
+  transition: border-color 0.2s;
+}
+
+.post-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ─── Discord Markdown rendering ────────────────────────── */
+.discord-content code.discord-code {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 0.15em 0.35em;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 0.82em;
+  color: #e9e3c8;
+}
+
+.discord-content blockquote.discord-quote {
+  border-left: 4px solid var(--discord-blurple);
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+  background: rgba(88, 101, 242, 0.06);
+  border-radius: 0 8px 8px 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-style: italic;
+}
+
+.animate-bounce-subtle {
+  animation: bounce 2s ease-in-out infinite; 
+}
+
+
+/* ─── Notifications ───────────────────────────────────────── */
+@keyframes progress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+.animate-progress {
+  animation: progress linear forwards;
+}
+
+/* ─── Light Theme ─────────────────────────────────────────── */
+.theme-light {
+  --discord-dark: #f3f4f6;
+  --discord-darker: #e5e7eb;
+  --discord-darkest: #d1d5db;
+  --discord-muted: #6b7280;
+  --card-bg: rgba(243, 244, 246, 0.95);
+  --card-border: rgba(0, 0, 0, 0.08);
+  --text-main: #1f2937;
+}
+
+.theme-light body {
+  background-color: var(--discord-dark);
+  color: var(--text-main);
+}
+
+.theme-light .card, 
+.theme-light .glass-card {
+  background: var(--card-bg);
+  border-color: var(--card-border);
+  color: var(--text-main);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.theme-light .card:hover, 
+.theme-light .glass-card:hover {
+  border-color: rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+.theme-light .glass-input {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: var(--text-main);
+}
+
+.theme-light .glass-input::placeholder {
+  color: var(--discord-muted);
+}
+
+.theme-light .glass-input:focus {
+  background: white;
+  border-color: var(--discord-blurple);
+}
+
+.theme-light .btn-ghost {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: var(--text-main);
+}
+
+.theme-light .btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.theme-light .text-discord-muted {
+  color: var(--discord-muted) !important;
+}
+
+.theme-light .text-white {
+  color: var(--text-main) !important;
+}
+
+.theme-light .sidebar-transition {
+  background-color: var(--discord-darker) !important;
+}

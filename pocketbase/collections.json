@@ -1,0 +1,206 @@
+[
+  {
+    "name": "profiles",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {"system": false, "id": "discord_id", "name": "discord_id", "type": "text", "required": true, "unique": true, "options": {"min": null, "max": null, "pattern": ""}},
+      {"system": false, "id": "username", "name": "username", "type": "text", "required": true, "unique": false, "options": {"min": null, "max": null, "pattern": ""}},
+      {"system": false, "id": "avatar_url", "name": "avatar_url", "type": "url", "required": false, "unique": false, "options": {"pattern": ""}},
+      {"system": false, "id": "balance", "name": "balance", "type": "number", "required": false, "unique": false, "options": {"min": null, "max": null}},
+      {"system": false, "id": "last_daily", "name": "last_daily", "type": "date", "required": false, "unique": false, "options": {"min": "", "max": ""}},
+      {"system": false, "id": "last_salary", "name": "last_salary", "type": "date", "required": false, "unique": false, "options": {"min": "", "max": ""}}
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "@request.auth.id != \"\"",
+    "updateRule": "@request.auth.id = id",
+    "deleteRule": "@request.auth.id = id",
+    "options": {}
+  },
+  {
+    "name": "roles",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {"system": false, "id": "name", "name": "name", "type": "text", "required": true, "unique": false, "options": {"min": null, "max": null, "pattern": ""}},
+      {"system": false, "id": "discord_role_id", "name": "discord_role_id", "type": "text", "required": false, "unique": false, "options": {"min": null, "max": null, "pattern": ""}},
+      {"system": false, "id": "salary_amount", "name": "salary_amount", "type": "number", "required": false, "unique": false, "options": {"min": null, "max": null}},
+      {"system": false, "id": "pocket_money", "name": "pocket_money", "type": "number", "required": false, "unique": false, "options": {"min": null, "max": null}},
+      {"system": false, "id": "color", "name": "color", "type": "text", "required": false, "unique": false, "options": {"min": null, "max": null, "pattern": ""}}
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "",
+    "updateRule": "",
+    "deleteRule": "",
+    "options": {}
+  },
+  {
+    "name": "user_roles",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {"system": false, "id": "user", "name": "user", "type": "relation", "required": true, "unique": false, "options": {"collectionId": "", "cascadeDelete": false, "minSelect": null, "maxSelect": 1, "displayFields": []}},
+      {"system": false, "id": "role", "name": "role", "type": "relation", "required": true, "unique": false, "options": {"collectionId": "", "cascadeDelete": false, "minSelect": null, "maxSelect": 1, "displayFields": []}},
+      {"system": false, "id": "assigned_at", "name": "assigned_at", "type": "date", "required": false, "unique": false, "options": {"min": "", "max": ""}}
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "",
+    "updateRule": "",
+    "deleteRule": "",
+    "options": {}
+  },
+  {
+    "name": "transactions",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {"system": false, "id": "from_user", "name": "from_user", "type": "relation", "required": false, "unique": false, "options": {"collectionId": "", "cascadeDelete": false, "minSelect": null, "maxSelect": 1, "displayFields": []}},
+      {"system": false, "id": "to_user", "name": "to_user", "type": "relation", "required": false, "unique": false, "options": {"collectionId": "", "cascadeDelete": false, "minSelect": null, "maxSelect": 1, "displayFields": []}},
+      {"system": false, "id": "amount", "name": "amount", "type": "number", "required": true, "unique": false, "options": {"min": null, "max": null}},
+      {"system": false, "id": "type", "name": "type", "type": "select", "required": true, "unique": false, "options": {"values": ["transfer", "daily", "salary", "shop", "casino", "pocket_money"]}},
+      {"system": false, "id": "description", "name": "description", "type": "text", "required": false, "unique": false, "options": {"min": null, "max": null, "pattern": ""}}
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "@request.auth.id != \"\"",
+    "updateRule": "",
+    "deleteRule": "",
+    "options": {}
+  },
+  {
+    "name": "posts",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {"system": false, "id": "user", "name": "user", "type": "relation", "required": true, "unique": false, "options": {"collectionId": "", "cascadeDelete": false, "minSelect": null, "maxSelect": 1, "displayFields": []}},
+      {"system": false, "id": "content", "name": "content", "type": "text", "required": true, "unique": false, "options": {"min": null, "max": null, "pattern": ""}},
+      {"system": false, "id": "image_url", "name": "image_url", "type": "url", "required": false, "unique": false, "options": {"pattern": ""}},
+      {"system": false, "id": "channel_id", "name": "channel_id", "type": "text", "required": false, "unique": false, "options": {"min": null, "max": null, "pattern": ""}},
+      {"system": false, "id": "message_id", "name": "message_id", "type": "text", "required": false, "unique": false, "options": {"min": null, "max": null, "pattern": ""}}
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "@request.auth.id != \"\"",
+    "updateRule": "",
+    "deleteRule": "",
+    "options": {}
+  },
+  {
+    "name": "comments",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {"system": false, "id": "post", "name": "post", "type": "relation", "required": true, "unique": false, "options": {"collectionId": "", "cascadeDelete": false, "minSelect": null, "maxSelect": 1, "displayFields": []}},
+      {"system": false, "id": "user", "name": "user", "type": "relation", "required": true, "unique": false, "options": {"collectionId": "", "cascadeDelete": false, "minSelect": null, "maxSelect": 1, "displayFields": []}},
+      {"system": false, "id": "content", "name": "content", "type": "text", "required": true, "unique": false, "options": {"min": null, "max": null, "pattern": ""}}
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "@request.auth.id != \"\"",
+    "updateRule": "",
+    "deleteRule": "",
+    "options": {}
+  },
+  {
+    "name": "likes",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {"system": false, "id": "post", "name": "post", "type": "relation", "required": true, "unique": false, "options": {"collectionId": "", "cascadeDelete": false, "minSelect": null, "maxSelect": 1, "displayFields": []}},
+      {"system": false, "id": "user", "name": "user", "type": "relation", "required": true, "unique": false, "options": {"collectionId": "", "cascadeDelete": false, "minSelect": null, "maxSelect": 1, "displayFields": []}}
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "@request.auth.id != \"\"",
+    "updateRule": "",
+    "deleteRule": "",
+    "options": {}
+  },
+  {
+    "name": "shop_items",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {"system": false, "id": "name", "name": "name", "type": "text", "required": true, "unique": false, "options": {"min": null, "max": null, "pattern": ""}},
+      {"system": false, "id": "description", "name": "description", "type": "text", "required": false, "unique": false, "options": {"min": null, "max": null, "pattern": ""}},
+      {"system": false, "id": "price", "name": "price", "type": "number", "required": true, "unique": false, "options": {"min": null, "max": null}},
+      {"system": false, "id": "category", "name": "category", "type": "select", "required": false, "unique": false, "options": {"values": ["drinks", "snacks", "cigarettes", "other"]}},
+      {"system": false, "id": "image_url", "name": "image_url", "type": "url", "required": false, "unique": false, "options": {"pattern": ""}},
+      {"system": false, "id": "is_available", "name": "is_available", "type": "bool", "required": false, "unique": false, "options": {}}
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "",
+    "updateRule": "",
+    "deleteRule": "",
+    "options": {}
+  },
+  {
+    "name": "purchases",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {"system": false, "id": "user", "name": "user", "type": "relation", "required": true, "unique": false, "options": {"collectionId": "", "cascadeDelete": false, "minSelect": null, "maxSelect": 1, "displayFields": []}},
+      {"system": false, "id": "item", "name": "item", "type": "relation", "required": true, "unique": false, "options": {"collectionId": "", "cascadeDelete": false, "minSelect": null, "maxSelect": 1, "displayFields": []}},
+      {"system": false, "id": "quantity", "name": "quantity", "type": "number", "required": false, "unique": false, "options": {"min": null, "max": null}},
+      {"system": false, "id": "total_price", "name": "total_price", "type": "number", "required": true, "unique": false, "options": {"min": null, "max": null}}
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "@request.auth.id != \"\"",
+    "updateRule": "",
+    "deleteRule": "",
+    "options": {}
+  },
+  {
+    "name": "casino_games",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {"system": false, "id": "name", "name": "name", "type": "text", "required": true, "unique": false, "options": {"min": null, "max": null, "pattern": ""}},
+      {"system": false, "id": "description", "name": "description", "type": "text", "required": false, "unique": false, "options": {"min": null, "max": null, "pattern": ""}},
+      {"system": false, "id": "min_bet", "name": "min_bet", "type": "number", "required": false, "unique": false, "options": {"min": null, "max": null}},
+      {"system": false, "id": "max_bet", "name": "max_bet", "type": "number", "required": false, "unique": false, "options": {"min": null, "max": null}},
+      {"system": false, "id": "multiplier_min", "name": "multiplier_min", "type": "number", "required": false, "unique": false, "options": {"min": null, "max": null}},
+      {"system": false, "id": "multiplier_max", "name": "multiplier_max", "type": "number", "required": false, "unique": false, "options": {"min": null, "max": null}}
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "",
+    "updateRule": "",
+    "deleteRule": "",
+    "options": {}
+  },
+  {
+    "name": "casino_history",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {"system": false, "id": "user", "name": "user", "type": "relation", "required": true, "unique": false, "options": {"collectionId": "", "cascadeDelete": false, "minSelect": null, "maxSelect": 1, "displayFields": []}},
+      {"system": false, "id": "game", "name": "game", "type": "relation", "required": true, "unique": false, "options": {"collectionId": "", "cascadeDelete": false, "minSelect": null, "maxSelect": 1, "displayFields": []}},
+      {"system": false, "id": "bet_amount", "name": "bet_amount", "type": "number", "required": true, "unique": false, "options": {"min": null, "max": null}},
+      {"system": false, "id": "win_amount", "name": "win_amount", "type": "number", "required": false, "unique": false, "options": {"min": null, "max": null}},
+      {"system": false, "id": "is_win", "name": "is_win", "type": "bool", "required": false, "unique": false, "options": {}}
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "@request.auth.id != \"\"",
+    "updateRule": "",
+    "deleteRule": "",
+    "options": {}
+  }
+]
