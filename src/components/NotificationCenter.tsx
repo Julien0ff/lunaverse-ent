@@ -27,93 +27,95 @@ export default function NotificationCenter() {
 
       {isOpen && (
         <>
-          <div 
-            className="fixed inset-0 z-[100]" 
-            onClick={() => setIsOpen(false)} 
-          />
-          <div className="fixed inset-0 md:absolute md:top-12 md:left-0 w-full md:w-80 h-full md:h-auto max-h-screen md:max-h-[80vh] overflow-hidden glass-card md:rounded-2xl !p-0 z-[101] animate-scaleIn md:animate-fadeIn shadow-2xl flex flex-col">
-            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
-              <h3 className="font-black text-white flex items-center gap-2">
-                <Bell className="w-4 h-4 text-discord-blurple" /> {t('nav.notifications_center') || 'Centre de Notifications'}
-              </h3>
-              <button onClick={() => setIsOpen(false)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 text-discord-muted hover:text-white transition-all">
-                <X size={20} />
-              </button>
-            </div>
+          <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 md:p-8 animate-fadeIn">
+            <div 
+              className="absolute inset-0 bg-black/60 backdrop-blur-md" 
+              onClick={() => setIsOpen(false)} 
+            />
+            <div className="relative w-full max-w-2xl h-[90vh] md:h-[80vh] overflow-hidden glass-card rounded-[2.5rem] !p-0 shadow-[0_0_100px_rgba(0,0,0,0.5)] z-[1000] flex flex-col border border-white/10">
+              <div className="p-8 border-b border-white/10 flex items-center justify-between bg-white/5">
+                <h3 className="text-2xl font-black text-white flex items-center gap-4">
+                  <Bell className="w-8 h-8 text-discord-blurple" /> {t('nav.notifications_center') || 'Centre de Notifications'}
+                </h3>
+                <button onClick={() => setIsOpen(false)} className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/5 hover:bg-white/10 text-discord-muted hover:text-white transition-all">
+                  <X size={24} />
+                </button>
+              </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
-              {notifications.length === 0 ? (
-                <div className="p-12 text-center flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-discord-muted">
-                    <Inbox size={24} />
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
+                {notifications.length === 0 ? (
+                  <div className="p-12 text-center flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-discord-muted">
+                      <Inbox size={24} />
+                    </div>
+                    <p className="text-sm font-bold text-discord-muted">Aucune notification</p>
                   </div>
-                  <p className="text-sm font-bold text-discord-muted">Aucune notification</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-white/5">
-                  {notifications.map((notif) => (
-                    <div 
-                      key={notif.id}
-                      className={clsx(
-                        "p-4 transition-colors relative group",
-                        notif.read ? "opacity-60" : "bg-discord-blurple/5"
-                      )}
-                    >
-                      <div className="flex gap-3">
-                        <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${
-                          notif.type === 'success' ? 'bg-discord-success' :
-                          notif.type === 'error' ? 'bg-discord-error' :
-                          notif.type === 'money' ? 'bg-amber-400' : 'bg-discord-blurple'
-                        }`} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-white mb-0.5">{notif.title}</p>
-                          <p className="text-xs text-discord-muted leading-relaxed line-clamp-3">{notif.message}</p>
-                          <p className="text-[10px] text-discord-muted/50 mt-2">
-                            {new Date(notif.created_at).toLocaleString()}
-                          </p>
-                          
-                          {notif.link && (
+                ) : (
+                  <div className="divide-y divide-white/5">
+                    {notifications.map((notif) => (
+                      <div 
+                        key={notif.id}
+                        className={clsx(
+                          "p-4 transition-colors relative group",
+                          notif.read ? "opacity-60" : "bg-discord-blurple/5"
+                        )}
+                      >
+                        <div className="flex gap-3">
+                          <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${
+                            notif.type === 'success' ? 'bg-discord-success' :
+                            notif.type === 'error' ? 'bg-discord-error' :
+                            notif.type === 'money' ? 'bg-amber-400' : 'bg-discord-blurple'
+                          }`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-white mb-0.5">{notif.title}</p>
+                            <p className="text-xs text-discord-muted leading-relaxed line-clamp-3">{notif.message}</p>
+                            <p className="text-[10px] text-discord-muted/50 mt-2">
+                              {new Date(notif.created_at).toLocaleString()}
+                            </p>
+                            
+                            {notif.link && (
+                              <button 
+                                onClick={() => window.location.href = notif.link!}
+                                className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-discord-blurple hover:underline"
+                              >
+                                <ExternalLink size={10} /> Voir les détails
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {!notif.read && (
                             <button 
-                              onClick={() => window.location.href = notif.link!}
-                              className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-discord-blurple hover:underline"
+                              onClick={(e) => { e.stopPropagation(); markAsRead(notif.id) }}
+                              className="p-1.5 rounded-lg bg-white/5 text-discord-success hover:bg-discord-success/20 transition-all"
+                              title="Marquer comme lu"
                             >
-                              <ExternalLink size={10} /> Voir les détails
+                              <Check size={12} />
                             </button>
                           )}
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); deleteNotification(notif.id) }}
+                            className="p-1.5 rounded-lg bg-white/5 text-discord-error hover:bg-discord-error/20 transition-all"
+                            title="Supprimer"
+                          >
+                            <Trash2 size={12} />
+                          </button>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-                      <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {!notif.read && (
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); markAsRead(notif.id) }}
-                            className="p-1.5 rounded-lg bg-white/5 text-discord-success hover:bg-discord-success/20 transition-all"
-                            title="Marquer comme lu"
-                          >
-                            <Check size={12} />
-                          </button>
-                        )}
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); deleteNotification(notif.id) }}
-                          className="p-1.5 rounded-lg bg-white/5 text-discord-error hover:bg-discord-error/20 transition-all"
-                          title="Supprimer"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="p-3 border-t border-white/10 bg-white/3 text-center">
-              <button 
-                onClick={() => setIsOpen(false)}
-                className="text-[10px] font-black text-discord-muted hover:text-white uppercase tracking-widest"
-              >
-                Fermer le centre
-              </button>
+              <div className="p-4 border-t border-white/10 bg-white/5 text-center">
+                <button 
+                  onClick={() => setIsOpen(false)}
+                  className="text-[10px] font-black text-discord-muted hover:text-white uppercase tracking-widest"
+                >
+                  Fermer le centre
+                </button>
+              </div>
             </div>
           </div>
         </>

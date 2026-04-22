@@ -585,48 +585,36 @@ client.on('ready', async () => {
   console.log(`📡 Listening for social activity...`)
 
     supabase
-      .channel('social-sync')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, async (payload) => {
-        console.log('📝 New post detected in DB:', payload.new.id)
-        const post = payload.new
+      .channel('ent-global-sync')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, async (payload: any) => {
         try {
+          const post = payload.new
           const dynamicFeedId = await getServerSetting('discord_feed_channel_id', process.env.DISCORD_FEED_CHANNEL_ID)
           if (!dynamicFeedId) return
           const channel = await client.channels.fetch(dynamicFeedId)
           if (!channel || !channel.isTextBased()) return
 
           const { data: profile } = await supabase.from('profiles').select('username, avatar_url').eq('id', post.user_id).single()
-
           const embed = new EmbedBuilder()
-            .setColor(BLURPLE)
-            .setAuthor({
-              name: profile?.username || 'Anonyme',
-              iconURL: profile?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'
-            })
+            .setAuthor({ name: profile?.username || 'Anonyme', iconURL: profile?.avatar_url || undefined })
             .setDescription(post.content || '_Pas de contenu_')
+            .setColor(BLURPLE)
             .setTimestamp(new Date(post.created_at))
-            .setFooter({ text: 'ENT LunaVerse • Nouveau Post' })
-
+          
           if (post.image_url) embed.setImage(post.image_url)
-
           const message = await (channel as any).send({ embeds: [embed] })
           await message.react('❤️').catch(() => null)
-
-          try {
-            await message.startThread({ name: `Discussion: ${profile?.username || 'Post'}`, autoArchiveDuration: 1440 })
-          } catch {}
-
+          try { await message.startThread({ name: `Discussion: ${profile?.username || 'Post'}`, autoArchiveDuration: 1440 }) } catch {}
           await supabase.from('posts').update({ message_id: message.id, channel_id: dynamicFeedId }).eq('id', post.id)
-        } catch (err) { console.error('social post insert fail', err) }
+        } catch (err) { console.error('social post relay fail', err) }
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, async (payload) => {
-        const comment = payload.new
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, async (payload: any) => {
         try {
-          const { data: post } = await supabase.from('posts').select('message_id, channel_id, user_id').eq('id', comment.post_id).single()
+          const comment = payload.new
+          const { data: post } = await supabase.from('posts').select('user_id, channel_id, message_id').eq('id', comment.post_id).single()
           if (!post) return
 
-          // Relay to Discord Feed
-          if (post.message_id && post.channel_id) {
+          if (post.channel_id && post.message_id) {
             const channel = await client.channels.fetch(post.channel_id)
             if (channel?.isTextBased()) {
               const thread = (channel as any).threads?.cache.get(post.message_id) || await (channel as any).threads.fetch(post.message_id).catch(() => null)
@@ -637,151 +625,117 @@ client.on('ready', async () => {
             }
           }
 
-          // DM Notification to Post Owner
           if (post.user_id !== comment.user_id) {
             const { data: cUser } = await supabase.from('profiles').select('username').eq('id', comment.user_id).single()
-            const embed = new EmbedBuilder()
-              .setTitle('💬 Nouveau Commentaire')
-              .setColor(BLURPLE)
+            const embed = new EmbedBuilder().setTitle('💬 Nouveau Commentaire').setColor(BLURPLE)
               .setDescription(`**${cUser?.username || 'Anonyme'}** a commenté votre post.\n\n_"${comment.content}"_`)
               .setTimestamp()
-
             await sendDM(post.user_id, embed)
           }
         } catch (err) { console.error('social comment relay fail', err) }
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'canteen_menus' }, async () => {
-         console.log('🍽️ Canteen menus updated, syncing Discord message...')
-         await updateCanteenMenuMessage()
-      })
-
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'likes' }, async (payload) => {
-        const like = payload.new
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'likes' }, async (payload: any) => {
         try {
+          const like = payload.new
           const { data: post } = await supabase.from('posts').select('user_id').eq('id', like.post_id).single()
           if (post && post.user_id !== like.user_id) {
             const { data: lUser } = await supabase.from('profiles').select('username').eq('id', like.user_id).single()
-            const embed = new EmbedBuilder()
-              .setTitle('❤️ Nouveau Like')
-              .setColor(0xED4245)
+            const embed = new EmbedBuilder().setTitle('❤️ Nouveau Like').setColor(ERROR)
               .setDescription(`**${lUser?.username || 'Quelqu\'un'}** a aimé votre post !`)
-              .setFooter({ text: 'LunaVerse Social' })
               .setTimestamp()
             await sendDM(post.user_id, embed)
           }
-        } catch {}
+        } catch (err) { console.error('like relay fail', err) }
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
-        const msg = payload.new
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload: any) => {
         try {
+          const msg = payload.new
           const { data: sender } = await supabase.from('profiles').select('username').eq('id', msg.sender_id).maybeSingle()
-          const embed = new EmbedBuilder()
-            .setTitle('💬 Nouveau Message Privé')
-            .setColor(BLURPLE)
+          const embed = new EmbedBuilder().setTitle('💬 Nouveau Message Privé').setColor(BLURPLE)
             .setDescription(`Vous avez reçu un message de **${sender?.username || 'Inconnu'}** sur l'ENT.`)
-            .setURL('https://lunaverse-ent.netlify.app/messagerie')
           await sendDM(msg.receiver_id, embed)
-        } catch {}
+        } catch (err) { console.error('msg relay fail', err) }
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'friends' }, async (payload) => {
-        const rel = payload.new
-        if (rel.status === 'pending') {
-          try {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'friends' }, async (payload: any) => {
+        try {
+          const rel = payload.new
+          if (rel.status === 'pending') {
             const { data: sender } = await supabase.from('profiles').select('username').eq('id', rel.user1_id).maybeSingle()
-            const embed = new EmbedBuilder()
-              .setTitle('🫂 Demande d\'ami')
-              .setColor(0x57F287)
+            const embed = new EmbedBuilder().setTitle('🫂 Demande d\'ami').setColor(SUCCESS)
               .setDescription(`**${sender?.username || 'Quelqu\'un'}** souhaite devenir votre ami sur l'ENT.`)
-              .setFooter({ text: 'Appuyez sur un bouton pour répondre' })
-
             const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
               new ButtonBuilder().setCustomId(`friend_accept|${rel.id}`).setLabel('Accepter').setStyle(ButtonStyle.Success),
               new ButtonBuilder().setCustomId(`friend_decline|${rel.id}`).setLabel('Refuser').setStyle(ButtonStyle.Danger)
             )
-
             await sendDM(rel.user2_id, embed, [row])
-          } catch {}
-        }
+          }
+        } catch (err) { console.error('friend relay fail', err) }
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions' }, async (payload) => {
-        const tx = payload.new
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions' }, async (payload: any) => {
         try {
+          const tx = payload.new
           let embed = null
-          const type = tx.type
-          
-          if (type === 'tax') {
-            embed = new EmbedBuilder().setTitle('💸 Taxe Prélevée').setColor(0xED4245)
-              .setDescription(`Un prélèvement de **${tx.amount}€** a été effectué pour vos taxes.\n_Description: ${tx.description}_`)
-          } else if (type === 'salary') {
-            embed = new EmbedBuilder().setTitle('💰 Salaire Reçu').setColor(0x57F287)
-              .setDescription(`Votre salaire de **${tx.amount}€** a été versé ! Profitez-en bien.`)
-          } else if (type === 'daily') {
+          if (tx.type === 'tax') {
+            embed = new EmbedBuilder().setTitle('💸 Taxe Prélevée').setColor(ERROR)
+              .setDescription(`Un prélèvement de **${tx.amount}€** a été effectué pour vos taxes.\n_Motif: ${tx.description}_`)
+          } else if (tx.type === 'salary') {
+            embed = new EmbedBuilder().setTitle('💰 Salaire Reçu').setColor(SUCCESS)
+              .setDescription(`Votre salaire de **${tx.amount}€** a été versé !`)
+          } else if (tx.type === 'daily') {
             embed = new EmbedBuilder().setTitle('📅 Récompense Quotidienne').setColor(BLURPLE)
-              .setDescription(`Vouz avez récupéré vos **${tx.amount}€** quotidiens ! À demain.`)
-          } else if (type === 'casino') {
+              .setDescription(`Vouz avez récupéré vos **${tx.amount}€** quotidiens !`)
+          } else if (tx.type === 'casino') {
             const isWin = tx.description.toLowerCase().includes('gagné')
-            embed = new EmbedBuilder().setTitle(isWin ? '🎰 Casino : VICTOIRE !' : '🎰 Casino : PERDU')
-              .setColor(isWin ? 0x57F287 : 0xED4245)
-              .setDescription(`Résultat de votre jeu :\n**${tx.description}**`)
-          } else if (type === 'transfer' && tx.to_user_id) {
+            embed = new EmbedBuilder().setTitle(isWin ? '🎰 Casino : VICTOIRE !' : '🎰 Casino : PERDU').setColor(isWin ? SUCCESS : ERROR)
+              .setDescription(`Résultat : **${tx.description}**`)
+          } else if (tx.type === 'transfer' && tx.to_user_id) {
             const { data: sender } = await supabase.from('profiles').select('username').eq('id', tx.from_user_id).maybeSingle()
-            embed = new EmbedBuilder().setTitle('💸 Argent reçu !').setColor(0x57F287)
+            embed = new EmbedBuilder().setTitle('💸 Argent reçu !').setColor(SUCCESS)
               .setDescription(`**${sender?.username || 'Un utilisateur'}** vous a envoyé **${tx.amount}€**.\n_Motif: ${tx.description || 'Non précisé'}_`)
-          } else if (type === 'canteen') {
+          } else if (tx.type === 'canteen') {
             embed = new EmbedBuilder().setTitle('🍱 Cantine LunaVerse').setColor(0xF97316)
-              .setDescription(`Transaction effectuée : **${tx.amount}€**\n_Détails: ${tx.description}_`)
+              .setDescription(`Transaction : **${tx.amount}€**\n_Détails: ${tx.description}_`)
           }
-
-          if (embed && tx.to_user_id) {
-            await sendDM(tx.to_user_id, embed)
-          } else if (embed && tx.from_user_id && type === 'tax') {
-             await sendDM(tx.from_user_id, embed)
-          }
-        } catch {}
+          if (embed && tx.to_user_id) await sendDM(tx.to_user_id, embed)
+          else if (embed && tx.from_user_id && tx.type === 'tax') await sendDM(tx.from_user_id, embed)
+        } catch (err) { console.error('tx relay fail', err) }
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dating_swipes' }, async (payload) => {
-        const swipe = payload.new
-        if (!swipe.liked) return
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dating_swipes' }, async (payload: any) => {
         try {
+          const swipe = payload.new
+          if (!swipe.liked) return
           const { data: mutual } = await supabase.from('dating_swipes').select('id').eq('swiper_id', swipe.swiped_id).eq('swiped_id', swipe.swiper_id).eq('liked', true).single()
           if (mutual) {
             const embed = new EmbedBuilder().setTitle('💘 Nouveau Match !').setColor(0xFF69B4)
               .setDescription('C\'est un match ! Vous et un autre utilisateur vous plaisez mutuellement.')
-              .setFooter({ text: 'LunaVerse Dating' })
             await sendDM(swipe.swiper_id, embed)
             await sendDM(swipe.swiped_id, embed)
           }
-        } catch {}
+        } catch (err) { console.error('dating relay fail', err) }
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'canteen_menus' }, async (payload) => {
-        try {
-          console.log('🍽️ Canteen menu change detected!', payload.eventType, (payload.new as any)?.id || (payload.old as any)?.id)
-          await updateCanteenMenuMessage()
-          console.log('✅ Canteen message successfully synced to Discord.')
-        } catch (err) {
-          console.error('❌ Failed to sync canteen menu to Discord:', err)
-        }
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'canteen_menus' }, async () => {
+        try { await updateCanteenMenuMessage() } catch (err) { console.error('canteen sync fail', err) }
       })
-      .subscribe((status, err) => {
+      .subscribe((status: string, err?: Error) => {
         if (err) console.error('📡 Realtime subscription error:', err)
         console.log(`📡 Realtime subscription status: ${status}`)
         if (status === 'SUBSCRIBED') {
-          console.log('🚀 Bot is now listening for canteen menu updates!')
+          console.log('🚀 Bot is now listening for all updates!')
         }
       })
 
-  // Helper for DM notification
-  async function sendDM(profileId: string, embed: EmbedBuilder, components: any[] = []) {
-    try {
-      const { data: profile } = await supabase.from('profiles').select('discord_id, notifications_enabled').eq('id', profileId).maybeSingle()
-      if (profile?.discord_id && profile.notifications_enabled !== false) {
-        const user = await client.users.fetch(profile.discord_id).catch(() => null)
-        if (user) await user.send({ embeds: [embed], components: (components as any) }).catch(() => null)
-      }
-    } catch (err) { console.error('DM fail', err) }
-  }
-
 }) // end client.on('ready')
+
+// Helper for DM notification
+async function sendDM(profileId: string, embed: EmbedBuilder, components: any[] = []) {
+  try {
+    const { data: profile } = await supabase.from('profiles').select('discord_id, notifications_enabled').eq('id', profileId).maybeSingle()
+    if (profile?.discord_id && profile.notifications_enabled !== false) {
+      const user = await client.users.fetch(profile.discord_id).catch(() => null)
+      if (user) await user.send({ embeds: [embed], components: (components as any) }).catch(() => null)
+    }
+  } catch (err) { console.error('DM fail', err) }
+}
 
 // ── Canteen Menu Sync Function ─────────────────────────────────────
 export async function updateCanteenMenuMessage() {
