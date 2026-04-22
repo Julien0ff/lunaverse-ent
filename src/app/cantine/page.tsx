@@ -122,29 +122,29 @@ export default function Cantine() {
                {activeMenu.starter && (
                  <div className="flex-1 min-w-[120px] p-4 bg-white/5 rounded-2xl border border-white/5 group-hover:border-orange-500/20 transition-colors">
                     <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">Entrée</p>
-                    <p className="text-sm font-bold text-white">{activeMenu.starter}</p>
+                    <p className="text-sm font-bold text-white canteen-menu-item">{activeMenu.starter}</p>
                  </div>
                )}
                <div className="flex-[2] min-w-[200px] p-4 bg-orange-500/10 rounded-2xl border border-orange-500/20 shadow-[0_0_15px_rgba(249,115,22,0.1)]">
                   <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-1">Plat Principal</p>
-                  <p className="text-base font-black text-white">{activeMenu.main}</p>
+                  <p className="text-base font-black text-white canteen-menu-main">{activeMenu.main}</p>
                </div>
                {activeMenu.side && (
                  <div className="flex-1 min-w-[120px] p-4 bg-white/5 rounded-2xl border border-white/5 group-hover:border-orange-500/20 transition-colors">
                     <p className="text-[10px] font-black text-orange-300 uppercase tracking-widest mb-1">Accompagnement</p>
-                    <p className="text-sm font-bold text-white">{activeMenu.side}</p>
+                    <p className="text-sm font-bold text-white canteen-menu-item">{activeMenu.side}</p>
                  </div>
                )}
                {activeMenu.dessert && (
                  <div className="flex-1 min-w-[120px] p-4 bg-white/5 rounded-2xl border border-white/5 group-hover:border-orange-500/20 transition-colors">
                     <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">Dessert</p>
-                    <p className="text-sm font-bold text-white">{activeMenu.dessert}</p>
+                    <p className="text-sm font-bold text-white canteen-menu-item">{activeMenu.dessert}</p>
                  </div>
                )}
                {activeMenu.drink && (
                  <div className="flex-1 min-w-[120px] p-4 bg-white/5 rounded-2xl border border-white/5 group-hover:border-blue-500/20 transition-colors">
                     <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Boisson</p>
-                    <p className="text-sm font-bold text-white">{activeMenu.drink}</p>
+                    <p className="text-sm font-bold text-white canteen-menu-item">{activeMenu.drink}</p>
                  </div>
                )}
             </div>

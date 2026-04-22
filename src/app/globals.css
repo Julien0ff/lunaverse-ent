@@ -1133,8 +1133,8 @@ textarea.glass-input {
 
 .theme-light .card, 
 .theme-light .glass-card {
-  background: var(--card-bg);
-  border-color: var(--card-border);
+  background: white;
+  border-color: rgba(0, 0, 0, 0.08);
   color: var(--text-main);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
@@ -1142,6 +1142,108 @@ textarea.glass-input {
 .theme-light .card:hover, 
 .theme-light .glass-card:hover {
   border-color: rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.theme-light .text-white {
+  color: #111827 !important;
+}
+
+.theme-light .text-discord-muted {
+  color: #4b5563 !important;
+}
+
+.theme-light .glass-input {
+  background: white;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+.theme-light .glass-input:focus {
+  border-color: var(--discord-blurple);
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.15);
+}
+
+.theme-light .shop-item-card {
+  background: white;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.theme-light .shop-item-thumb {
+  background: #f9fafb;
+  border-bottom-color: #f3f4f6;
+}
+
+.theme-light .casino-card {
+  background: white;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.theme-light .slot-reel {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #111827;
+}
+
+.theme-light .post-card {
+  background: white;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.theme-light .sidebar-link.active {
+  background: rgba(88, 101, 242, 0.1);
+  color: var(--discord-blurple);
+}
+
+.theme-light .luna-checkbox {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.theme-light .bg-white\/3 { background-color: rgba(0,0,0,0.02) !important; }
+.theme-light .bg-white\/5 { background-color: rgba(0,0,0,0.04) !important; }
+.theme-light .bg-white\/10 { background-color: rgba(0,0,0,0.08) !important; }
+.theme-light .bg-white\/20 { background-color: rgba(0,0,0,0.12) !important; }
+.theme-light .border-white\/5 { border-color: rgba(0,0,0,0.05) !important; }
+.theme-light .border-white\/10 { border-color: rgba(0,0,0,0.1) !important; }
+.theme-light .border-white\/20 { border-color: rgba(0,0,0,0.15) !important; }
+
+/* Sidebar & Nav in Light Mode */
+.theme-light aside {
+  background: white !important;
+  border-right: 1px solid rgba(0,0,0,0.08) !important;
+}
+
+.theme-light .sidebar-footer {
+  border-top-color: rgba(0,0,0,0.05) !important;
+}
+
+.theme-light .sidebar-link:hover {
+  background: rgba(0,0,0,0.03) !important;
+}
+
+.theme-light .admin-nav-item {
+  background: rgba(0,0,0,0.03);
+  border-color: rgba(0,0,0,0.05);
+}
+
+.theme-light .admin-nav-item:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+.theme-light .divide-white\/5 > * + * {
+  border-color: rgba(0,0,0,0.05) !important;
+}
+
+/* ─── Canteen Menu Size ────────────────────────────────────── */
+.canteen-menu-main {
+  font-size: 2.5rem !important;
+  line-height: 1.2;
+}
+
+.canteen-menu-item {
+  font-size: 1.25rem !important;
+}
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
 }
 

@@ -1090,17 +1090,33 @@ export default function AdminPage() {
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1.5 block px-1">Date du menu</label>
-                <input type="date" className="glass-input !bg-black/20" value={newCanteen.menu_date} onChange={e => setNewCanteen(s => ({ ...s, menu_date: e.target.value }))} />
+                <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1.5 block px-1 flex justify-between">
+                  <span>Date du menu</span>
+                  <span className="text-orange-500 font-bold">Week-end uniquement</span>
+                </label>
+                <input 
+                  type="date" 
+                  className="glass-input !bg-black/20" 
+                  value={newCanteen.menu_date} 
+                  onChange={e => {
+                    const date = new Date(e.target.value)
+                    const day = date.getDay()
+                    if (day !== 0 && day !== 6) {
+                      showMsg('error', '⚠️ La cantine n\'est ouverte que le samedi et dimanche !')
+                      return
+                    }
+                    setNewCanteen(s => ({ ...s, menu_date: e.target.value }))
+                  }} 
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1.5 block px-1">Début (HH:MM)</label>
-                  <input type="time" className="glass-input !bg-black/20 font-mono" value={newCanteen.time_start} onChange={e => setNewCanteen(s => ({ ...s, time_start: e.target.value }))} />
+                  <input type="time" readOnly className="glass-input !bg-black/40 font-mono opacity-50" value="15:30" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1.5 block px-1">Fin (HH:MM)</label>
-                  <input type="time" className="glass-input !bg-black/20 font-mono" value={newCanteen.time_end} onChange={e => setNewCanteen(s => ({ ...s, time_end: e.target.value }))} />
+                  <input type="time" readOnly className="glass-input !bg-black/40 font-mono opacity-50" value="16:00" />
                 </div>
               </div>
               <div className="space-y-3 pt-2">

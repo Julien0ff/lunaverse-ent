@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = useCallback(async () => {
     // Only set ready to false if we haven't loaded anything yet
-    if (!profile) setReady(false)
+    // Removed setReady(false) to prevent flicker on session refresh
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser()
       if (!currentUser) { setReady(true); return }
