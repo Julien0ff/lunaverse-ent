@@ -654,107 +654,7 @@ client.on('ready', async () => {
          console.log('🍽️ Canteen menus updated, syncing Discord message...')
          await updateCanteenMenuMessage()
       })
-      .subscribe()
-}
 
-// ── Canteen Menu Sync Function ─────────────────────────────────────
-export async function updateCanteenMenuMessage() {
-  try {
-    const channelId = await getServerSetting('discord_canteen_menu_channel_id')
-    if (!channelId) return
-
-    const channel = await client.channels.fetch(channelId).catch(() => null)
-    if (!channel || !channel.isTextBased()) return
-
-    // Calculate dates for this weekend (Saturday and Sunday)
-    const now = new Date()
-    const day = now.getDay()
-    const diffToSaturday = 6 - day
-    const saturday = new Date(now)
-    saturday.setDate(now.getDate() + diffToSaturday)
-    const sunday = new Date(saturday)
-    sunday.setDate(saturday.getDate() + 1)
-
-    const satStr = saturday.toISOString().split('T')[0]
-    const sunStr = sunday.toISOString().split('T')[0]
-
-    // Fetch menus for >= today
-    const today = new Date()
-    today.setHours(0,0,0,0)
-    const todayStr = today.toISOString().split('T')[0]
-
-    const { data: menus } = await supabase
-      .from('canteen_menus')
-      .select('*')
-      .gte('menu_date', todayStr)
-      .order('menu_date', { ascending: true })
-      .order('time_start', { ascending: true })
-
-    if (!menus) return
-
-    // Filter weekend menus
-    const weekendMenus = menus.filter(m => m.menu_date === satStr || m.menu_date === sunStr)
-    // Find future menus (after this weekend)
-    const futureMenus = menus.filter(m => m.menu_date > sunStr)
-
-    const embed = new EmbedBuilder()
-      .setTitle('🍽️ Menu de la Cantine (Week-end)')
-      .setColor(0xF97316)
-      .setTimestamp()
-
-    if (weekendMenus.length === 0) {
-      embed.setDescription('_Aucun menu prévu pour ce week-end._')
-    } else {
-      for (const m of weekendMenus) {
-        const dateObj = new Date(m.menu_date)
-        const dateStr = dateObj.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
-        const title = `Menu du ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)}`
-        
-        let desc = `**Horaire :** ${m.time_start.slice(0, 5)} - ${m.time_end.slice(0, 5)}\n\n`
-        if (m.starter) desc += `🥗 **Entrée :** ${m.starter}\n`
-        desc += `🍗 **Plat :** ${m.main}\n`
-        if (m.side) desc += `🍟 **Accompagnement :** ${m.side}\n`
-        if (m.dessert) desc += `🍰 **Dessert :** ${m.dessert}\n`
-        if (m.drink) desc += `🥤 **Boisson :** ${m.drink}\n`
-        if (m.note) desc += `\n*💡 ${m.note}*`
-        
-        embed.addFields({ name: title, value: desc, inline: false })
-      }
-    }
-
-    const components = []
-    if (futureMenus.length > 0) {
-      const btn = new ButtonBuilder()
-        .setCustomId('cantine_show_more')
-        .setLabel('Afficher les menus suivants')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('📅')
-      components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(btn))
-    }
-
-    const messageId = await getServerSetting('discord_canteen_menu_message_id')
-    let message = null
-    if (messageId) {
-      message = await (channel as any).messages.fetch(messageId).catch(() => null)
-    }
-
-    if (message) {
-      await message.edit({ embeds: [embed], components })
-    } else {
-      const newMessage = await (channel as any).send({ embeds: [embed], components })
-      await setServerSetting('discord_canteen_menu_message_id', newMessage.id)
-    }
-  } catch (err) {
-    console.error('Failed to update canteen menu message:', err)
-  }
-}
-              .setDescription(`**${cUser?.username || 'Quelqu\'un'}** a commenté votre post : \n\n> ${comment.content.substring(0, 100)}${comment.content.length > 100 ? '...' : ''}`)
-              .setFooter({ text: 'LunaVerse Social' })
-              .setTimestamp()
-            await sendDM(post.user_id, embed)
-          }
-        } catch (err) { console.error('social comment insert fail', err) }
-      })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'likes' }, async (payload) => {
         const like = payload.new
         try {
@@ -869,6 +769,99 @@ export async function updateCanteenMenuMessage() {
   }
 
 }) // end client.on('ready')
+
+// ── Canteen Menu Sync Function ─────────────────────────────────────
+export async function updateCanteenMenuMessage() {
+  try {
+    const channelId = await getServerSetting('discord_canteen_menu_channel_id')
+    if (!channelId) return
+
+    const channel = await client.channels.fetch(channelId).catch(() => null)
+    if (!channel || !channel.isTextBased()) return
+
+    // Calculate dates for this weekend (Saturday and Sunday)
+    const now = new Date()
+    const day = now.getDay()
+    const diffToSaturday = 6 - day
+    const saturday = new Date(now)
+    saturday.setDate(now.getDate() + diffToSaturday)
+    const sunday = new Date(saturday)
+    sunday.setDate(saturday.getDate() + 1)
+
+    const satStr = saturday.toISOString().split('T')[0]
+    const sunStr = sunday.toISOString().split('T')[0]
+
+    // Fetch menus for >= today
+    const today = new Date()
+    today.setHours(0,0,0,0)
+    const todayStr = today.toISOString().split('T')[0]
+
+    const { data: menus } = await supabase
+      .from('canteen_menus')
+      .select('*')
+      .gte('menu_date', todayStr)
+      .order('menu_date', { ascending: true })
+      .order('time_start', { ascending: true })
+
+    if (!menus) return
+
+    // Filter weekend menus
+    const weekendMenus = menus.filter(m => m.menu_date === satStr || m.menu_date === sunStr)
+    // Find future menus (after this weekend)
+    const futureMenus = menus.filter(m => m.menu_date > sunStr)
+
+    const embed = new EmbedBuilder()
+      .setTitle('🍽️ Menu de la Cantine (Week-end)')
+      .setColor(0xF97316)
+      .setTimestamp()
+
+    if (weekendMenus.length === 0) {
+      embed.setDescription('_Aucun menu prévu pour ce week-end._')
+    } else {
+      for (const m of weekendMenus) {
+        const dateObj = new Date(m.menu_date)
+        const dateStr = dateObj.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+        const title = `Menu du ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)}`
+        
+        let desc = `**Horaire :** ${m.time_start.slice(0, 5)} - ${m.time_end.slice(0, 5)}\n\n`
+        if (m.starter) desc += `🥗 **Entrée :** ${m.starter}\n`
+        desc += `🍗 **Plat :** ${m.main}\n`
+        if (m.side) desc += `🍟 **Accompagnement :** ${m.side}\n`
+        if (m.dessert) desc += `🍰 **Dessert :** ${m.dessert}\n`
+        if (m.drink) desc += `🥤 **Boisson :** ${m.drink}\n`
+        if (m.note) desc += `\n*💡 ${m.note}*`
+        
+        embed.addFields({ name: title, value: desc, inline: false })
+      }
+    }
+
+    const components = []
+    if (futureMenus.length > 0) {
+      const btn = new ButtonBuilder()
+        .setCustomId('cantine_show_more')
+        .setLabel('Afficher les menus suivants')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('📅')
+      components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(btn))
+    }
+
+    const messageId = await getServerSetting('discord_canteen_menu_message_id')
+    let message = null
+    if (messageId) {
+      message = await (channel as any).messages.fetch(messageId).catch(() => null)
+    }
+
+    if (message) {
+      await message.edit({ embeds: [embed], components })
+    } else {
+      const newMessage = await (channel as any).send({ embeds: [embed], components })
+      await setServerSetting('discord_canteen_menu_message_id', newMessage.id)
+    }
+  } catch (err) {
+    console.error('Failed to update canteen menu message:', err)
+  }
+}
+
 
 // ── Canteen messages control ─────────────────────────────────────────────
 client.on('messageCreate', async (message) => {
