@@ -11,6 +11,7 @@ export default function Cantine() {
   const [purchasing, setPurchasing] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [activeMenu, setActiveMenu] = useState<any>(null)
+  const [upcomingMenus, setUpcomingMenus] = useState<any[]>([])
   
   const fetchMenu = async () => {
     try {
@@ -18,6 +19,7 @@ export default function Cantine() {
       if (r.ok) {
         const data = await r.json()
         setActiveMenu(data.active)
+        setUpcomingMenus(data.menus.filter((m: any) => m.id !== data.active?.id))
       }
     } catch(e) {}
   }
@@ -272,6 +274,37 @@ export default function Cantine() {
               Une fois souscrit, passez au self avec cette page pour que l&apos;agent scanne votre QR Code.
             </p>
           </div>
+
+          {/* Calendrier des menus */}
+          {upcomingMenus.length > 0 && (
+            <div className="mt-8 space-y-4">
+              <h3 className="text-lg font-black text-white flex items-center gap-2">
+                <CalendarClock className="w-5 h-5 text-orange-500" /> Prochains Menus
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {upcomingMenus.map((m: any) => (
+                  <div key={m.id} className="p-5 glass-card bg-white/[0.02] border-white/5 hover:border-orange-500/20 transition-all flex flex-col gap-3">
+                    <div className="flex justify-between items-start">
+                       <span className="text-[10px] font-black bg-orange-500/10 text-orange-500 px-2 py-0.5 rounded-full border border-orange-500/20 uppercase tracking-widest">
+                          {new Date(m.menu_date).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' })}
+                       </span>
+                       <span className="text-[10px] font-bold text-discord-muted">
+                          {m.time_start.slice(0, 5)} - {m.time_end.slice(0, 5)}
+                       </span>
+                    </div>
+                    <div className="space-y-1">
+                       <p className="text-xs font-bold text-discord-muted uppercase tracking-tighter">Menu</p>
+                       <p className="text-sm font-black text-white leading-tight">
+                          {m.starter && <span className="opacity-60">{m.starter} / </span>}
+                          {m.main}
+                          {m.dessert && <span className="opacity-60"> / {m.dessert}</span>}
+                       </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

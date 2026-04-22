@@ -671,7 +671,7 @@ export default function AdminPage() {
                   value={giveReason} onChange={e => setGiveReason(e.target.value)} />
               </div>
               <label className="flex items-center gap-3 cursor-pointer py-2">
-                <input type="checkbox" checked={giveAutoAdd} onChange={e => setGiveAutoAdd(e.target.checked)} className="w-5 h-5 rounded border-white/20 bg-black/20 text-discord-success focus:ring-discord-success focus:ring-offset-discord-dark" />
+                <input type="checkbox" checked={giveAutoAdd} onChange={e => setGiveAutoAdd(e.target.checked)} className="luna-checkbox" />
                 <div>
                   <p className="text-sm font-bold text-white">Versement automatique</p>
                   <p className="text-[10px] text-discord-muted">Si activé, l&apos;argent est crédité immédiatement sur le solde. Sinon, le joueur devra réclamer la prime.</p>
@@ -814,7 +814,7 @@ export default function AdminPage() {
                 value={newTax.amount} onChange={e => setNewTax({ ...newTax, amount: e.target.value })} />
 
               <label className="flex items-center gap-3 cursor-pointer py-2">
-                <input type="checkbox" checked={newTax.auto_deduct} onChange={e => setNewTax({ ...newTax, auto_deduct: e.target.checked })} className="w-5 h-5 rounded border-white/20 bg-black/20 text-discord-error focus:ring-discord-error focus:ring-offset-discord-dark" />
+                <input type="checkbox" checked={newTax.auto_deduct} onChange={e => setNewTax({ ...newTax, auto_deduct: e.target.checked })} className="luna-checkbox" />
                 <div>
                   <p className="text-sm font-bold text-white">Prélèvement automatique</p>
                   <p className="text-[10px] text-discord-muted">Si activé, l&apos;argent est débité immédiatement du solde. Sinon, le joueur devra payer manuellement.</p>
@@ -1205,7 +1205,7 @@ export default function AdminPage() {
                             <label className="flex items-center gap-2 cursor-pointer group/label">
                                <input 
                                  type="checkbox" 
-                                 className="w-4 h-4 rounded bg-white/5 border-white/10 text-discord-error focus:ring-discord-error"
+                                 className="luna-checkbox"
                                  checked={hasPenalty}
                                  onChange={e => setHasPenalty(e.target.checked)}
                                />

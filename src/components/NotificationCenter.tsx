@@ -20,7 +20,7 @@ export default function NotificationCenter() {
         <Bell className={clsx("w-5 h-5", unreadCount > 0 && "animate-pulse")} />
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 w-4 h-4 bg-discord-error text-white text-[10px] font-black flex items-center justify-center rounded-full ring-2 ring-[#1e1f22]">
-            {unreadCount}
+            {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
@@ -31,13 +31,13 @@ export default function NotificationCenter() {
             className="fixed inset-0 z-[100]" 
             onClick={() => setIsOpen(false)} 
           />
-          <div className="absolute top-12 left-0 w-80 max-h-[80vh] overflow-hidden glass-card !p-0 z-[101] animate-scaleIn shadow-2xl flex flex-col">
+          <div className="fixed inset-0 md:absolute md:top-12 md:left-0 w-full md:w-80 h-full md:h-auto max-h-screen md:max-h-[80vh] overflow-hidden glass-card md:rounded-2xl !p-0 z-[101] animate-scaleIn md:animate-fadeIn shadow-2xl flex flex-col">
             <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
               <h3 className="font-black text-white flex items-center gap-2">
-                <Bell className="w-4 h-4 text-discord-blurple" /> {t('nav.notifications') || 'Notifications'}
+                <Bell className="w-4 h-4 text-discord-blurple" /> {t('nav.notifications_center') || 'Centre de Notifications'}
               </h3>
-              <button onClick={() => setIsOpen(false)} className="text-discord-muted hover:text-white">
-                <X size={16} />
+              <button onClick={() => setIsOpen(false)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 text-discord-muted hover:text-white transition-all">
+                <X size={20} />
               </button>
             </div>
 

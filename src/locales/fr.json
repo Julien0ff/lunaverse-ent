@@ -18,7 +18,9 @@
     "impots": "Impôts",
     "casino": "Casino",
     "shop": "Boutique",
-    "admin": "Administration"
+    "admin": "Administration",
+    "notifications": "Notifications",
+    "notifications_center": "Centre de Notifications"
   },
   "settings": {
     "title": "Paramètres",
