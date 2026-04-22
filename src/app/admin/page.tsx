@@ -1120,11 +1120,11 @@ export default function AdminPage() {
                 </div>
               </div>
               <div className="space-y-3 pt-2">
-                <input placeholder="Entrée" className="glass-input !bg-black/20" value={newCanteen.starter} onChange={e => setNewCanteen(s => ({ ...s, starter: e.target.value }))} />
-                <input placeholder="Plat Principal *" className="glass-input !bg-black/20" value={newCanteen.main} onChange={e => setNewCanteen(s => ({ ...s, main: e.target.value }))} />
-                <input placeholder="Accompagnement" className="glass-input !bg-black/20" value={newCanteen.side} onChange={e => setNewCanteen(s => ({ ...s, side: e.target.value }))} />
-                <input placeholder="Dessert" className="glass-input !bg-black/20" value={newCanteen.dessert} onChange={e => setNewCanteen(s => ({ ...s, dessert: e.target.value }))} />
-                <input placeholder="Boisson" className="glass-input !bg-black/20" value={newCanteen.drink} onChange={e => setNewCanteen(s => ({ ...s, drink: e.target.value }))} />
+                <textarea placeholder="Entrée(s)" className="glass-input !bg-black/20 resize-none" rows={2} value={newCanteen.starter} onChange={e => setNewCanteen(s => ({ ...s, starter: e.target.value }))} />
+                <textarea placeholder="Plat(s) Principal(aux) *" className="glass-input !bg-black/20 resize-none" rows={2} value={newCanteen.main} onChange={e => setNewCanteen(s => ({ ...s, main: e.target.value }))} />
+                <textarea placeholder="Accompagnement(s)" className="glass-input !bg-black/20 resize-none" rows={2} value={newCanteen.side} onChange={e => setNewCanteen(s => ({ ...s, side: e.target.value }))} />
+                <textarea placeholder="Dessert(s)" className="glass-input !bg-black/20 resize-none" rows={2} value={newCanteen.dessert} onChange={e => setNewCanteen(s => ({ ...s, dessert: e.target.value }))} />
+                <textarea placeholder="Boisson(s)" className="glass-input !bg-black/20 resize-none" rows={2} value={newCanteen.drink} onChange={e => setNewCanteen(s => ({ ...s, drink: e.target.value }))} />
                 <textarea placeholder="Note facultative" className="glass-input !bg-black/20 resize-none" rows={2} value={newCanteen.note} onChange={e => setNewCanteen(s => ({ ...s, note: e.target.value }))} />
               </div>
               <button onClick={createCanteenMenu} disabled={!newCanteen.main} className="btn btn-primary w-full py-4 font-black shadow-[0_0_20px_rgba(88,101,242,0.3)] hover:shadow-discord-blurple/50 transition-all">
@@ -1151,7 +1151,7 @@ export default function AdminPage() {
                             <Clock className="w-3 h-3 text-discord-muted" /> {m.time_start.slice(0, 5)} - {m.time_end.slice(0, 5)}
                           </span>
                        </div>
-                       <p className="text-sm font-bold mt-2 leading-relaxed">
+                       <p className="text-sm font-bold mt-2 leading-relaxed whitespace-pre-wrap">
                           {m.starter && <span className="text-white/60">{m.starter}</span>}
                           {m.starter && <span className="text-discord-muted mx-2">/</span>}
                           <span className="text-orange-400 font-extrabold">{m.main}</span>
