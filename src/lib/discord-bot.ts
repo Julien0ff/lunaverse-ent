@@ -641,7 +641,6 @@ client.on('ready', async () => {
           if (post.user_id !== comment.user_id) {
             const { data: cUser } = await supabase.from('profiles').select('username').eq('id', comment.user_id).single()
             const embed = new EmbedBuilder()
-              const embed = new EmbedBuilder()
               .setTitle('💬 Nouveau Commentaire')
               .setColor(BLURPLE)
               .setDescription(`**${cUser?.username || 'Anonyme'}** a commenté votre post.\n\n_"${comment.content}"_`)

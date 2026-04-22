@@ -26,8 +26,8 @@ interface Suggestion {
   created_at: string; author: { username: string; avatar_url: string | null }
 }
 interface CanteenMenu {
-  id: string; day_of_week: number; time_start: string; time_end: string
-  starter: string; main: string; dessert: string; note: string
+  id: string; menu_date: string; time_start: string; time_end: string
+  starter: string; main: string; side?: string; dessert: string; drink?: string; note: string
 }
 interface TaxRecord {
   id: string; target_id: string; reason: string; amount: number; is_preleve: boolean
@@ -674,7 +674,7 @@ export default function AdminPage() {
                 <input type="checkbox" checked={giveAutoAdd} onChange={e => setGiveAutoAdd(e.target.checked)} className="w-5 h-5 rounded border-white/20 bg-black/20 text-discord-success focus:ring-discord-success focus:ring-offset-discord-dark" />
                 <div>
                   <p className="text-sm font-bold text-white">Versement automatique</p>
-                  <p className="text-[10px] text-discord-muted">Si activé, l'argent est crédité immédiatement sur le solde. Sinon, le joueur devra réclamer la prime.</p>
+                  <p className="text-[10px] text-discord-muted">Si activé, l&apos;argent est crédité immédiatement sur le solde. Sinon, le joueur devra réclamer la prime.</p>
                 </div>
               </label>
               <button onClick={giveMoney} disabled={!giveUser || !giveAmount} className="btn btn-success w-full py-3 mt-2">
@@ -817,7 +817,7 @@ export default function AdminPage() {
                 <input type="checkbox" checked={newTax.auto_deduct} onChange={e => setNewTax({ ...newTax, auto_deduct: e.target.checked })} className="w-5 h-5 rounded border-white/20 bg-black/20 text-discord-error focus:ring-discord-error focus:ring-offset-discord-dark" />
                 <div>
                   <p className="text-sm font-bold text-white">Prélèvement automatique</p>
-                  <p className="text-[10px] text-discord-muted">Si activé, l'argent est débité immédiatement du solde. Sinon, le joueur devra payer manuellement.</p>
+                  <p className="text-[10px] text-discord-muted">Si activé, l&apos;argent est débité immédiatement du solde. Sinon, le joueur devra payer manuellement.</p>
                 </div>
               </label>
 
