@@ -1,6 +1,7 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { NextRequest, NextResponse } from 'next/server'
+import { updateCanteenMenuMessage } from '@/lib/discord-bot'
 
 /**
  * GET /api/cantine/menu
@@ -86,6 +87,14 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (error) throw error
+  
+  // Trigger Discord sync manually
+  try {
+    await updateCanteenMenuMessage()
+  } catch (err) {
+    console.error('Failed to trigger Discord sync on POST', err)
+  }
+
   return NextResponse.json({ success: true, menu: data })
 }
 
@@ -102,5 +111,13 @@ export async function DELETE(request: NextRequest) {
   const adminClient = createSupabaseAdmin()
   const { error } = await adminClient.from('canteen_menus').delete().eq('id', id)
   if (error) throw error
+
+  // Trigger Discord sync manually
+  try {
+    await updateCanteenMenuMessage()
+  } catch (err) {
+    console.error('Failed to trigger Discord sync on DELETE', err)
+  }
+
   return NextResponse.json({ success: true })
 }
