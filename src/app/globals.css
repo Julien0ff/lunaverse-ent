@@ -1244,8 +1244,6 @@ textarea.glass-input {
 .canteen-menu-item {
   font-size: 1.25rem !important;
 }
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-}
 
 .theme-light .glass-input {
   background: rgba(0, 0, 0, 0.03);
