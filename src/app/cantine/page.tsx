@@ -1,7 +1,7 @@
 'use client'
 
 import { useAuth } from '@/context/AuthContext'
-import { Utensils, QrCode, CalendarClock, ChevronRight, CheckCircle2 } from 'lucide-react'
+import { Utensils, QrCode, CalendarClock, ChevronRight, CheckCircle2, Clock } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import clsx from 'clsx'
 
@@ -275,30 +275,68 @@ export default function Cantine() {
             </p>
           </div>
 
-          {/* Calendrier des menus */}
           {upcomingMenus.length > 0 && (
-            <div className="mt-8 space-y-4">
-              <h3 className="text-lg font-black text-white flex items-center gap-2">
-                <CalendarClock className="w-5 h-5 text-orange-500" /> Prochains Menus
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="mt-12 space-y-6">
+              <div className="flex items-center gap-3 px-2">
+                <div className="h-8 w-1 bg-orange-500 rounded-full" />
+                <h3 className="text-2xl font-black text-white flex items-center gap-2">
+                  <CalendarClock className="w-7 h-7 text-orange-500" /> Prochains Menus
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 gap-6">
                 {upcomingMenus.map((m: any) => (
-                  <div key={m.id} className="p-5 glass-card bg-white/[0.02] border-white/5 hover:border-orange-500/20 transition-all flex flex-col gap-3">
-                    <div className="flex justify-between items-start">
-                       <span className="text-[10px] font-black bg-orange-500/10 text-orange-500 px-2 py-0.5 rounded-full border border-orange-500/20 uppercase tracking-widest">
-                          {new Date(m.menu_date).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' })}
+                  <div key={m.id} className="p-8 glass-card bg-white/[0.02] border-white/5 hover:border-orange-500/30 transition-all flex flex-col md:flex-row gap-8 relative group overflow-hidden">
+                    <div className="absolute top-0 left-0 w-2 h-full bg-orange-500/20 group-hover:bg-orange-500/50 transition-colors" />
+                    
+                    <div className="flex-shrink-0 flex flex-col items-center justify-center bg-white/5 rounded-3xl p-6 min-w-[140px] border border-white/5">
+                       <span className="text-xs font-black text-orange-500 uppercase tracking-[0.2em] mb-1">
+                          {new Date(m.menu_date).toLocaleDateString('fr-FR', { weekday: 'long' })}
                        </span>
-                       <span className="text-[10px] font-bold text-discord-muted">
-                          {m.time_start.slice(0, 5)} - {m.time_end.slice(0, 5)}
+                       <span className="text-4xl font-black text-white">
+                          {new Date(m.menu_date).getDate()}
                        </span>
+                       <span className="text-sm font-bold text-discord-muted uppercase">
+                          {new Date(m.menu_date).toLocaleDateString('fr-FR', { month: 'short' })}
+                       </span>
+                       <div className="mt-4 flex items-center gap-1.5 px-3 py-1 bg-black/40 rounded-full">
+                          <Clock className="w-3 h-3 text-discord-muted" />
+                          <span className="text-[10px] font-bold text-white">
+                            {m.time_start.slice(0, 5)} - {m.time_end.slice(0, 5)}
+                          </span>
+                       </div>
                     </div>
-                    <div className="space-y-1">
-                       <p className="text-xs font-bold text-discord-muted uppercase tracking-tighter">Menu</p>
-                       <p className="text-sm font-black text-white leading-tight">
-                          {m.starter && <span className="opacity-60">{m.starter} / </span>}
-                          {m.main}
-                          {m.dessert && <span className="opacity-60"> / {m.dessert}</span>}
-                       </p>
+
+                    <div className="flex-1 space-y-4">
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {m.starter && (
+                            <div className="space-y-1">
+                               <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest">Entrée</p>
+                               <p className="text-lg font-bold text-white/90">{m.starter}</p>
+                            </div>
+                          )}
+                          <div className="space-y-1 sm:col-span-2">
+                             <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Plat Principal</p>
+                             <p className="text-2xl font-black text-white">{m.main}</p>
+                          </div>
+                          {m.side && (
+                            <div className="space-y-1">
+                               <p className="text-[10px] font-black text-orange-300 uppercase tracking-widest">Accompagnement</p>
+                               <p className="text-lg font-bold text-white/90">{m.side}</p>
+                            </div>
+                          )}
+                          {m.dessert && (
+                            <div className="space-y-1">
+                               <p className="text-[10px] font-black text-pink-400 uppercase tracking-widest">Dessert</p>
+                               <p className="text-lg font-bold text-white/90">{m.dessert}</p>
+                            </div>
+                          )}
+                       </div>
+                       
+                       {m.note && (
+                          <div className="pt-4 border-t border-white/5 flex items-center gap-3 text-sm text-discord-muted italic">
+                             <span className="text-lg">💡</span> {m.note}
+                          </div>
+                       )}
                     </div>
                   </div>
                 ))}

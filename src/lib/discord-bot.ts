@@ -753,6 +753,14 @@ client.on('ready', async () => {
           }
         } catch {}
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'canteen_menus' }, async () => {
+        try {
+          console.log('🍽️ Canteen menu change detected, updating message...')
+          await updateCanteenMenuMessage()
+        } catch (err) {
+          console.error('Failed to sync canteen menu to Discord:', err)
+        }
+      })
       .subscribe((status) => {
         console.log(`📡 Realtime subscription status: ${status}`)
       })
