@@ -82,7 +82,9 @@ export default function Cantine() {
     } finally {
       setPurchasing(false)
     }
-  }  return (
+  }
+
+  return (
     <div className="page-container max-w-4xl mx-auto">
       <div className="animate-slideIn mb-8">
         <h1 className="text-4xl font-black text-white flex items-center gap-3 tracking-tight">
