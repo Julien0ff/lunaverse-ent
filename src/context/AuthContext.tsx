@@ -155,7 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Error in refreshProfile:', err)
       setReady(true) // unblock even on error
     }
-  }, [profile])
+  }, []) // Removed profile dependency to avoid infinite loop
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {

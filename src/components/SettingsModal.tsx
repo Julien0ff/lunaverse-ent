@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { X, Moon, Sun, Languages, Bell, Shield, User, Rocket, Zap, Settings, Check, ExternalLink, Palette } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { useAuth } from '@/context/AuthContext'
@@ -234,11 +235,14 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       )}
                     >
                       <div className="flex items-center gap-5">
-                        <img 
-                          src={`https://flagcdn.com/w40/${lang.flag}.png`} 
-                          alt={lang.name}
-                          className="w-8 h-auto rounded-sm grayscale-[0.5] group-hover:grayscale-0 transition-all shadow-sm"
-                        />
+                        <div className="relative w-8 h-6 rounded-sm overflow-hidden grayscale-[0.5] group-hover:grayscale-0 transition-all shadow-sm">
+                          <Image 
+                            src={`https://flagcdn.com/w40/${lang.flag}.png`} 
+                            alt={lang.name}
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
                         <span className={clsx('text-lg font-black', locale === lang.id ? 'text-white' : 'text-discord-muted group-hover:text-white')}>{lang.name}</span>
                       </div>
                       {locale === lang.id && <Check className="text-discord-blurple" size={24} />}

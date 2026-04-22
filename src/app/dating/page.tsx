@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
+import Image from 'next/image'
 import { useAuth } from '@/context/AuthContext'
 import { Heart, X, Flame, Sparkles, MessageCircle, AlertCircle } from 'lucide-react'
 import clsx from 'clsx'
@@ -199,7 +200,9 @@ export default function Dating() {
                  <div className="grid grid-cols-3 gap-2 mb-3">
                    {datingPhotos.map((url, i) => (
                      <div key={i} className="relative group">
-                       <img src={url} alt={`Photo ${i+1}`} className="w-full aspect-square rounded-xl object-cover ring-2 ring-rose-500/30" />
+                                               <div className="w-full aspect-square relative rounded-xl overflow-hidden ring-2 ring-rose-500/30">
+                          <Image src={url} alt={`Photo ${i+1}`} fill className="object-cover" />
+                        </div>
                        <button 
                          onClick={() => setDatingPhotos(prev => prev.filter((_, idx) => idx !== i))}
                          className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -278,7 +281,12 @@ export default function Dating() {
               return (
                 <>
                   {showPhoto ? (
-                    <img src={showPhoto} alt={currentProfile.username} className="w-full h-full object-cover" />
+                    <Image 
+                      src={showPhoto} 
+                      alt={currentProfile.username} 
+                      fill 
+                      className="object-cover" 
+                    />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-b from-rose-500/20 to-purple-800/40 flex items-center justify-center text-rose-500/50">
                       <Heart className="w-32 h-32" />
