@@ -1,22 +1,16 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { createSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdmin } from '@/lib/auth-server'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = createSupabaseServer()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    const admin = createSupabaseAdmin()
+    const user = await requireAdmin(supabase, admin)
+    if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-    // Check admin role
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('roles(name)')
-      .eq('user_id', user.id)
-    
-    const isAdmin = userRoles?.some((r: any) => r.roles.name === 'admin')
-    if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
-
-    const { data: declarations, error } = await supabase
+    const { data: declarations, error } = await admin
       .from('declarations')
       .select(`
         *,
@@ -35,8 +29,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = createSupabaseServer()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    const admin = createSupabaseAdmin()
+    const user = await requireAdmin(supabase, admin)
+    if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const { declarationId, action, hasPenalty } = await request.json()
 
@@ -44,7 +39,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Action invalide' }, { status: 400 })
     }
 
-    const { data: declaration } = await supabase
+    const { data: declaration } = await admin
       .from('declarations')
       .select('*')
       .eq('id', declarationId)
@@ -53,7 +48,7 @@ export async function POST(request: NextRequest) {
     if (!declaration) return NextResponse.json({ error: 'Déclaration introuvable' }, { status: 404 })
     if (declaration.status !== 'pending') return NextResponse.json({ error: 'Déclaration déjà traitée' }, { status: 400 })
 
-    const { data: targetProfile } = await supabase
+    const { data: targetProfile } = await admin
       .from('profiles')
       .select('balance')
       .eq('id', declaration.user_id)
@@ -62,18 +57,17 @@ export async function POST(request: NextRequest) {
     if (!targetProfile) return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 })
 
     if (action === 'accept') {
-      const { data: currentProfile } = await supabase.from('profiles').select('balance').eq('id', declaration.user_id).single()
-      const newBal = (Number(currentProfile?.balance) || 0) + Number(declaration.amount)
+      const newBal = (Number(targetProfile.balance) || 0) + Number(declaration.amount)
       
-      await supabase.from('profiles').update({ balance: newBal }).eq('id', declaration.user_id)
+      await admin.from('profiles').update({ balance: newBal }).eq('id', declaration.user_id)
 
-      await supabase.from('declarations').update({
+      await admin.from('declarations').update({
         status: 'accepted',
         processed_at: new Date().toISOString()
       }).eq('id', declarationId)
 
       // Log transaction
-      await supabase.from('transactions').insert([{
+      await admin.from('transactions').insert([{
         from_user_id: null,
         to_user_id: declaration.user_id,
         amount: declaration.amount,
@@ -86,12 +80,11 @@ export async function POST(request: NextRequest) {
       let fineAmount = 0
       if (hasPenalty) {
         fineAmount = Math.max(50, Math.floor(declaration.amount * 0.2)) // 20% fine, min 50
-        const { data: currentProfile } = await supabase.from('profiles').select('balance').eq('id', declaration.user_id).single()
-        const newBal = (Number(currentProfile?.balance) || 0) - fineAmount
-        await supabase.from('profiles').update({ balance: newBal }).eq('id', declaration.user_id)
+        const newBal = (Number(targetProfile.balance) || 0) - fineAmount
+        await admin.from('profiles').update({ balance: newBal }).eq('id', declaration.user_id)
       }
 
-      await supabase.from('declarations').update({
+      await admin.from('declarations').update({
         status: 'refused',
         has_penalty: !!hasPenalty,
         processed_at: new Date().toISOString()
@@ -99,7 +92,7 @@ export async function POST(request: NextRequest) {
 
       // Log transaction if penalty
       if (hasPenalty) {
-         await supabase.from('transactions').insert([{
+         await admin.from('transactions').insert([{
           from_user_id: declaration.user_id,
           to_user_id: null,
           amount: -fineAmount,

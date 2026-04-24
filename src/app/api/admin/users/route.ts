@@ -29,7 +29,7 @@ export async function PATCH(request: NextRequest) {
         if (!userId) return NextResponse.json({ error: 'userId requis' }, { status: 400 })
 
         // Whitelist updatable fields
-        const ALLOWED = ['pronote_id', 'health', 'hunger', 'thirst', 'fatigue', 'hygiene', 'alcohol', 'balance', 'first_connection']
+        const ALLOWED = ['pronote_id', 'health', 'hunger', 'thirst', 'fatigue', 'hygiene', 'alcohol', 'balance', 'first_connection', 'nickname_rp']
         const payload: Record<string, any> = {}
         for (const key of ALLOWED) {
             if (key in updates) {

@@ -340,7 +340,7 @@ async function syncDiscordData() {
             status_updated_at: new Date().toISOString(),
             username: member.user.username,
             avatar_url: member.user.displayAvatarURL(),
-            rp_name: member.nickname || member.user.username
+            nickname_rp: member.nickname || member.user.username
           })
           .eq('id', profile.id)
 
@@ -403,7 +403,7 @@ async function syncMember(member: any) {
     status_updated_at: new Date().toISOString(),
     username: member.user?.username || member.displayName,
     avatar_url: member.user?.displayAvatarURL?.() || member.displayAvatarURL?.() || null,
-    rp_name: member.nickname || member.user?.username || member.displayName
+    nickname_rp: member.nickname || member.user?.username || member.displayName
   }).eq('id', profile.id)
 
   // Admin sync

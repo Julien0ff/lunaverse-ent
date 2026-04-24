@@ -120,7 +120,7 @@ export default function Impots() {
             disabled={totalDebt === 0 || paying}
             className={clsx(
               "btn w-full py-4 text-lg",
-              totalDebt > 0 ? "btn-danger" : "btn-ghost opacity-50"
+              totalDebt > 0 ? "btn-error" : "btn-ghost opacity-50"
             )}
           >
             {paying ? "Paiement en cours..." : `Payer la totalité (${totalDebt.toFixed(2)} €)`}

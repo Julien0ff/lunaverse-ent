@@ -77,7 +77,11 @@ export default function AdminPage() {
     starter: '', main: '', side: '', drink: '', dessert: '', note: ''
   })
   const [decProcessing, setDecProcessing] = useState<string | null>(null)
-  const [hasPenalty, setHasPenalty] = useState(false)
+  const [penaltyMap, setPenaltyMap] = useState<Record<string, boolean>>({})
+
+  // Inline nickname RP editing
+  const [nicknameEditing, setNicknameEditing] = useState<string | null>(null)
+  const [nicknameValue, setNicknameValue] = useState('')
 
   // Roles editing
   const [newRole, setNewRole] = useState({ name: '', discord_role_id: '', color: '#5865F2' })
@@ -198,7 +202,7 @@ export default function AdminPage() {
     const r = await fetch('/api/admin/declarations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ declarationId, action, hasPenalty })
+      body: JSON.stringify({ declarationId, action, hasPenalty: !!penaltyMap[declarationId] })
     })
     if (r.ok) {
       showMsg('success', action === 'accept' ? 'Déclaration acceptée ✅' : 'Déclaration refusée ❌')
@@ -208,7 +212,17 @@ export default function AdminPage() {
       showMsg('error', (await r.json()).error)
     }
     setDecProcessing(null)
-    setHasPenalty(false)
+    setPenaltyMap(prev => { const next = { ...prev }; delete next[declarationId]; return next })
+  }
+
+  const saveNicknameRp = async (userId: string) => {
+    const r = await fetch('/api/admin/users', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, nickname_rp: nicknameValue })
+    })
+    if (r.ok) { showMsg('success', 'Identité RP mise à jour'); setNicknameEditing(null); loadUsers() }
+    else showMsg('error', (await r.json()).error)
   }
 
   const approveSuggestion = async (id: string) => {
@@ -554,6 +568,22 @@ export default function AdminPage() {
                              onChange={v => setStatsValues(s => ({ ...s, alcohol: v }))} 
                           />
                         </div>
+                        <div className="flex items-center gap-3 mt-4 p-3 bg-black/20 rounded-xl border border-white/5">
+                          <span className="text-[10px] font-black uppercase text-discord-muted tracking-widest whitespace-nowrap">👤 Identité RP</span>
+                          <input
+                            type="text"
+                            className="glass-input !py-1.5 !text-sm flex-1"
+                            placeholder="Prénom NOM"
+                            defaultValue={u.nickname_rp || ''}
+                            onChange={e => setNicknameValue(e.target.value)}
+                            onFocus={() => { setNicknameEditing(u.id); setNicknameValue(u.nickname_rp || '') }}
+                          />
+                          {nicknameEditing === u.id && (
+                            <button onClick={() => saveNicknameRp(u.id)} className="btn btn-success py-1.5 text-xs whitespace-nowrap">
+                              <Save className="w-3.5 h-3.5" /> OK
+                            </button>
+                          )}
+                        </div>
                         <div className="flex gap-2 mt-3">
                           <button onClick={() => saveStats(u.id)} className="btn btn-primary py-1.5 text-xs">
                             <Save className="w-3.5 h-3.5" /> Sauvegarder
@@ -653,6 +683,20 @@ export default function AdminPage() {
                             label="Alcool" value={statsValues.alcohol} icon="🍺" color="#22C55E"
                             onChange={v => setStatsValues(s => ({ ...s, alcohol: v }))} 
                         />
+                      </div>
+                      <div className="flex items-center gap-2 p-2.5 bg-black/20 rounded-xl border border-white/5">
+                        <span className="text-[10px] font-black uppercase text-discord-muted tracking-widest whitespace-nowrap">👤 RP</span>
+                        <input
+                          type="text"
+                          className="glass-input !py-1 !text-xs flex-1"
+                          placeholder="Prénom NOM"
+                          defaultValue={u.nickname_rp || ''}
+                          onChange={e => setNicknameValue(e.target.value)}
+                          onFocus={() => { setNicknameEditing(u.id); setNicknameValue(u.nickname_rp || '') }}
+                        />
+                        {nicknameEditing === u.id && (
+                          <button onClick={() => saveNicknameRp(u.id)} className="btn btn-success py-1 text-[10px]">OK</button>
+                        )}
                       </div>
                       <div className="flex gap-2 pt-2 border-t border-white/5">
                         <button onClick={() => saveStats(u.id)} className="flex-1 btn btn-primary py-2 text-xs">
@@ -1248,8 +1292,8 @@ export default function AdminPage() {
                                <input 
                                  type="checkbox" 
                                  className="luna-checkbox"
-                                 checked={hasPenalty}
-                                 onChange={e => setHasPenalty(e.target.checked)}
+                                 checked={!!penaltyMap[dec.id]}
+                                 onChange={e => setPenaltyMap(prev => ({ ...prev, [dec.id]: e.target.checked }))}
                                />
                                <span className="text-[10px] font-black uppercase text-discord-muted group-hover/label:text-discord-error transition-colors">Pénalité Fiscale (-20%)</span>
                             </label>
