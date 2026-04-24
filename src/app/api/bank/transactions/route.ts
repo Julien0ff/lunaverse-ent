@@ -1,5 +1,6 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendDiscordDM } from '@/lib/discord-api'
 
 export async function GET() {
   try {
@@ -86,8 +87,14 @@ export async function POST(request: NextRequest) {
       await supabase.from('transactions').insert([{
         from_user_id: profile.id, to_user_id: recipientData.id,
         amount: transferAmount, type: 'transfer',
-        description: `Transfert vers ${recipientData.username}`
+        description: `Transfert de ${profile.username}`
       }])
+
+      await sendDiscordDM(recipientData.id, {
+        title: '💸 Nouveau Virement Reçu',
+        color: 0x57F287,
+        description: `**${profile.nickname_rp || profile.username}** vient de vous envoyer **${transferAmount}€** !`
+      })
 
       return NextResponse.json({ success: true, message: 'Transfert effectué !' })
     }

@@ -85,7 +85,7 @@ export default function Cantine() {
   }
 
   return (
-    <div className="page-container max-w-4xl mx-auto">
+    <div className="page-container w-full mx-auto">
       <div className="animate-slideIn mb-8">
         <h1 className="text-4xl font-black text-white flex items-center gap-3 tracking-tight">
           <Utensils className="text-orange-500 w-10 h-10" />
@@ -313,16 +313,16 @@ export default function Cantine() {
 
                 {/* Content Side - Massive Text */}
                 <div className="flex-1 p-10 flex flex-col justify-center bg-gradient-to-br from-transparent to-orange-500/5">
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                   <div className="flex flex-col space-y-12">
                       {m.starter && (
                         <div className="space-y-2">
                            <p className="text-xs font-black text-discord-muted uppercase tracking-[0.2em]">🥗 Entrée</p>
                            <p className="text-xl font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{m.starter}</p>
                         </div>
                       )}
-                      <div className="space-y-2 md:col-span-1">
-                         <p className="text-xs font-black text-orange-500 uppercase tracking-[0.2em]">🥩 Plat Principal</p>
-                         <p className="text-3xl font-black text-white whitespace-pre-wrap leading-tight">{m.main}</p>
+                      <div className="space-y-4 md:col-span-1">
+                         <p className="text-sm font-black text-orange-500 uppercase tracking-[0.2em]">🥩 Plat Principal</p>
+                         <p className="text-4xl font-black text-white whitespace-pre-wrap leading-tight">{m.main}</p>
                       </div>
                       {m.side && (
                         <div className="space-y-2">

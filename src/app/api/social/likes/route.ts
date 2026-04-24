@@ -1,6 +1,7 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendDiscordDM } from '@/lib/discord-api'
 
 export async function POST(request: NextRequest) {
   const supabase = createSupabaseServer()
@@ -27,6 +28,17 @@ export async function POST(request: NextRequest) {
         .upsert([{ post_id, user_id: user.id }], { onConflict: 'post_id,user_id' })
       
       if (error) throw error
+
+      const { data: post } = await admin.from('posts').select('user_id').eq('id', post_id).single()
+      if (post && post.user_id !== user.id) {
+        const { data: liker } = await admin.from('profiles').select('username, nickname_rp').eq('id', user.id).maybeSingle()
+        await sendDiscordDM(post.user_id, {
+          title: '❤️ Nouveau Like',
+          color: 0xED4245,
+          description: `**${liker?.nickname_rp || liker?.username || 'Quelqu\'un'}** a aimé votre post !`
+        })
+      }
+
       return NextResponse.json({ liked: true })
 
     } else if (action === 'unlike') {

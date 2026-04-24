@@ -1,5 +1,6 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendDiscordDM } from '@/lib/discord-api'
 
 export async function GET(request: NextRequest) {
   const supabase = createSupabaseServer()
@@ -73,6 +74,17 @@ export async function POST(request: NextRequest) {
       .single()
     
     if (error) throw error
+
+    const { data: post } = await supabase.from('posts').select('user_id').eq('id', post_id).single()
+    
+    if (post && post.user_id !== session.user.id) {
+      const { data: commenter } = await supabase.from('profiles').select('username, nickname_rp').eq('id', session.user.id).maybeSingle()
+      await sendDiscordDM(post.user_id, {
+        title: '💬 Nouveau Commentaire',
+        color: 0x5865F2,
+        description: `**${commenter?.nickname_rp || commenter?.username || 'Quelqu\'un'}** a commenté votre post.\n\n_"${content}"_`
+      })
+    }
     
     return NextResponse.json({
       ...newComment,

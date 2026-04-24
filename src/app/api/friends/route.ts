@@ -1,5 +1,6 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendDiscordDM } from '@/lib/discord-api'
 
 export async function GET(request: NextRequest) {
   try {
@@ -81,6 +82,14 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (error) throw error
+
+      const { data: sender } = await supabase.from('profiles').select('username, nickname_rp').eq('id', user.id).maybeSingle()
+      await sendDiscordDM(finalTargetId, {
+        title: '👥 Nouvelle Demande d\'Ami',
+        color: 0x5865F2,
+        description: `**${sender?.nickname_rp || sender?.username || 'Quelqu\'un'}** vous a envoyé une demande d'ami !`
+      })
+
       return NextResponse.json({ success: true, friend: newFriend })
     } 
     else if (action === 'accept' || action === 'reject' || action === 'remove') {
@@ -99,6 +108,14 @@ export async function POST(request: NextRequest) {
         if (rel.user1_id === user.id) return NextResponse.json({ error: 'Vous de pouvez pas accepter votre propre requête' }, { status: 400 })
         const { error } = await supabase.from('friends').update({ status: 'accepted' }).eq('id', rel.id)
         if (error) throw error
+
+        const { data: accepter } = await supabase.from('profiles').select('username, nickname_rp').eq('id', user.id).maybeSingle()
+        await sendDiscordDM(rel.user1_id, {
+          title: '✅ Demande d\'Ami Acceptée',
+          color: 0x57F287,
+          description: `**${accepter?.nickname_rp || accepter?.username || 'Quelqu\'un'}** a accepté votre demande d'ami !`
+        })
+
         return NextResponse.json({ success: true, message: 'Demande acceptée' })
       } else {
         // Reject or Remove => delete the row

@@ -1,5 +1,6 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendDiscordDM } from '@/lib/discord-api'
 
 export async function GET(request: NextRequest) {
   try {
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
     if (!rel) return NextResponse.json({ error: 'Vous devez être amis pour envoyer un message' }, { status: 403 })
     */
 
-    const { data: newMsg, error } = await supabase
+    const { data: newMessage, error } = await supabase
       .from('messages')
       .insert([{ sender_id: user.id, receiver_id, content: content.trim() }])
       .select('*, sender:profiles!sender_id(username, avatar_url), receiver:profiles!receiver_id(username, avatar_url)')
@@ -88,7 +89,15 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error
 
-    return NextResponse.json({ success: true, message: newMsg })
+    // Notify recipient
+    const { data: sender } = await supabase.from('profiles').select('username, nickname_rp').eq('id', user.id).maybeSingle()
+    await sendDiscordDM(receiver_id, {
+      title: '💬 Nouveau Message Privé',
+      color: 0x5865F2,
+      description: `Vous avez reçu un message de **${sender?.nickname_rp || sender?.username || 'Inconnu'}** sur l'ENT.`
+    })
+
+    return NextResponse.json({ success: true, message: newMessage })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

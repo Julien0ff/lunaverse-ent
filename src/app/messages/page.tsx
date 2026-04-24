@@ -49,6 +49,8 @@ export default function MessagesPage() {
 
   // Friends states
   const [addFriendInput, setAddFriendInput] = useState('')
+  const [userSuggestions, setUserSuggestions] = useState<any[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   // ── Initialization ─────────────────────────────────────────
@@ -73,6 +75,35 @@ export default function MessagesPage() {
     setTimeout(() => setToast(null), 4000)
   }
 
+  // ── Autocomplete Search ─────────────────────────────────────
+  useEffect(() => {
+    if (!addFriendInput.trim() || addFriendInput.length < 2) {
+      setUserSuggestions([])
+      return
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/bank/search-users?q=${encodeURIComponent(addFriendInput)}`)
+        if (res.ok) {
+          const data = await res.json()
+          setUserSuggestions(data.users || [])
+        }
+      } catch (e) {}
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [addFriendInput])
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-friend-search]')) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
   // ── Friends API ────────────────────────────────────────────
   const loadFriends = async () => {
     const res = await fetch('/api/friends')
@@ -85,8 +116,14 @@ export default function MessagesPage() {
   const handleFriendAction = async (action: 'add' | 'accept' | 'reject' | 'remove', targetId?: string) => {
     const payload: any = { action }
     if (action === 'add') {
-      if (!addFriendInput.trim()) return
-      payload.target_username = addFriendInput.trim()
+      if (targetId) {
+        payload.target_id = targetId
+      } else {
+        if (!addFriendInput.trim()) return
+        payload.target_username = addFriendInput.trim()
+      }
+      setAddFriendInput('')
+      setShowSuggestions(false)
     } else {
       payload.target_id = targetId
     }
@@ -263,21 +300,41 @@ export default function MessagesPage() {
             <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
               
               {/* Add Friend */}
-              <div>
+              <div className="relative" data-friend-search>
                 <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 px-1">Ajouter un ami</h3>
                 <div className="flex bg-white/5 rounded-xl border border-white/10 p-1">
                   <input
                     type="text"
-                    placeholder="Pseudo exact..."
+                    placeholder="Pseudo ou identité RP..."
                     className="flex-1 bg-transparent border-none text-white text-sm px-3 focus:outline-none min-w-0"
                     value={addFriendInput}
-                    onChange={e => setAddFriendInput(e.target.value)}
+                    onChange={e => {
+                      setAddFriendInput(e.target.value)
+                      setShowSuggestions(true)
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
                     onKeyDown={e => e.key === 'Enter' && handleFriendAction('add')}
                   />
                   <button onClick={() => handleFriendAction('add')} className="w-8 h-8 flex-shrink-0 flex items-center justify-center bg-discord-blurple rounded-lg text-white hover:bg-discord-blurple-dark transition-colors">
                     <UserPlus className="w-4 h-4" />
                   </button>
                 </div>
+
+                {showSuggestions && userSuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 w-full mt-2 bg-discord-dark/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto flex flex-col custom-scrollbar">
+                    {userSuggestions.map(u => (
+                      <button
+                        key={u.id}
+                        onClick={() => handleFriendAction('add', u.id)}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-left hover:bg-white/5 transition-colors"
+                      >
+                        <Image src={u.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} width={24} height={24} alt="" className="rounded-full flex-shrink-0" />
+                        <span className="font-bold text-white truncate">{u.nickname_rp || u.username}</span>
+                        <span className="text-xs text-discord-muted ml-auto font-mono">{u.username}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Pending Requests */}

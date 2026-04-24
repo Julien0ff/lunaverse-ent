@@ -677,44 +677,11 @@ client.on('ready', async () => {
 
     supabase
       .channel('ent-global-sync')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, async (payload: any) => {
-        try {
-          const post = payload.new
-          const dynamicFeedId = await getServerSetting('discord_feed_channel_id', process.env.DISCORD_FEED_CHANNEL_ID)
-          if (!dynamicFeedId) return
-          const channel = await client.channels.fetch(dynamicFeedId)
-          if (!channel || !channel.isTextBased()) return
-
-          const { data: profile } = await supabase.from('profiles').select('username, avatar_url').eq('id', post.user_id).single()
-          const embed = new EmbedBuilder()
-            .setAuthor({ name: profile?.username || 'Anonyme', iconURL: profile?.avatar_url || undefined })
-            .setDescription(post.content || '_Pas de contenu_')
-            .setColor(BLURPLE)
-            .setTimestamp(new Date(post.created_at))
-          
-          if (post.image_url) embed.setImage(post.image_url)
-          const message = await (channel as any).send({ embeds: [embed] })
-          await message.react('❤️').catch(() => null)
-          try { await message.startThread({ name: `Discussion: ${profile?.username || 'Post'}`, autoArchiveDuration: 1440 }) } catch {}
-          await supabase.from('posts').update({ message_id: message.id, channel_id: dynamicFeedId }).eq('id', post.id)
-        } catch (err) { console.error('social post relay fail', err) }
-      })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, async (payload: any) => {
         try {
           const comment = payload.new
-          const { data: post } = await supabase.from('posts').select('user_id, channel_id, message_id').eq('id', comment.post_id).single()
+          const { data: post } = await supabase.from('posts').select('user_id').eq('id', comment.post_id).single()
           if (!post) return
-
-          if (post.channel_id && post.message_id) {
-            const channel = await client.channels.fetch(post.channel_id)
-            if (channel?.isTextBased()) {
-              const thread = (channel as any).threads?.cache.get(post.message_id) || await (channel as any).threads.fetch(post.message_id).catch(() => null)
-              if (thread) {
-                const { data: profile } = await supabase.from('profiles').select('username').eq('id', comment.user_id).single()
-                await thread.send(`**${profile?.username || 'Anonyme'}**: ${comment.content}`)
-              }
-            }
-          }
 
           if (post.user_id !== comment.user_id) {
             const { data: cUser } = await supabase.from('profiles').select('username').eq('id', comment.user_id).single()

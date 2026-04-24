@@ -62,6 +62,8 @@ export default function AdminPage() {
 
   // Forms
   const [giveUser, setGiveUser] = useState('')
+  const [giveUserSearch, setGiveUserSearch] = useState('')
+  const [givePickerOpen, setGivePickerOpen] = useState(false)
   const [giveAmount, setGiveAmount] = useState('')
   const [giveReason, setGiveReason] = useState('')
   const [giveAutoAdd, setGiveAutoAdd] = useState(false)
@@ -98,16 +100,16 @@ export default function AdminPage() {
     if (!loading && !isAdmin) router.push('/dashboard')
   }, [isAdmin, loading, router])
 
-  // Close tax picker on click outside
+  // Close pickers on click outside
   useEffect(() => {
-    if (!taxPickerOpen) return
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement
-      if (!target.closest('[data-tax-picker]')) setTaxPickerOpen(false)
+      if (taxPickerOpen && !target.closest('[data-tax-picker]')) setTaxPickerOpen(false)
+      if (givePickerOpen && !target.closest('[data-give-picker]')) setGivePickerOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [taxPickerOpen])
+  }, [taxPickerOpen, givePickerOpen])
 
   const loadAll = useCallback(async () => {
     await Promise.allSettled([
@@ -725,10 +727,56 @@ export default function AdminPage() {
               Attribuer une Prime
             </h3>
             <div className="space-y-3">
-              <div>
+              <div className="relative" data-give-picker>
                 <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">Utilisateur (ID ou Pseudo)</label>
-                <input type="text" placeholder="Username ou Discord ID" className="glass-input focus:border-discord-success"
-                  value={giveUser} onChange={e => setGiveUser(e.target.value)} />
+                <button
+                  className="glass-input w-full flex items-center justify-between text-left focus:border-discord-success"
+                  onClick={() => setGivePickerOpen(!givePickerOpen)}
+                >
+                  <span className="truncate">
+                    {giveUser 
+                      ? users.find(u => u.id === giveUser || u.discord_id === giveUser || u.username === giveUser)?.username || giveUser 
+                      : 'Sélectionner un utilisateur...'}
+                  </span>
+                  <ChevronDown className={clsx('w-4 h-4 transition-transform', givePickerOpen && 'rotate-180')} />
+                </button>
+                {givePickerOpen && (
+                  <div className="absolute top-full left-0 w-full mt-2 bg-discord-dark/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto flex flex-col custom-scrollbar">
+                    <div className="sticky top-0 bg-discord-dark/95 p-2 border-b border-white/6 z-10">
+                      <input
+                        type="text"
+                        placeholder="Rechercher..."
+                        className="glass-input w-full !py-1.5 !text-sm"
+                        value={giveUserSearch}
+                        onChange={e => setGiveUserSearch(e.target.value)}
+                        onClick={e => e.stopPropagation()}
+                        autoFocus
+                      />
+                    </div>
+                    {users
+                      .filter(u => !giveUserSearch || u.username.toLowerCase().includes(giveUserSearch.toLowerCase()) || u.discord_id.includes(giveUserSearch) || (u.nickname_rp && u.nickname_rp.toLowerCase().includes(giveUserSearch.toLowerCase())))
+                      .map(u => {
+                        const isSelected = giveUser === u.id || giveUser === u.discord_id || giveUser === u.username
+                        return (
+                          <button
+                            key={u.id}
+                            onClick={() => {
+                              setGiveUser(u.id) // Use ID for exact matching in API if supported, or discord_id. The API accepts username or discord_id, but usually it searches exact match. We'll send ID or username. Actually the API says `username: giveUser`. Let's pass the discord_id or username. Let's pass discord_id.
+                              setGiveUser(u.discord_id)
+                              setGivePickerOpen(false)
+                            }}
+                            className={clsx(
+                              'w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors',
+                              isSelected ? 'bg-discord-success/10 text-discord-success' : 'text-white hover:bg-white/5'
+                            )}
+                          >
+                            <span className="font-bold truncate">{u.nickname_rp || u.username}</span>
+                            <span className="text-xs text-discord-muted ml-auto font-mono">{u.discord_id}</span>
+                          </button>
+                        )
+                      })}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">Montant (€)</label>

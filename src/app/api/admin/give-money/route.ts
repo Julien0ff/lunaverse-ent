@@ -2,6 +2,7 @@ import { createSupabaseServer } from '@/lib/supabase-server'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdmin } from '@/lib/auth-server'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendDiscordDM } from '@/lib/discord-api'
 
 export async function POST(request: NextRequest) {
     try {
@@ -38,8 +39,15 @@ export async function POST(request: NextRequest) {
             is_paid: !!auto_add,
             is_preleve: !!auto_add
         }])
-
         if (rewardError) throw rewardError
+
+        await sendDiscordDM(target.id, {
+            title: '🎁 Prime Reçue',
+            color: 0x57F287,
+            description: auto_add 
+              ? `Une prime de **${amount}€** a été ajoutée directement à votre solde.\n*Motif : ${reason || 'Aucun'}*`
+              : `Une prime de **${amount}€** vous attend !\n*Motif : ${reason || 'Aucun'}*\n\nRendez-vous sur l'ENT pour la réclamer.`
+        })
 
         return NextResponse.json({ 
             success: true, 
