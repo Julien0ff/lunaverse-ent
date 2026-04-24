@@ -371,6 +371,97 @@ async function syncDiscordData() {
   console.log('✅ Synchronization complete.')
 }
 
+// ── Single-member sync helper ─────────────────────────────────────
+// Reusable for guildMemberAdd + Realtime profile INSERT events
+async function syncMember(member: any) {
+  if (member.user?.bot) return
+
+  const envAdmins = (process.env.ADMIN_DISCORD_IDS || '').split(',').map((s: string) => s.trim()).filter(Boolean)
+
+  const { data: allRoles } = await supabase.from('roles').select('id, name, discord_role_id')
+  const dbRoles = allRoles || []
+  const roleByDiscordId = Object.fromEntries(
+    dbRoles.filter((r: any) => r.discord_role_id).map((r: any) => [r.discord_role_id, r])
+  )
+  const roleByName = Object.fromEntries(dbRoles.map((r: any) => [r.name, r.id]))
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('discord_id', member.id)
+    .maybeSingle()
+
+  if (!profile) {
+    console.log(`  ⏳ No profile found for ${member.user?.username || member.id} — waiting for ENT login.`)
+    return
+  }
+
+  const status = member.presence?.status || 'offline'
+
+  await supabase.from('profiles').update({
+    discord_status: status,
+    status_updated_at: new Date().toISOString(),
+    username: member.user?.username || member.displayName,
+    avatar_url: member.user?.displayAvatarURL?.() || member.displayAvatarURL?.() || null,
+    rp_name: member.nickname || member.user?.username || member.displayName
+  }).eq('id', profile.id)
+
+  // Admin sync
+  if (envAdmins.includes(member.id) && roleByName['admin']) {
+    await supabase.from('user_roles').upsert(
+      { user_id: profile.id, role_id: roleByName['admin'] },
+      { onConflict: 'user_id,role_id' }
+    )
+  }
+
+  // Role sync
+  for (const [discordRoleId, dbRole] of Object.entries(roleByDiscordId)) {
+    if (member.roles?.cache?.has(discordRoleId)) {
+      await supabase.from('user_roles').upsert(
+        { user_id: profile.id, role_id: (dbRole as any).id },
+        { onConflict: 'user_id,role_id' }
+      )
+      console.log(`  ✅ ${member.user?.username || member.id} → '${(dbRole as any).name}' synced`)
+    }
+  }
+
+  console.log(`  ✅ Member synced: ${member.user?.username || member.id}`)
+}
+
+// ── Welcome DM on new member join ─────────────────────────────────
+client.on('guildMemberAdd', async (member) => {
+  if (member.user.bot) return
+  console.log(`👋 New member joined: ${member.user.username} (${member.id})`)
+
+  try {
+    const welcomeEmbed = new EmbedBuilder()
+      .setTitle('🌌 Bienvenue sur LunaVerse !')
+      .setColor(BLURPLE)
+      .setDescription(
+        `Salut **${member.user.username}** ! \n\n` +
+        `Bienvenue dans l'univers **LunaVerse** — ton ENT nouvelle génération.\n\n` +
+        `🔗 **Connecte-toi à l'ENT** pour débloquer toutes les fonctionnalités :\n` +
+        `• 💰 Économie virtuelle & boutique\n` +
+        `• 🎰 Casino & mini-jeux\n` +
+        `• 🍴 Cantine & menus du week-end\n` +
+        `• 📱 Réseau social & messagerie\n` +
+        `• ❤️ Système de survie RP\n\n` +
+        `Utilise la commande \`/solde\` pour vérifier ton solde, ou \`/daily\` pour ta récompense quotidienne !`
+      )
+      .setFooter({ text: 'LunaVerse — ENT RP Immersif' })
+      .setTimestamp()
+
+    await member.send({ embeds: [welcomeEmbed] }).catch(() => {
+      console.log(`  ⚠️ Could not DM ${member.user.username} (DMs disabled)`)
+    })
+
+    // Try to sync if they already have a profile
+    await syncMember(member)
+  } catch (err) {
+    console.error(`❌ Error welcoming ${member.user.username}:`, err)
+  }
+})
+
 // Event handlers
 client.on('ready', async () => {
   console.log(`Bot logged in as ${client.user?.tag}`)
@@ -715,6 +806,23 @@ client.on('ready', async () => {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'canteen_menus' }, async () => {
         try { await updateCanteenMenuMessage() } catch (err) { console.error('canteen sync fail', err) }
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, async (payload: any) => {
+        // A new user just logged into the ENT for the first time → sync their Discord roles
+        try {
+          const newProfile = payload.new
+          if (!newProfile?.discord_id) return
+          console.log(`🆕 New ENT profile created: ${newProfile.username} (${newProfile.discord_id}) — syncing roles...`)
+
+          // Find the member in all guilds
+          for (const guild of Array.from(client.guilds.cache.values())) {
+            const member = await guild.members.fetch(newProfile.discord_id).catch(() => null)
+            if (member) {
+              await syncMember(member)
+              break
+            }
+          }
+        } catch (err) { console.error('new profile sync fail', err) }
       })
       .subscribe((status: string, err?: Error) => {
         if (err) console.error('📡 Realtime subscription error:', err)

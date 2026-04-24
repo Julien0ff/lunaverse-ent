@@ -19,6 +19,7 @@ interface AdminUser {
   avatar_url: string | null; balance: number; created_at: string
   pronote_id: string | null; nickname_rp?: string
   health: number; hunger: number; thirst: number; fatigue: number; hygiene: number; alcohol: number
+  first_connection?: boolean
 }
 interface Suggestion {
   id: string; user_id: string; name: string; description: string | null
@@ -179,6 +180,16 @@ export default function AdminPage() {
       body: JSON.stringify({ userId, ...values })
     })
     if (r.ok) { showMsg('success', 'Stats mises à jour'); setStatsEditing(null); loadUsers() }
+    else showMsg('error', (await r.json()).error)
+  }
+
+  const toggleFirstConnection = async (userId: string, current: boolean) => {
+    const r = await fetch('/api/admin/users', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, first_connection: !current })
+    })
+    if (r.ok) { showMsg('success', !current ? 'Tutoriel activé pour ce joueur' : 'Tutoriel désactivé'); loadUsers() }
     else showMsg('error', (await r.json()).error)
   }
 
@@ -438,6 +449,7 @@ export default function AdminPage() {
                   <th className="text-left p-4 hidden md:table-cell">Discord ID</th>
                   <th className="text-right p-4">Solde</th>
                   <th className="text-center p-4 hidden lg:table-cell">Stats RP</th>
+                  <th className="text-center p-4 hidden lg:table-cell">Tuto</th>
                   <th className="text-right p-4 hidden md:table-cell">Depuis</th>
                 </tr>
               </thead>
@@ -493,6 +505,20 @@ export default function AdminPage() {
                         )}
                       >
                         ❤️ Stats
+                      </button>
+                    </td>
+                    <td className="p-4 text-center hidden lg:table-cell">
+                      <button
+                        onClick={() => toggleFirstConnection(u.id, !!u.first_connection)}
+                        className={clsx(
+                          'text-xs px-2 py-1 rounded-lg font-bold transition-all',
+                          u.first_connection
+                            ? 'bg-discord-blurple/20 text-discord-blurple border border-discord-blurple/30'
+                            : 'bg-white/5 text-discord-muted hover:text-white'
+                        )}
+                        title={u.first_connection ? 'Cliquer pour désactiver le tutoriel' : 'Cliquer pour réactiver le tutoriel'}
+                      >
+                        {u.first_connection ? '📖 Actif' : '— Off'}
                       </button>
                     </td>
                     <td className="p-4 text-right text-discord-muted hidden md:table-cell text-xs">

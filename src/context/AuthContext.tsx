@@ -26,6 +26,8 @@ interface Profile {
   canteen_subscription?: string
   canteen_subscription_end?: string
   notifications_enabled?: boolean
+  // First connection onboarding
+  first_connection?: boolean
   created_at?: string
   updated_at?: string
 }

@@ -101,57 +101,57 @@ export default function Cantine() {
 
         {/* Dynamic Daily Menu */}
         {activeMenu && (
-          <div className="mt-6 glass-card bg-gradient-to-r from-orange-500/10 to-discord-blurple/10 border-orange-500/30 p-6 animate-fadeIn relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-3">
-               <span className="text-[10px] font-black bg-orange-500 text-white px-2 py-0.5 rounded-full animate-pulse uppercase tracking-widest">
-                  Actuel
-               </span>
-            </div>
+          <div className="mt-8 glass-card p-12 relative overflow-hidden group border-orange-500/30 shadow-[0_0_60px_rgba(249,115,22,0.15)] rounded-[2.5rem] animate-fadeIn">
+            <div className="absolute top-0 right-0 p-8 text-6xl opacity-10 group-hover:scale-110 transition-transform select-none">🍱</div>
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-orange-500/10 blur-[80px] rounded-full" />
             
-            <div className="flex items-center gap-4 mb-6">
-               <div className="w-12 h-12 bg-orange-500/20 rounded-2xl flex items-center justify-center">
-                  <Utensils className="text-orange-500 w-6 h-6" />
-               </div>
-               <div>
-                  <h3 className="text-xl font-black text-white tracking-tight">Menu du Moment</h3>
-                  <p className="text-discord-muted text-xs font-medium uppercase tracking-widest">Service de {activeMenu.time_start.slice(0, 5)} à {activeMenu.time_end.slice(0, 5)}</p>
-               </div>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+              <div>
+                <h2 className="text-5xl font-black text-white mb-3 flex items-center gap-4">
+                  Menu du Jour
+                  <span className="text-sm font-black bg-orange-500 text-white px-4 py-1.5 rounded-full uppercase tracking-[0.2em] animate-pulse">En cours</span>
+                </h2>
+                <div className="flex items-center gap-3 text-discord-muted">
+                  <Clock className="w-6 h-6 text-orange-400" />
+                  <span className="text-xl font-bold tracking-wide">Service : {activeMenu.time_start.slice(0, 5)} — {activeMenu.time_end.slice(0, 5)}</span>
+                </div>
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                {activeMenu.starter && (
-                 <div className="flex-1 min-w-[120px] p-4 bg-white/5 rounded-2xl border border-white/5 group-hover:border-orange-500/20 transition-colors">
-                    <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">Entrée</p>
-                    <p className="text-sm font-bold text-white canteen-menu-item whitespace-pre-wrap">{activeMenu.starter}</p>
+                 <div className="space-y-3 p-8 rounded-[2rem] bg-white/[0.03] border border-white/10 hover:border-white/20 transition-colors">
+                    <p className="text-xs font-black text-discord-muted uppercase tracking-[0.3em]">🥗 Entrée</p>
+                    <p className="text-2xl font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{activeMenu.starter}</p>
                  </div>
                )}
-               <div className="flex-[2] min-w-[200px] p-4 bg-orange-500/10 rounded-2xl border border-orange-500/20 shadow-[0_0_15px_rgba(249,115,22,0.1)]">
-                  <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-1">Plat Principal</p>
-                  <p className="text-base font-black text-white canteen-menu-main whitespace-pre-wrap">{activeMenu.main}</p>
+               <div className="space-y-4 p-10 rounded-[2.5rem] bg-orange-500/10 border border-orange-500/30 md:col-span-2 shadow-xl shadow-orange-500/5">
+                  <p className="text-xs font-black text-orange-500 uppercase tracking-[0.3em]">🥩 Plat Principal</p>
+                  <p className="text-5xl font-black text-white whitespace-pre-wrap leading-tight">{activeMenu.main}</p>
                </div>
                {activeMenu.side && (
-                 <div className="flex-1 min-w-[120px] p-4 bg-white/5 rounded-2xl border border-white/5 group-hover:border-orange-500/20 transition-colors">
-                    <p className="text-[10px] font-black text-orange-300 uppercase tracking-widest mb-1">Accompagnement</p>
-                    <p className="text-sm font-bold text-white canteen-menu-item whitespace-pre-wrap">{activeMenu.side}</p>
+                 <div className="space-y-3 p-8 rounded-[2rem] bg-white/[0.03] border border-white/10 hover:border-white/20 transition-colors">
+                    <p className="text-xs font-black text-orange-300 uppercase tracking-[0.3em]">🍚 Accompagnement</p>
+                    <p className="text-2xl font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{activeMenu.side}</p>
                  </div>
                )}
                {activeMenu.dessert && (
-                 <div className="flex-1 min-w-[120px] p-4 bg-white/5 rounded-2xl border border-white/5 group-hover:border-orange-500/20 transition-colors">
-                    <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">Dessert</p>
-                    <p className="text-sm font-bold text-white canteen-menu-item whitespace-pre-wrap">{activeMenu.dessert}</p>
+                 <div className="space-y-3 p-8 rounded-[2rem] bg-white/[0.03] border border-white/10 hover:border-white/20 transition-colors">
+                    <p className="text-xs font-black text-pink-400 uppercase tracking-[0.3em]">🍰 Dessert</p>
+                    <p className="text-2xl font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{activeMenu.dessert}</p>
                  </div>
                )}
                {activeMenu.drink && (
-                 <div className="flex-1 min-w-[120px] p-4 bg-white/5 rounded-2xl border border-white/5 group-hover:border-blue-500/20 transition-colors">
-                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Boisson</p>
-                    <p className="text-sm font-bold text-white canteen-menu-item whitespace-pre-wrap">{activeMenu.drink}</p>
+                 <div className="space-y-3 p-8 rounded-[2rem] bg-white/[0.03] border border-white/10 hover:border-white/20 transition-colors">
+                    <p className="text-xs font-black text-blue-400 uppercase tracking-[0.3em]">🥤 Boisson</p>
+                    <p className="text-2xl font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{activeMenu.drink}</p>
                  </div>
                )}
             </div>
 
             {activeMenu.note && (
-               <div className="mt-4 flex items-center gap-2 text-xs text-discord-muted bg-black/20 p-3 rounded-xl border border-white/5 italic">
-                  <span className="text-base">💡</span> {activeMenu.note}
+               <div className="mt-12 flex items-center gap-6 text-base text-discord-muted bg-black/40 p-8 rounded-[2rem] border border-white/10 italic">
+                  <span className="text-4xl">💡</span> {activeMenu.note}
                </div>
             )}
           </div>
@@ -278,69 +278,75 @@ export default function Cantine() {
       </div>
 
       {upcomingMenus.length > 0 && (
-        <div className="mt-16 space-y-8 animate-fadeIn">
-          <div className="flex items-center gap-3 px-2">
-            <div className="h-8 w-1 bg-orange-500 rounded-full" />
-            <h3 className="text-2xl font-black text-white flex items-center gap-2">
-              <CalendarClock className="w-7 h-7 text-orange-500" /> Prochains Menus
+        <div className="mt-16 space-y-12 animate-fadeIn pb-24">
+          <div className="flex items-center gap-4 px-2">
+            <div className="h-10 w-1.5 bg-orange-500 rounded-full" />
+            <h3 className="text-3xl font-black text-white flex items-center gap-3">
+              <CalendarClock className="w-8 h-8 text-orange-500" /> Prochains Menus
             </h3>
           </div>
-          <div className="space-y-6">
+          <div className="space-y-10">
             {upcomingMenus.map((m: any) => (
-              <div key={m.id} className="glass-card flex flex-col sm:flex-row bg-white/[0.02] border-white/5 hover:border-orange-500/30 transition-all relative group overflow-hidden p-0 rounded-3xl min-h-[160px]">
-                <div className="absolute top-0 left-0 w-2 h-full bg-orange-500/20 group-hover:bg-orange-500/50 transition-colors" />
+              <div key={m.id} className="glass-card flex flex-col lg:flex-row bg-white/[0.03] border-white/10 hover:border-orange-500/50 transition-all relative group overflow-hidden p-0 rounded-[2rem] min-h-[220px] shadow-2xl">
+                <div className="absolute top-0 left-0 w-3 h-full bg-orange-500/30 group-hover:bg-orange-500 transition-colors" />
                 
-                {/* Date Side */}
-                <div className="flex-shrink-0 flex flex-row sm:flex-col items-center justify-center gap-4 sm:gap-1 bg-white/5 p-6 sm:w-48 border-b sm:border-b-0 sm:border-r border-white/5">
+                {/* Date Side - Large and prominent */}
+                <div className="flex-shrink-0 flex flex-row lg:flex-col items-center justify-center gap-6 lg:gap-2 bg-white/5 p-8 lg:w-64 border-b lg:border-b-0 lg:border-r border-white/10">
                    <div className="text-center">
-                     <p className="text-xs font-black text-orange-500 uppercase tracking-[0.2em]">
+                     <p className="text-sm font-black text-orange-500 uppercase tracking-[0.3em] mb-2">
                         {new Date(m.menu_date).toLocaleDateString('fr-FR', { weekday: 'long' })}
                      </p>
-                     <p className="text-5xl font-black text-white leading-none my-1">
+                     <p className="text-7xl font-black text-white leading-none tracking-tighter">
                         {new Date(m.menu_date).getDate()}
                      </p>
-                     <p className="text-sm font-bold text-discord-muted uppercase tracking-widest">
+                     <p className="text-lg font-bold text-discord-muted uppercase tracking-[0.2em] mt-2">
                         {new Date(m.menu_date).toLocaleDateString('fr-FR', { month: 'long' })}
                      </p>
                    </div>
-                   <div className="flex items-center gap-1.5 px-3 py-1 bg-black/40 rounded-full sm:mt-4">
-                      <Clock className="w-3 h-3 text-discord-muted" />
-                      <span className="text-[10px] font-black text-white whitespace-nowrap">
+                   <div className="flex items-center gap-2 px-4 py-2 bg-black/50 rounded-2xl lg:mt-6 border border-white/5">
+                      <Clock className="w-4 h-4 text-orange-400" />
+                      <span className="text-xs font-black text-white whitespace-nowrap">
                         {m.time_start.slice(0, 5)} - {m.time_end.slice(0, 5)}
                       </span>
                    </div>
                 </div>
 
-                {/* Content Side */}
-                <div className="flex-1 p-8 flex flex-col justify-center">
-                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Content Side - Massive Text */}
+                <div className="flex-1 p-10 flex flex-col justify-center bg-gradient-to-br from-transparent to-orange-500/5">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                       {m.starter && (
-                        <div className="space-y-1">
-                           <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest">Entrée</p>
-                           <p className="text-base font-bold text-white/90 whitespace-pre-wrap">{m.starter}</p>
+                        <div className="space-y-2">
+                           <p className="text-xs font-black text-discord-muted uppercase tracking-[0.2em]">🥗 Entrée</p>
+                           <p className="text-xl font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{m.starter}</p>
                         </div>
                       )}
-                      <div className="space-y-1 lg:col-span-1">
-                         <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Plat Principal</p>
-                         <p className="text-xl font-black text-white whitespace-pre-wrap leading-tight">{m.main}</p>
+                      <div className="space-y-2 md:col-span-1">
+                         <p className="text-xs font-black text-orange-500 uppercase tracking-[0.2em]">🥩 Plat Principal</p>
+                         <p className="text-3xl font-black text-white whitespace-pre-wrap leading-tight">{m.main}</p>
                       </div>
                       {m.side && (
-                        <div className="space-y-1">
-                           <p className="text-[10px] font-black text-orange-300 uppercase tracking-widest">Accompagnement</p>
-                           <p className="text-base font-bold text-white/90 whitespace-pre-wrap">{m.side}</p>
+                        <div className="space-y-2">
+                           <p className="text-xs font-black text-orange-300 uppercase tracking-[0.2em]">🍚 Accompagnement</p>
+                           <p className="text-xl font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{m.side}</p>
                         </div>
                       )}
                       {m.dessert && (
-                        <div className="space-y-1">
-                           <p className="text-[10px] font-black text-pink-400 uppercase tracking-widest">Dessert</p>
-                           <p className="text-base font-bold text-white/90 whitespace-pre-wrap">{m.dessert}</p>
+                        <div className="space-y-2">
+                           <p className="text-xs font-black text-pink-400 uppercase tracking-[0.2em]">🍰 Dessert</p>
+                           <p className="text-xl font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{m.dessert}</p>
+                        </div>
+                      )}
+                      {m.drink && (
+                        <div className="space-y-2">
+                           <p className="text-xs font-black text-blue-400 uppercase tracking-[0.2em]">🥤 Boisson</p>
+                           <p className="text-xl font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{m.drink}</p>
                         </div>
                       )}
                    </div>
                    
                    {m.note && (
-                      <div className="mt-6 pt-4 border-t border-white/5 flex items-center gap-3 text-xs text-discord-muted italic">
-                         <span className="text-base">💡</span> {m.note}
+                      <div className="mt-10 pt-6 border-t border-white/10 flex items-center gap-4 text-sm text-discord-muted italic bg-white/5 p-4 rounded-2xl">
+                         <span className="text-2xl">💡</span> {m.note}
                       </div>
                    )}
                 </div>

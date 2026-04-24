@@ -4,8 +4,9 @@ import { usePathname, useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import LoadingScreen from '@/components/LoadingScreen'
 import { useAuth } from '@/context/AuthContext'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import NotificationToast from '@/components/NotificationToast'
+import OnboardingTutorial from '@/components/OnboardingTutorial'
 import { supabase } from '@/lib/supabase'
 
 const PUBLIC_PATHS = ['/', '/unauthorized']
@@ -16,6 +17,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const isPublic = PUBLIC_PATHS.includes(pathname)
     const { profile, roles, loading, ready } = useAuth()
     const [notif, setNotif] = useState<{ senderName: string; message: string; avatarUrl?: string } | null>(null)
+    const [showOnboarding, setShowOnboarding] = useState(false)
+
+    // Show onboarding when profile has first_connection = true
+    useEffect(() => {
+        if (ready && profile?.first_connection === true && !isPublic) {
+            setShowOnboarding(true)
+        }
+    }, [ready, profile?.first_connection, isPublic])
+
+    const handleOnboardingComplete = useCallback(() => {
+        setShowOnboarding(false)
+    }, [])
 
     useEffect(() => {
         // Wait until AuthContext has fully loaded both profile and roles
@@ -102,6 +115,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     {...notif} 
                     onClose={() => setNotif(null)} 
                   />
+                )}
+                {showOnboarding && (
+                  <OnboardingTutorial onComplete={handleOnboardingComplete} />
                 )}
             </div>
         </>

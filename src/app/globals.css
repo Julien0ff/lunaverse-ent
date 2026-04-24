@@ -1281,3 +1281,329 @@ textarea.glass-input {
 .theme-light .sidebar-transition {
   background-color: var(--discord-darker) !important;
 }
+
+/* ─── Onboarding Tutorial ──────────────────────────────────── */
+
+@keyframes onboarding-slide-right {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes onboarding-slide-left {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes onboarding-feature-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes onboarding-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-8px) scale(1.02); }
+}
+
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 1rem;
+}
+
+.onboarding-bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
+  pointer-events: none;
+}
+
+.onboarding-bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+  transition: background 0.6s ease;
+}
+
+.onboarding-bg-orb-1 {
+  width: 600px;
+  height: 600px;
+  top: -200px;
+  left: -200px;
+  animation: orb 14s ease-in-out infinite;
+}
+
+.onboarding-bg-orb-2 {
+  width: 400px;
+  height: 400px;
+  bottom: -150px;
+  right: -100px;
+  animation: orb 12s ease-in-out infinite reverse;
+}
+
+.onboarding-skip {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 10;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--discord-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.onboarding-skip:hover {
+  background: rgba(237, 66, 69, 0.15);
+  border-color: rgba(237, 66, 69, 0.3);
+  color: var(--discord-error);
+  transform: scale(1.05);
+}
+
+.onboarding-card {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  background: rgba(24, 25, 28, 0.85);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+}
+
+.onboarding-progress-track {
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.onboarding-progress-fill {
+  height: 100%;
+  border-radius: 0 3px 3px 0;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1), background 0.4s ease;
+}
+
+.onboarding-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 1.25rem 2rem 0;
+}
+
+.onboarding-dot {
+  height: 8px;
+  border-radius: 99px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.onboarding-dot:hover {
+  opacity: 0.8;
+  transform: scaleY(1.3);
+}
+
+.onboarding-content {
+  padding: 2rem 2.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-height: 380px;
+}
+
+.onboarding-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin-bottom: 1.5rem;
+  animation: onboarding-float 4s ease-in-out infinite;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.onboarding-title {
+  font-size: 1.75rem;
+  font-weight: 900;
+  color: white;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+}
+
+.onboarding-subtitle {
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 1rem;
+}
+
+.onboarding-desc {
+  font-size: 0.925rem;
+  color: var(--discord-muted);
+  line-height: 1.7;
+  max-width: 440px;
+  margin-bottom: 1.25rem;
+}
+
+.onboarding-features {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 0.5rem;
+}
+
+.onboarding-feature {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.5rem 0.875rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  animation: onboarding-feature-in 0.4s ease-out both;
+}
+
+.onboarding-feature-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.onboarding-feature-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+}
+
+.onboarding-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 2rem 1.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.onboarding-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.625rem 1.25rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.onboarding-nav-btn:active {
+  transform: scale(0.96);
+}
+
+.onboarding-nav-prev {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--discord-muted);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.onboarding-nav-prev:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.onboarding-nav-prev:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.onboarding-nav-next {
+  background: var(--discord-blurple);
+  color: white;
+  box-shadow: 0 4px 15px rgba(88, 101, 242, 0.3);
+}
+
+.onboarding-nav-next:hover {
+  box-shadow: 0 6px 20px rgba(88, 101, 242, 0.45);
+  transform: translateY(-1px);
+}
+
+.onboarding-step-count {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--discord-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .onboarding-card {
+    max-width: 100%;
+    border-radius: 20px;
+  }
+
+  .onboarding-content {
+    padding: 1.5rem 1.5rem 1rem;
+    min-height: 320px;
+  }
+
+  .onboarding-title {
+    font-size: 1.35rem;
+  }
+
+  .onboarding-desc {
+    font-size: 0.85rem;
+  }
+
+  .onboarding-nav {
+    padding: 1rem 1.5rem 1.5rem;
+  }
+
+  .onboarding-nav-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  .onboarding-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+  }
+
+  .onboarding-feature {
+    padding: 0.375rem 0.75rem;
+  }
+
+  .onboarding-feature-label {
+    font-size: 0.75rem;
+  }
+}
