@@ -220,7 +220,7 @@ export default function MessagesPage() {
   const sentRequests = friends.filter(f => f.status === 'pending' && f.is_initiator)
 
   return (
-    <div className="page-container h-[calc(100vh-1rem)] sm:h-[calc(100vh-2rem)] flex flex-col pt-0 px-1 sm:px-4 md:px-6 mb-2">
+    <div className="page-container h-[calc(100vh-2rem)] sm:h-[calc(100vh-4rem)] flex flex-col pt-0 px-2 sm:px-4 md:px-6 mb-2 overflow-hidden">
       
       {/* ── Toasts ──────────────────────────────────────── */}
       {toast && (
@@ -416,19 +416,22 @@ export default function MessagesPage() {
           ) : (
             <>
               {/* Chat Header */}
-              <div className="h-16 flex items-center gap-3 px-4 sm:px-6 bg-black/60 border-b border-white/5 flex-shrink-0 z-10 shadow-md">
+              <div className="h-16 flex items-center gap-3 px-4 sm:px-6 bg-discord-darker/60 backdrop-blur-md border-b border-white/5 flex-shrink-0 z-10 shadow-lg">
                 <button 
                   onClick={() => setSelectedFriend(null)}
-                  className="md:hidden w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white mr-1"
+                  className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-white hover:bg-white/10 transition-colors mr-1"
                 >
-                  <ChevronRight className="w-5 h-5 rotate-180" />
+                  <ChevronLeft className="w-6 h-6" />
                 </button>
-                <div className="w-9 h-9 sm:w-10 sm:h-10 relative rounded-full overflow-hidden ring-2 ring-white/10 flex-shrink-0">
+                <div className="w-10 h-10 relative rounded-full overflow-hidden ring-2 ring-discord-blurple/30 flex-shrink-0 shadow-lg">
                   <Image src={selectedFriend.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} alt={selectedFriend.username} fill className="object-cover" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-black text-white tracking-tight truncate">{selectedFriend.username}</h3>
-                  <p className="text-[10px] sm:text-xs font-semibold text-discord-muted truncate">Début de la conversation</p>
+                  <h3 className="font-black text-white tracking-tight truncate leading-none mb-1">{selectedFriend.username}</h3>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-discord-success shadow-[0_0_8px_rgba(87,242,135,0.5)]" />
+                    <span className="text-[10px] font-bold text-discord-muted uppercase tracking-widest">En ligne</span>
+                  </div>
                 </div>
               </div>
 
@@ -447,29 +450,29 @@ export default function MessagesPage() {
                     const prevDiff = i > 0 && messages[i - 1].sender_id === m.sender_id;
                     
                     return (
-                      <div key={m.id} className={clsx('flex gap-3 sm:gap-4 max-w-[95%] sm:max-w-[85%] animate-slideIn', isMe ? 'ml-auto flex-row-reverse' : '')} style={{ animationDelay: `${i * 20}ms` }}>
+                      <div key={m.id} className={clsx('flex gap-3 sm:gap-4 max-w-[90%] sm:max-w-[75%] animate-slideUp', isMe ? 'ml-auto flex-row-reverse' : '')} style={{ animationDelay: `${i * 10}ms` }}>
                         {!prevDiff ? (
-                           <div className="w-8 h-8 sm:w-10 sm:h-10 relative rounded-full overflow-hidden flex-shrink-0 mt-auto ring-1 ring-white/10 shadow-md">
+                           <div className="w-8 h-8 sm:w-9 sm:h-9 relative rounded-full overflow-hidden flex-shrink-0 mt-auto ring-2 ring-white/5 shadow-xl transition-transform hover:scale-110">
                              <Image src={isMe ? profile?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png' : selectedFriend.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} alt="" fill className="object-cover" />
                            </div>
-                        ) : <div className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0" />}
+                        ) : <div className="w-8 h-8 sm:w-9 sm:h-9 flex-shrink-0" />}
 
-                        <div className={clsx('flex flex-col min-w-0', isMe ? 'items-end' : 'items-start')}>
-                          {!prevDiff && <span className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1 mx-1 truncate max-w-full">
-                            {isMe ? 'Vous' : selectedFriend.username}
+                        <div className={clsx('flex flex-col min-w-0 group', isMe ? 'items-end' : 'items-start')}>
+                          {!prevDiff && <span className="text-[9px] font-black text-discord-muted uppercase tracking-[0.2em] mb-1.5 px-2">
+                            {isMe ? 'Vous' : selectedFriend.username} • {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                           </span>}
                           <div className={clsx(
-                            'px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-sm font-medium shadow-sm break-words max-w-full border',
+                            'px-4 py-2.5 rounded-2xl text-[13px] font-medium shadow-lg break-words max-w-full border transition-all hover:brightness-110',
                             isMe 
-                              ? 'bg-discord-blurple text-white rounded-br-sm border-white/10' 
-                              : 'bg-white/10 text-[rgb(230,230,230)] rounded-bl-sm border-white/5'
+                              ? 'bg-gradient-to-br from-discord-blurple to-[#4752c4] text-white rounded-br-sm border-white/10 shadow-discord-blurple/20' 
+                              : 'bg-white/10 text-white rounded-bl-sm border-white/5 backdrop-blur-sm'
                           )}>
                             {m.content.startsWith('http') && m.content.match(/\.(jpeg|jpg|gif|png|webp|svg)/i) ? (
                                // eslint-disable-next-line @next/next/no-img-element
                                <img 
                                  src={m.content} 
                                  alt="Image" 
-                                 className="max-w-full rounded-xl object-contain bg-black/20 cursor-zoom-in hover:scale-[1.02] transition-transform shadow-lg" 
+                                 className="max-w-full rounded-xl object-contain bg-black/20 cursor-zoom-in hover:scale-[1.01] transition-transform shadow-2xl" 
                                  onClick={() => window.open(m.content, '_blank')}
                                />
                             ) : (

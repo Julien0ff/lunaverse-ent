@@ -272,7 +272,10 @@ export default function Bank() {
   return (
     <div className="page-container">
       <div className="animate-slideIn">
-        <h1 className="text-4xl font-black text-white tracking-tight">Banque</h1>
+        <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-3">
+          <Wallet className="w-10 h-10 text-discord-blurple" />
+          Banque
+        </h1>
         <p className="text-discord-muted mt-1 font-medium">Gérez vos finances LunaVerse</p>
       </div>
 
@@ -477,7 +480,7 @@ export default function Bank() {
                           <div className="text-right">
                             <p className={clsx(
                               "text-lg font-black",
-                              !isOutgoing ? "text-discord-success" : "text-white"
+                              !isOutgoing ? "text-discord-success" : "text-discord-error"
                             )}>
                               {!isOutgoing ? '+' : ''}{tx.amount.toLocaleString()} €
                             </p>

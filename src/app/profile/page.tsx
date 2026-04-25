@@ -77,28 +77,40 @@ export default function ProfilePage() {
             </div>
             {/* Status badge */}
             <div
-              className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-full border"
+              className="absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-black px-3 py-1.5 rounded-full border shadow-xl transition-all duration-300 group-hover:scale-110"
               style={{
-                background: `${status.color}18`,
-                color: status.color,
-                borderColor: `${status.color}40`,
+                background: `${status.color}33`,
+                color: '#FFFFFF',
+                borderColor: `${status.color}60`,
+                backdropFilter: 'blur(8px)',
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)'
               }}
             >
-              {status.label}
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: status.color }} />
+                {status.label}
+              </span>
             </div>
           </div>
 
           {/* Info */}
-          <div className="flex-1 text-center md:text-left mt-4 md:mt-0 min-w-0">
-            <h2 className="text-3xl font-black text-white mb-1 group-hover:text-discord-blurple transition-colors">
-              {profile?.username || '…'}
-            </h2>
+          <div className="flex-1 text-center md:text-left mt-6 md:mt-0 min-w-0">
+            <div className="flex flex-col md:flex-row md:items-center gap-2 mb-2">
+              <h2 className="text-4xl font-black text-white tracking-tight group-hover:text-discord-blurple transition-colors">
+                {profile?.username || '…'}
+              </h2>
+              {roles.some(r => r.name === 'Admin') && (
+                <span className="bg-discord-blurple/20 text-discord-blurple text-[10px] font-black px-2 py-0.5 rounded-md border border-discord-blurple/30 uppercase tracking-widest w-fit mx-auto md:mx-0">
+                  Staff
+                </span>
+              )}
+            </div>
             
             {/* RP Identity */}
             {(profile as any)?.nickname_rp && (
-              <div className="mb-3 animate-fadeIn flex items-center justify-center md:justify-start gap-2">
+              <div className="mb-4 animate-fadeIn flex items-center justify-center md:justify-start gap-2">
                 <span className="text-xs font-black text-discord-muted uppercase tracking-[0.2em]">Identité RP :</span>
-                <span className="text-sm font-bold text-white bg-white/5 px-3 py-1 rounded-lg border border-white/10">
+                <span className="text-sm font-bold text-white bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 shadow-inner">
                   {(profile as any).nickname_rp}
                 </span>
               </div>

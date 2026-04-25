@@ -1,7 +1,7 @@
 'use client'
 
 import { useAuth } from '@/context/AuthContext'
-import { Utensils, QrCode, CalendarClock, ChevronRight, CheckCircle2, Clock } from 'lucide-react'
+import { Utensils, QrCode, CalendarClock, ChevronRight, CheckCircle2, Clock, AlertCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import clsx from 'clsx'
 
@@ -86,72 +86,100 @@ export default function Cantine() {
 
   return (
     <div className="page-container w-full mx-auto">
-      <div className="animate-slideIn mb-8">
-        <h1 className="text-4xl font-black text-white flex items-center gap-3 tracking-tight">
-          <Utensils className="text-orange-500 w-10 h-10" />
-          Cantine LunaVerse
-        </h1>
-        <p className="text-discord-muted mt-2">Gérez vos repas et vos abonnements au réfectoire.</p>
+      <div className="animate-slideIn mb-12">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-4xl sm:text-5xl font-black text-white flex items-center gap-4 tracking-tighter">
+              <Utensils className="text-orange-500 w-10 h-10 sm:w-12 sm:h-12 drop-shadow-[0_0_15px_rgba(249,115,22,0.4)]" />
+              Cantine LunaVerse
+            </h1>
+            <p className="text-discord-muted mt-2 text-lg font-medium">Gérez vos repas et vos abonnements au réfectoire.</p>
+          </div>
+          {hasSubscription && (
+            <div className="bg-discord-success/10 text-discord-success px-4 py-2 rounded-2xl border border-discord-success/20 flex items-center gap-2 font-black text-xs uppercase tracking-widest h-fit">
+              <CheckCircle2 className="w-4 h-4" /> Abonnement Actif
+            </div>
+          )}
+        </div>
         
         {errorMsg && (
-          <div className="mt-4 bg-discord-error/10 border border-discord-error/20 text-discord-error px-4 py-3 rounded-xl flex items-center gap-2 font-bold animate-fadeIn">
-            <span>⚠️</span> {errorMsg}
+          <div className="mt-6 bg-discord-error/10 border border-discord-error/20 text-discord-error px-4 py-4 rounded-2xl flex items-center gap-3 font-bold animate-shake">
+            <AlertCircle className="w-5 h-5" /> {errorMsg}
           </div>
         )}
 
         {/* Dynamic Daily Menu */}
         {activeMenu && (
-          <div className="mt-8 glass-card p-12 relative overflow-hidden group border-orange-500/30 shadow-[0_0_60px_rgba(249,115,22,0.15)] rounded-[2.5rem] animate-fadeIn">
-            <div className="absolute top-0 right-0 p-8 text-6xl opacity-10 group-hover:scale-110 transition-transform select-none">🍱</div>
-            <div className="absolute -top-24 -right-24 w-64 h-64 bg-orange-500/10 blur-[80px] rounded-full" />
+          <div className="mt-10 glass-card p-6 sm:p-12 relative overflow-hidden group border-orange-500/30 shadow-[0_0_80px_rgba(249,115,22,0.1)] rounded-[2.5rem] animate-fadeIn">
+            <div className="absolute top-0 right-0 p-8 text-8xl opacity-5 group-hover:scale-110 transition-transform select-none pointer-events-none">🍱</div>
+            <div className="absolute -top-32 -right-32 w-80 h-80 bg-orange-500/10 blur-[100px] rounded-full" />
             
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-12 relative z-10">
               <div>
-                <h2 className="text-5xl font-black text-white mb-3 flex items-center gap-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-[10px] font-black bg-orange-500 text-white px-3 py-1 rounded-full uppercase tracking-[0.2em] animate-pulse">Service en cours</span>
+                  <span className="text-[10px] font-black bg-white/10 text-white/60 px-3 py-1 rounded-full uppercase tracking-[0.2em]">Aujourd'hui</span>
+                </div>
+                <h2 className="text-4xl sm:text-6xl font-black text-white tracking-tighter">
                   Menu du Jour
-                  <span className="text-sm font-black bg-orange-500 text-white px-4 py-1.5 rounded-full uppercase tracking-[0.2em] animate-pulse">En cours</span>
                 </h2>
-                <div className="flex items-center gap-3 text-discord-muted">
-                  <Clock className="w-6 h-6 text-orange-400" />
-                  <span className="text-xl font-bold tracking-wide">Service : {activeMenu.time_start.slice(0, 5)} — {activeMenu.time_end.slice(0, 5)}</span>
+              </div>
+              <div className="flex items-center gap-4 bg-black/40 backdrop-blur-xl p-4 rounded-3xl border border-white/5 shadow-2xl">
+                <div className="w-12 h-12 rounded-2xl bg-orange-500/20 flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-orange-500" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest">Horaires du service</p>
+                  <p className="text-xl font-bold text-white tracking-tight">{activeMenu.time_start.slice(0, 5)} — {activeMenu.time_end.slice(0, 5)}</p>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 relative z-10">
                {activeMenu.starter && (
-                 <div className="space-y-3 p-8 rounded-[2rem] bg-white/[0.03] border border-white/10 hover:border-white/20 transition-colors">
-                    <p className="text-xs font-black text-discord-muted uppercase tracking-[0.3em]">🥗 Entrée</p>
-                    <p className="text-2xl font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{activeMenu.starter}</p>
+                 <div className="space-y-3 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all hover:bg-white/[0.04] group/item">
+                    <p className="text-[10px] font-black text-discord-muted uppercase tracking-[0.3em] flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-discord-muted" /> Entrée
+                    </p>
+                    <p className="text-2xl font-bold text-white leading-snug group-hover/item:text-orange-400 transition-colors">{activeMenu.starter}</p>
                  </div>
                )}
-               <div className="space-y-4 p-10 rounded-[2.5rem] bg-orange-500/10 border border-orange-500/30 md:col-span-2 shadow-xl shadow-orange-500/5">
-                  <p className="text-xs font-black text-orange-500 uppercase tracking-[0.3em]">🥩 Plat Principal</p>
-                  <p className="text-5xl font-black text-white whitespace-pre-wrap leading-tight">{activeMenu.main}</p>
+               <div className="space-y-4 p-8 sm:p-10 rounded-[3rem] bg-gradient-to-br from-orange-500/20 to-orange-600/5 border border-orange-500/30 sm:col-span-2 lg:col-span-1 shadow-2xl shadow-orange-500/5 group/item">
+                  <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping" /> Plat Principal
+                  </p>
+                  <p className="text-4xl sm:text-5xl font-black text-white leading-tight group-hover/item:scale-[1.02] transition-transform origin-left">{activeMenu.main}</p>
                </div>
                {activeMenu.side && (
-                 <div className="space-y-3 p-8 rounded-[2rem] bg-white/[0.03] border border-white/10 hover:border-white/20 transition-colors">
-                    <p className="text-xs font-black text-orange-300 uppercase tracking-[0.3em]">🍚 Accompagnement</p>
-                    <p className="text-2xl font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{activeMenu.side}</p>
+                 <div className="space-y-3 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all hover:bg-white/[0.04] group/item">
+                    <p className="text-[10px] font-black text-orange-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-orange-400" /> Accompagnement
+                    </p>
+                    <p className="text-2xl font-bold text-white leading-snug group-hover/item:text-orange-400 transition-colors">{activeMenu.side}</p>
                  </div>
                )}
                {activeMenu.dessert && (
-                 <div className="space-y-3 p-8 rounded-[2rem] bg-white/[0.03] border border-white/10 hover:border-white/20 transition-colors">
-                    <p className="text-xs font-black text-pink-400 uppercase tracking-[0.3em]">🍰 Dessert</p>
-                    <p className="text-2xl font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{activeMenu.dessert}</p>
+                 <div className="space-y-3 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all hover:bg-white/[0.04] group/item">
+                    <p className="text-[10px] font-black text-pink-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-pink-400" /> Dessert
+                    </p>
+                    <p className="text-2xl font-bold text-white leading-snug group-hover/item:text-pink-400 transition-colors">{activeMenu.dessert}</p>
                  </div>
                )}
                {activeMenu.drink && (
-                 <div className="space-y-3 p-8 rounded-[2rem] bg-white/[0.03] border border-white/10 hover:border-white/20 transition-colors">
-                    <p className="text-xs font-black text-blue-400 uppercase tracking-[0.3em]">🥤 Boisson</p>
-                    <p className="text-2xl font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{activeMenu.drink}</p>
+                 <div className="space-y-3 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all hover:bg-white/[0.04] group/item">
+                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400" /> Boisson
+                    </p>
+                    <p className="text-2xl font-bold text-white leading-snug group-hover/item:text-blue-400 transition-colors">{activeMenu.drink}</p>
                  </div>
                )}
             </div>
 
             {activeMenu.note && (
-               <div className="mt-12 flex items-center gap-6 text-base text-discord-muted bg-black/40 p-8 rounded-[2rem] border border-white/10 italic">
-                  <span className="text-4xl">💡</span> {activeMenu.note}
+               <div className="mt-10 flex items-start gap-5 text-discord-muted bg-white/[0.02] p-8 rounded-[2.5rem] border border-white/5 italic relative z-10">
+                  <span className="text-3xl leading-none">💡</span> 
+                  <p className="text-lg leading-relaxed font-medium">{activeMenu.note}</p>
                </div>
             )}
           </div>

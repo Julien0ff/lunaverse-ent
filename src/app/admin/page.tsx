@@ -8,11 +8,11 @@ import {
   ShieldAlert, Users, Wallet, Dices, ShoppingCart,
   Plus, Pencil, Trash2, Send, RefreshCw, Search,
   ChevronDown, Check, X, Settings, BookOpen, Save, Clock,
-  FileText, CheckCircle2, AlertCircle
+  FileText, CheckCircle2, AlertCircle, Calendar, Paperclip
 } from 'lucide-react'
 import clsx from 'clsx'
 
-type AdminTab = 'users' | 'finances' | 'shop' | 'roles' | 'money' | 'suggestions' | 'cantine' | 'declarations'
+type AdminTab = 'users' | 'finances' | 'shop' | 'roles' | 'money' | 'suggestions' | 'cantine' | 'declarations' | 'absences'
 
 interface AdminUser {
   id: string; discord_id: string; username: string
@@ -59,6 +59,7 @@ export default function AdminPage() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [canteenMenus, setCanteenMenus] = useState<CanteenMenu[]>([])
   const [declarations, setDeclarations] = useState<any[]>([])
+  const [absences, setAbsences] = useState<any[]>([])
 
   // Forms
   const [giveSelectedIds, setGiveSelectedIds] = useState<string[]>([])
@@ -115,7 +116,7 @@ export default function AdminPage() {
     await Promise.allSettled([
       loadUsers(), loadTaxes(), loadItems(), 
       loadRoles(), loadSuggestions(), loadCanteen(),
-      loadDeclarations()
+      loadDeclarations(), loadAbsences()
     ])
   }, [])
 
@@ -153,6 +154,26 @@ export default function AdminPage() {
   const loadDeclarations = async () => {
     const r = await fetch('/api/admin/declarations')
     if (r.ok) setDeclarations((await r.json()).declarations || [])
+  }
+  const loadAbsences = async () => {
+    const r = await fetch('/api/admin/absences')
+    if (r.ok) setAbsences((await r.json()).items || [])
+  }
+
+  const processAbsence = async (id: string, status: 'accepted' | 'refused') => {
+    try {
+      const res = await fetch('/api/admin/absences', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status })
+      })
+      if (res.ok) {
+        showMsg('success', `Absence ${status === 'accepted' ? 'validée' : 'refusée'}`)
+        loadAbsences()
+      } else {
+        showMsg('error', (await res.json()).error)
+      }
+    } catch (e) {}
   }
 
   const showMsg = (type: 'success' | 'error', text: string) => {
@@ -375,6 +396,7 @@ export default function AdminPage() {
     { id: 'roles', label: 'Rôles', icon: Settings },
     { id: 'money', label: 'Primes', icon: Wallet },
     { id: 'declarations', label: 'Déclarations', icon: FileText },
+    { id: 'absences', label: 'Absences', icon: Calendar },
   ]
 
   // Premium Slider Component
@@ -1342,7 +1364,6 @@ export default function AdminPage() {
           </div>
         </div>
       )}
-
       {/* ── Declarations Tab ────────────────────────────────── */}
       {tab === 'declarations' && (
         <div className="space-y-4 animate-fadeIn">
@@ -1451,6 +1472,107 @@ export default function AdminPage() {
                       </td>
                       <td className="p-4 text-right text-discord-muted text-xs">
                         {new Date(dec.processed_at || dec.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Absences Tab ────────────────────────────────── */}
+      {tab === 'absences' && (
+        <div className="space-y-4 animate-fadeIn">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-xl font-black text-white">Gestion des absences</h3>
+            <p className="text-xs text-discord-muted font-bold uppercase tracking-widest">{absences.filter(a => a.status === 'pending').length} demandes en attente</p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            {absences.filter(a => a.status === 'pending').map(abs => (
+              <div key={abs.id} className="glass-card flex flex-col md:flex-row items-start md:items-center gap-6 p-6 group">
+                <div className="flex items-center gap-4 flex-1">
+                   <div className="w-12 h-12 rounded-2xl relative overflow-hidden ring-2 ring-white/5">
+                      <Image src={abs.profiles?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} fill className="object-cover" alt="" />
+                   </div>
+                   <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="font-black text-white text-lg">{abs.profiles?.nickname_rp || abs.profiles?.username}</span>
+                        <span className="text-[10px] font-mono text-discord-muted bg-black/40 px-1.5 py-0.5 rounded uppercase tracking-tighter">{abs.profiles?.discord_id}</span>
+                      </div>
+                      <p className="text-sm text-discord-muted line-clamp-1 italic">&quot;{abs.reason}&quot;</p>
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <span className="text-[10px] font-black uppercase text-discord-warning bg-discord-warning/10 px-2 py-0.5 rounded-full border border-discord-warning/20">{abs.duration}</span>
+                        <span className="text-[10px] font-bold text-discord-muted uppercase tracking-widest flex items-center gap-1"><Clock size={10} /> {new Date(abs.created_at).toLocaleDateString()}</span>
+                      </div>
+                      {abs.attachments && (
+                        <div className="mt-2 p-2 bg-white/5 rounded-lg border border-white/5 flex items-center gap-2">
+                          <Paperclip className="w-3.5 h-3.5 text-discord-muted" />
+                          <p className="text-[10px] text-discord-muted truncate">PJ : {abs.attachments}</p>
+                        </div>
+                      )}
+                   </div>
+                </div>
+
+                <div className="flex gap-2 w-full md:w-auto">
+                   <button 
+                     onClick={() => processAbsence(abs.id, 'accepted')}
+                     className="flex-1 md:flex-initial btn btn-success py-2 text-xs"
+                   >
+                     Valider
+                   </button>
+                   <button 
+                     onClick={() => processAbsence(abs.id, 'refused')}
+                     className="flex-1 md:flex-initial btn btn-error py-2 text-xs"
+                   >
+                     Refuser
+                   </button>
+                </div>
+              </div>
+            ))}
+            {absences.filter(a => a.status === 'pending').length === 0 && (
+              <div className="glass-card py-20 text-center flex flex-col items-center justify-center opacity-50 border-dashed">
+                <Calendar className="w-16 h-16 text-discord-blurple mb-4" />
+                <p className="text-xl font-bold text-white">Aucune absence</p>
+                <p className="text-sm text-discord-muted">Toutes les demandes ont été traitées.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-8 space-y-3">
+            <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest px-1">Traitées récemment</h3>
+            <div className="glass-card p-0 overflow-hidden overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="border-b border-white/6 text-[10px] font-black text-discord-muted uppercase tracking-widest bg-black/20">
+                  <tr>
+                    <th className="p-4">Utilisateur</th>
+                    <th className="p-4">Raison</th>
+                    <th className="p-4">Durée</th>
+                    <th className="p-4 text-center">Status</th>
+                    <th className="p-4 text-right">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/4">
+                  {absences.filter(a => a.status !== 'pending').slice(0, 10).map(abs => (
+                    <tr key={abs.id} className="hover:bg-white/2 transition-colors">
+                      <td className="p-4 flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full overflow-hidden relative"><Image src={abs.profiles?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} fill alt="" /></div>
+                        <span className="font-bold text-white whitespace-nowrap">{abs.profiles?.username}</span>
+                      </td>
+                      <td className="p-4 text-discord-muted italic truncate max-w-[200px]">{abs.reason}</td>
+                      <td className="p-4 text-white font-bold">{abs.duration}</td>
+                      <td className="p-4 text-center">
+                        <span className={clsx(
+                          "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                          abs.status === 'accepted' ? "bg-discord-success/10 text-discord-success border-discord-success/20" : "bg-discord-error/10 text-discord-error border-discord-error/20"
+                        )}>
+                          {abs.status === 'accepted' ? 'Validé' : 'Refusé'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right text-discord-muted text-xs">
+                        {new Date(abs.processed_at || abs.created_at).toLocaleDateString()}
                       </td>
                     </tr>
                   ))}
