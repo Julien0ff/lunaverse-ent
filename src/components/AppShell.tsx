@@ -46,6 +46,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         }
     }, [pathname, isPublic, ready, profile, roles, router])
 
+    // Global heartbeat
+    useEffect(() => {
+        if (!profile?.id) return
+
+        const heartbeat = async () => {
+            await fetch('/api/profile/update', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ last_seen_at: new Date().toISOString() })
+            })
+        }
+
+        heartbeat()
+        const interval = setInterval(heartbeat, 2 * 60 * 1000) // Every 2 mins
+        return () => clearInterval(interval)
+    }, [profile?.id])
+
     // Real-time PM listener
     useEffect(() => {
         if (!profile?.id) return

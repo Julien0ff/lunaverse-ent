@@ -164,34 +164,69 @@ export default function Cantine() {
                     <p className="text-[9px] font-black text-discord-muted uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
                       <span className="w-1 h-1 rounded-full bg-discord-muted" /> Entrée
                     </p>
-                    <p className="text-lg font-bold text-white leading-tight">{activeMenu.starter}</p>
+                    <div className="text-lg font-bold text-white leading-tight space-y-1">
+                      {activeMenu.starter.split('\n').map((line: string, i: number) => (
+                        <p key={i} className="flex items-start gap-2">
+                          {line.trim().startsWith('-') && <span className="text-discord-blurple mt-1.5">•</span>}
+                          <span>{line.trim().startsWith('-') ? line.trim().slice(1).trim() : line}</span>
+                        </p>
+                      ))}
+                    </div>
                  </div>
                )}
                <div className="p-6 rounded-3xl bg-orange-500/10 border border-orange-500/20">
                   <p className="text-[9px] font-black text-orange-500 uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
                     <span className="w-1 h-1 rounded-full bg-orange-500" /> Plat Principal
                   </p>
-                  <p className="text-xl font-black text-white leading-tight">{activeMenu.main}</p>
+                  <div className="text-xl font-black text-white leading-tight space-y-1">
+                    {activeMenu.main.split('\n').map((line: string, i: number) => (
+                      <p key={i} className="flex items-start gap-2">
+                        {line.trim().startsWith('-') && <span className="text-orange-500 mt-2">•</span>}
+                        <span>{line.trim().startsWith('-') ? line.trim().slice(1).trim() : line}</span>
+                      </p>
+                    ))}
+                  </div>
                </div>
                {activeMenu.side && (
                  <div className="p-6 rounded-3xl bg-white/[0.03] border border-white/5">
                     <p className="text-[9px] font-black text-orange-400 uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
                       <span className="w-1 h-1 rounded-full bg-orange-400" /> Accompagnement
                     </p>
-                    <p className="text-lg font-bold text-white leading-tight">{activeMenu.side}</p>
+                    <div className="text-lg font-bold text-white leading-tight space-y-1">
+                      {activeMenu.side.split('\n').map((line: string, i: number) => (
+                        <p key={i} className="flex items-start gap-2">
+                          {line.trim().startsWith('-') && <span className="text-orange-400 mt-1.5">•</span>}
+                          <span>{line.trim().startsWith('-') ? line.trim().slice(1).trim() : line}</span>
+                        </p>
+                      ))}
+                    </div>
                  </div>
                )}
                <div className="flex flex-col gap-4">
                  {activeMenu.dessert && (
                    <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex-1">
                       <p className="text-[9px] font-black text-pink-400 uppercase tracking-[0.3em] mb-1">🍰 Dessert</p>
-                      <p className="text-sm font-bold text-white">{activeMenu.dessert}</p>
+                      <div className="text-sm font-bold text-white space-y-0.5">
+                        {activeMenu.dessert.split('\n').map((line: string, i: number) => (
+                          <p key={i} className="flex items-start gap-1.5">
+                            {line.trim().startsWith('-') && <span className="text-pink-400 mt-1">•</span>}
+                            <span>{line.trim().startsWith('-') ? line.trim().slice(1).trim() : line}</span>
+                          </p>
+                        ))}
+                      </div>
                    </div>
                  )}
                  {activeMenu.drink && (
                    <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex-1">
                       <p className="text-[9px] font-black text-blue-400 uppercase tracking-[0.3em] mb-1">🥤 Boisson</p>
-                      <p className="text-sm font-bold text-white">{activeMenu.drink}</p>
+                      <div className="text-sm font-bold text-white space-y-0.5">
+                        {activeMenu.drink.split('\n').map((line: string, i: number) => (
+                          <p key={i} className="flex items-start gap-1.5">
+                            {line.trim().startsWith('-') && <span className="text-blue-400 mt-1">•</span>}
+                            <span>{line.trim().startsWith('-') ? line.trim().slice(1).trim() : line}</span>
+                          </p>
+                        ))}
+                      </div>
                    </div>
                  )}
                </div>

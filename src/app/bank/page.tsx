@@ -330,31 +330,32 @@ export default function Bank() {
             <div className="relative z-10 flex flex-col h-full justify-between">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-[10px] uppercase tracking-widest text-white/70 font-bold mb-0.5">Solde LunaVerse</p>
-                  <p className="text-3xl font-black">{profile?.balance.toFixed(2)} €</p>
+                  <p className="text-[10px] uppercase tracking-widest text-white font-bold mb-0.5">Solde LunaVerse</p>
+                  <p className="text-3xl font-black text-white">{profile?.balance.toFixed(2)} €</p>
                 </div>
                 <div className="flex flex-col items-end">
                    <div className="px-2 py-0.5 rounded-md bg-black/40 border border-white/10 text-[9px] font-black text-yellow-400 uppercase tracking-widest mb-2">PROFIL PREMIUM</div>
                    {(profile as any)?.dirty_balance > 0 && (
                      <div className="text-right">
-                       <p className="text-[9px] uppercase tracking-widest text-white/60 font-bold">Argent Sale</p>
+                       <p className="text-[9px] uppercase tracking-widest text-white font-bold">Argent Sale</p>
                        <p className="text-sm font-black text-red-400">{(profile as any).dirty_balance.toFixed(0)} €</p>
                      </div>
                    )}
                 </div>
               </div>
               <div>
-                <p className="font-mono text-lg tracking-[0.2em] opacity-80 mb-1">**** **** **** {(profile?.discord_id || '0000').slice(-4)}</p>
+                <p className="font-mono text-lg tracking-[0.2em] text-white/90 mb-1">**** **** **** {(profile?.discord_id || '0000').slice(-4)}</p>
                 <div className="flex justify-between items-end">
-                  <p className="text-sm font-bold uppercase tracking-wider">{profile?.username || 'Utilisateur'}</p>
-                  <p className="text-xs font-black italic">VISA</p>
+                  <p className="text-sm font-bold uppercase tracking-wider text-white">{profile?.username || 'Utilisateur'}</p>
+                  <p className="text-xs font-black italic text-white">VISA</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="lg:col-span-2">
+      <div className="lg:col-span-2">
           {activeTab === 'send' && (
             <div className="glass-card animate-fadeIn">
               <div className="space-y-6">
@@ -648,7 +649,6 @@ export default function Bank() {
                     </div>
                   )}
                 </div>
-              </div>
 
               {/* History */}
               <div className="glass-card p-2">
@@ -695,9 +695,9 @@ export default function Bank() {
                   )}
                 </div>
               </div>
+              </div>
             </div>
           )}
-        </div>
       </div>
     </div>
   )

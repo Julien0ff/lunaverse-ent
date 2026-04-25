@@ -2,6 +2,8 @@ import { createSupabaseServer } from '@/lib/supabase-server'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdmin } from '@/lib/auth-server'
 import { NextRequest, NextResponse } from 'next/server'
+import { EmbedBuilder } from 'discord.js'
+import { sendDiscordDM } from '@/lib/discord-api'
 
 export async function GET() {
   try {
@@ -94,6 +96,19 @@ export async function POST(request: NextRequest) {
       }
 
       results.push({ username: targetUser.username })
+      
+      // Notify target user via Discord DM
+      try {
+        const embed = new EmbedBuilder()
+          .setTitle(auto_deduct ? '💸 Taxe Prélevée' : '🧾 Nouvelle Taxe')
+          .setColor(auto_deduct ? 0xED4245 : 0xFEE75C) // Error Red for deduction, Warning Yellow for unpaid
+          .setDescription(`Une taxe de **${amount}€** a été émise à votre encontre.\n\n**Motif :** ${reason}\n\n${auto_deduct ? '_Le montant a été automatiquement déduit de votre solde._' : '_Merci de régler cette taxe à la banque dès que possible._'}`)
+          .setTimestamp()
+
+        await sendDiscordDM(targetUser.id, embed)
+      } catch (dmErr) {
+        console.error(`Failed to send tax DM to ${targetUser.id}:`, dmErr)
+      }
     }
 
     if (results.length === 0 && errors.length > 0) {

@@ -233,6 +233,14 @@ const commands = [
     .setName('setmenu')
     .setDescription('[ADMIN] Configurer le salon du menu de la cantine')
     .addChannelOption(o => o.setName('salon').setDescription('Le salon où envoyer et maj le menu').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('market')
+    .setDescription('Voir les objets actuellement en vente sur Luna Market'),
+
+  new SlashCommandBuilder()
+    .setName('leaderboard')
+    .setDescription('Voir le classement des plus riches'),
 ]
 
 // Helper functions
@@ -2388,6 +2396,41 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         }
 
         await interaction.reply({ embeds: [embed] })
+        break
+      }
+
+      case 'market': {
+        const { data: listings } = await supabase
+          .from('market_listings')
+          .select('*, profile:profiles(username, nickname_rp)')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(10)
+
+        const embed = new EmbedBuilder()
+          .setTitle('🛒 Luna Market • En vente')
+          .setColor(0xFEE75C)
+          .setTimestamp()
+          .setFooter({ text: 'Accédez au Marché sur l\'ENT pour acheter' })
+
+        if (listings && listings.length > 0) {
+          const list = listings.map(l => {
+            const seller = l.profile?.nickname_rp || l.profile?.username || 'Inconnu'
+            return `📦 **${l.title}** — ${l.price}€\n👤 Vendeur: ${seller}\n`
+          }).join('\n')
+          embed.setDescription(list)
+
+          const btn = new ButtonBuilder()
+            .setLabel('Voir sur l\'ENT')
+            .setURL(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://lunaverse-ent.vercel.app'}/market`)
+            .setStyle(ButtonStyle.Link)
+          
+          const row = new ActionRowBuilder<ButtonBuilder>().addComponents(btn)
+          await interaction.reply({ embeds: [embed], components: [row] })
+        } else {
+          embed.setDescription('Aucun objet en vente actuellement.')
+          await interaction.reply({ embeds: [embed] })
+        }
         break
       }
 

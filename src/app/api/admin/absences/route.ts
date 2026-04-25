@@ -58,7 +58,7 @@ export async function PATCH(req: Request) {
         const statusFr = status === 'accepted' ? 'VALIDÉE ✅' : 'REFUSÉE ❌'
         const color = status === 'accepted' ? 0x57F287 : 0xED4245
         
-        await sendDiscordDM(data.profiles.discord_id, {
+        await sendDiscordDM(data.user_id, {
           embeds: [{
             title: `Mise à jour d'absence - LunaVerse`,
             description: `Votre demande d'absence pour **${data.duration}** a été **${statusFr}**.`,
