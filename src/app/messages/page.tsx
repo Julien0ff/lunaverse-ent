@@ -232,7 +232,8 @@ export default function MessagesPage() {
   const sentRequests = friends.filter(f => f.status === 'pending' && f.is_initiator)
 
   return (
-    <div className="h-full md:h-[calc(100vh-4rem)] flex flex-col overflow-hidden bg-white/5 dark:bg-[#121316]">
+    <div className="page-container h-[calc(100vh-120px)] md:h-[calc(100vh-140px)] !p-0 overflow-hidden shadow-2xl">
+      <div className="h-full flex flex-col overflow-hidden bg-[#313338]">
       
       {/* ── Toasts ──────────────────────────────────────── */}
       {toast && (

@@ -24,6 +24,7 @@ const NAV = [
   { href: '/messages', icon: MessageCircle, labelKey: 'nav.messages', emoji: '💬' },
   { href: '/dating', icon: Heart, labelKey: 'nav.dating', emoji: '💖' },
   { href: '/cantine', icon: Utensils, labelKey: 'nav.cantine', emoji: '🍱' },
+  { href: '/absences', icon: Calendar, labelKey: 'nav.absences', emoji: '📅' },
   { href: '/impots', icon: Landmark, labelKey: 'nav.impots', emoji: '🧾' },
   { href: '/casino', icon: Dices, labelKey: 'nav.casino', emoji: '🎰' },
   { href: '/market', icon: ShoppingBag, labelKey: 'nav.market', emoji: '🛍️' },
