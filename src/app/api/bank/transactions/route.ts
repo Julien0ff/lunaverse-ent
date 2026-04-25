@@ -80,23 +80,18 @@ export async function POST(request: NextRequest) {
       if (profile.balance < transferAmount) return NextResponse.json({ error: 'Solde insuffisant' }, { status: 400 })
 
       const newSenderBalance = Math.round((profile.balance - transferAmount) * 100) / 100
-      const newRecipientBalance = Math.round((recipientData.balance + transferAmount) * 100) / 100
-
+      
+      // Deduct immediately from sender
       await supabase.from('profiles').update({ balance: newSenderBalance }).eq('id', profile.id)
-      await supabase.from('profiles').update({ balance: newRecipientBalance }).eq('id', recipientData.id)
+      
+      // Insert with PENDING status in description
       await supabase.from('transactions').insert([{
         from_user_id: profile.id, to_user_id: recipientData.id,
         amount: transferAmount, type: 'transfer',
-        description: `Transfert de ${profile.username}`
+        description: `PENDING: Virement de ${profile.username}`
       }])
 
-      await sendDiscordDM(recipientData.id, {
-        title: '💸 Nouveau Virement Reçu',
-        color: 0x57F287,
-        description: `**${profile.nickname_rp || profile.username}** vient de vous envoyer **${transferAmount}€** !`
-      })
-
-      return NextResponse.json({ success: true, message: 'Transfert effectué !' })
+      return NextResponse.json({ success: true, message: 'Virement en cours de traitement (Prévu sous 1 min)...' })
     }
 
     // ── DAILY ─────────────────────────────────────────────────

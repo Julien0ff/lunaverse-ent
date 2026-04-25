@@ -61,7 +61,7 @@ export default function AdminPage() {
   const [declarations, setDeclarations] = useState<any[]>([])
 
   // Forms
-  const [giveUser, setGiveUser] = useState('')
+  const [giveSelectedIds, setGiveSelectedIds] = useState<string[]>([])
   const [giveUserSearch, setGiveUserSearch] = useState('')
   const [givePickerOpen, setGivePickerOpen] = useState(false)
   const [giveAmount, setGiveAmount] = useState('')
@@ -161,14 +161,40 @@ export default function AdminPage() {
   }
 
   const giveMoney = async () => {
-    const r = await fetch('/api/admin/give-money', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: giveUser, amount: parseFloat(giveAmount), reason: giveReason, auto_add: giveAutoAdd })
-    })
-    const d = await r.json()
-    if (r.ok) { showMsg('success', d.message); setGiveUser(''); setGiveAmount(''); setGiveReason(''); loadUsers() }
-    else showMsg('error', d.error)
+    if (!giveSelectedIds.length || !giveAmount) return
+    setLoading(true)
+    try {
+      let successCount = 0
+      for (const targetId of giveSelectedIds) {
+        // Find user by ID to get their discord_id or username
+        const targetUser = users.find(u => u.id === targetId)
+        if (!targetUser) continue
+
+        const res = await fetch('/api/admin/give-money', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: targetUser.discord_id || targetUser.username,
+            amount: giveAmount,
+            reason: giveReason,
+            auto_add: giveAutoAdd
+          })
+        })
+        if (res.ok) successCount++
+      }
+
+      if (successCount > 0) {
+        showMsg('success', `✅ Prime(s) envoyée(s) à ${successCount} utilisateur(s)`)
+        setGiveSelectedIds([])
+        setGiveAmount('')
+        setGiveReason('')
+        loadUsers()
+      }
+    } catch (err) {
+      showMsg('error', 'Erreur lors de l\'envoi des primes')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const saveStats = async (userId: string) => {
@@ -728,21 +754,23 @@ export default function AdminPage() {
             </h3>
             <div className="space-y-3">
               <div className="relative" data-give-picker>
-                <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">Utilisateur (ID ou Pseudo)</label>
+                <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">Utilisateurs ciblés ({giveSelectedIds.length})</label>
                 <button
                   className="glass-input w-full flex items-center justify-between text-left focus:border-discord-success"
                   onClick={() => setGivePickerOpen(!givePickerOpen)}
                 >
                   <span className="truncate">
-                    {giveUser 
-                      ? users.find(u => u.id === giveUser || u.discord_id === giveUser || u.username === giveUser)?.username || giveUser 
-                      : 'Sélectionner un utilisateur...'}
+                    {giveSelectedIds.length === 0 
+                      ? 'Sélectionner des utilisateurs...' 
+                      : giveSelectedIds.length === 1 
+                        ? users.find(u => u.id === giveSelectedIds[0])?.username 
+                        : `${giveSelectedIds.length} utilisateurs sélectionnés`}
                   </span>
                   <ChevronDown className={clsx('w-4 h-4 transition-transform', givePickerOpen && 'rotate-180')} />
                 </button>
                 {givePickerOpen && (
                   <div className="absolute top-full left-0 w-full mt-2 bg-discord-dark/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto flex flex-col custom-scrollbar">
-                    <div className="sticky top-0 bg-discord-dark/95 p-2 border-b border-white/6 z-10">
+                    <div className="sticky top-0 bg-discord-dark/95 p-2 border-b border-white/6 z-10 flex flex-col gap-2">
                       <input
                         type="text"
                         placeholder="Rechercher..."
@@ -752,29 +780,45 @@ export default function AdminPage() {
                         onClick={e => e.stopPropagation()}
                         autoFocus
                       />
+                      <button 
+                        className="btn btn-ghost !py-1 !text-[10px] w-full"
+                        onClick={() => {
+                          setGiveSelectedIds(users.map(u => u.id))
+                          setGiveUserSearch('')
+                        }}
+                      >
+                        <Check className="w-3.5 h-3.5" /> Sélectionner tout le serveur ({users.length})
+                      </button>
                     </div>
                     {users
                       .filter(u => !giveUserSearch || u.username.toLowerCase().includes(giveUserSearch.toLowerCase()) || u.discord_id.includes(giveUserSearch) || (u.nickname_rp && u.nickname_rp.toLowerCase().includes(giveUserSearch.toLowerCase())))
                       .map(u => {
-                        const isSelected = giveUser === u.id || giveUser === u.discord_id || giveUser === u.username
+                        const selected = giveSelectedIds.includes(u.id)
                         return (
                           <button
                             key={u.id}
                             onClick={() => {
-                              setGiveUser(u.id) // Use ID for exact matching in API if supported, or discord_id. The API accepts username or discord_id, but usually it searches exact match. We'll send ID or username. Actually the API says `username: giveUser`. Let's pass the discord_id or username. Let's pass discord_id.
-                              setGiveUser(u.discord_id)
-                              setGivePickerOpen(false)
+                              setGiveSelectedIds(prev =>
+                                selected ? prev.filter(x => x !== u.id) : [...prev, u.id]
+                              )
                             }}
                             className={clsx(
                               'w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors',
-                              isSelected ? 'bg-discord-success/10 text-discord-success' : 'text-white hover:bg-white/5'
+                              selected ? 'bg-discord-success/10 text-discord-success' : 'text-white hover:bg-white/5'
                             )}
                           >
+                            {selected
+                              ? <Check className="w-3.5 h-3.5 flex-shrink-0" />
+                              : <div className="w-3.5 h-3.5 rounded border border-white/20 flex-shrink-0" />}
                             <span className="font-bold truncate">{u.nickname_rp || u.username}</span>
                             <span className="text-xs text-discord-muted ml-auto font-mono">{u.discord_id}</span>
                           </button>
                         )
                       })}
+                    <button
+                      className="w-full text-xs text-discord-muted px-3 py-2 hover:bg-white/5 transition-colors border-t border-white/6"
+                      onClick={() => setGivePickerOpen(false)}
+                    >Fermer ✕</button>
                   </div>
                 )}
               </div>
@@ -795,8 +839,8 @@ export default function AdminPage() {
                   <p className="text-[10px] text-discord-muted">Si activé, l&apos;argent est crédité immédiatement sur le solde. Sinon, le joueur devra réclamer la prime.</p>
                 </div>
               </label>
-              <button onClick={giveMoney} disabled={!giveUser || !giveAmount} className="btn btn-success w-full py-3 mt-2">
-                <Send className="w-4 h-4" /> Envoyer la prime
+              <button onClick={giveMoney} disabled={!giveSelectedIds.length || !giveAmount} className="btn btn-success w-full py-3 mt-2">
+                <Send className="w-4 h-4" /> Envoyer la prime{giveSelectedIds.length > 1 ? ` (${giveSelectedIds.length} utilisateurs)` : ''}
               </button>
             </div>
           </div>

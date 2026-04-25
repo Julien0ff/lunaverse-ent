@@ -668,6 +668,46 @@ client.on('ready', async () => {
       }
     } catch {}
 
+    // ── Process Pending Transactions ─────────────────────────
+    try {
+      const { data: pendingTxs } = await supabase
+        .from('transactions')
+        .select('*, from_user:profiles!from_user_id(username, nickname_rp)')
+        .like('description', 'PENDING:%')
+      
+      for (const tx of pendingTxs || []) {
+        const createdDate = new Date(tx.created_at)
+        const now = new Date()
+        // Process after 45 seconds (to ensure it feels like "around 1 min" or slightly less for better UX)
+        if (now.getTime() - createdDate.getTime() > 45_000) {
+          if (tx.to_user_id && tx.amount > 0) {
+            const { data: recipient } = await supabase.from('profiles').select('balance, username').eq('id', tx.to_user_id).single()
+            if (recipient) {
+              const newBalance = Math.round((recipient.balance + tx.amount) * 100) / 100
+              await supabase.from('profiles').update({ balance: newBalance }).eq('id', tx.to_user_id)
+              
+              // Mark as completed
+              const cleanDesc = tx.description.replace('PENDING: ', '')
+              await supabase.from('transactions').update({ description: cleanDesc }).eq('id', tx.id)
+              
+              // Notify recipient
+              const senderName = tx.from_user?.nickname_rp || tx.from_user?.username || 'Un utilisateur'
+              const embed = new EmbedBuilder()
+                .setTitle('💸 Virement Reçu')
+                .setColor(0x57F287) // Success Green
+                .setDescription(`**${senderName}** vous a envoyé **${tx.amount}€** via virement bancaire.`)
+                .setTimestamp()
+              
+              await sendDM(tx.to_user_id, embed)
+              console.log(`✅ Processed pending transfer: ${tx.id} (${tx.amount}€ to ${recipient.username})`)
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to process pending transactions:', err)
+    }
+
   }, 60_000) // check every minute
 
   // ── Realtime social sync ──────────────────────────────────────────

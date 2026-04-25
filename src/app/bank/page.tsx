@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import { Wallet, ArrowUpRight, ArrowDownRight, Gift, Clock, Search, Send, Briefcase, FileText, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Wallet, ArrowUpRight, ArrowDownRight, Gift, Clock, Search, Send, Briefcase, FileText, CheckCircle2, AlertCircle, Euro, ChevronDown } from 'lucide-react'
 import Image from 'next/image'
 import clsx from 'clsx'
 
@@ -14,14 +14,16 @@ interface Transaction {
   type: string
   description: string
   created: string
+  created_at: string
 }
 
 export default function Bank() {
   const { profile, roles, user, refreshProfile } = useAuth()
   const [activeTab, setActiveTab] = useState<'send' | 'history' | 'daily' | 'declarations'>('send')
   const [recipient, setRecipient] = useState('')
+  const [recipientSearch, setRecipientSearch] = useState('')
+  const [recipientPickerOpen, setRecipientPickerOpen] = useState(false)
   const [recipientSuggestions, setRecipientSuggestions] = useState<any[]>([])
-  const [showSuggestions, setShowSuggestions] = useState(false)
   const [amount, setAmount] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -31,7 +33,6 @@ export default function Bank() {
   const [dirtySources, setDirtySources] = useState<any[]>([])
   const [selectedSourceId, setSelectedSourceId] = useState<string>('')
   
-  // Declaration Form state
   const [decReason, setDecReason] = useState('')
 
   const loadTransactions = useCallback(async () => {
@@ -95,32 +96,32 @@ export default function Bank() {
     }
   }, [profile?.id, loadTransactions, loadPendingBonuses, loadDeclarations, loadDirtySources])
 
-  // ── Autocomplete Search ─────────────────────────────────────
   useEffect(() => {
     const searchUsers = async () => {
-      if (recipient.length < 2) {
+      if (!recipientSearch || recipientSearch.length < 2) {
         setRecipientSuggestions([])
         return
       }
-
-      // If recipient was selected from suggestion, don't search again
-      if (recipientSuggestions.some(s => s.username === recipient || s.discord_id === recipient)) {
-        return
-      }
-
       try {
-        const res = await fetch(`/api/bank/search-users?q=${encodeURIComponent(recipient)}`)
+        const res = await fetch(`/api/bank/search-users?q=${encodeURIComponent(recipientSearch)}`)
         const data = await res.json()
         setRecipientSuggestions(data.users || [])
-        setShowSuggestions(true)
       } catch (err) {
         console.error('Search error:', err)
       }
     }
-
     const timer = setTimeout(searchUsers, 300)
     return () => clearTimeout(timer)
-  }, [recipient, recipientSuggestions]) // Added recipientSuggestions to dependencies
+  }, [recipientSearch])
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-recipient-picker]')) setRecipientPickerOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const canClaimDaily = () => {
     if (!profile?.last_daily) return true
@@ -149,11 +150,6 @@ export default function Bank() {
       return
     }
 
-    if (parseFloat(amount) > (profile?.balance || 0)) {
-      setMessage({ type: 'error', text: 'Solde insuffisant' })
-      return
-    }
-
     setLoading(true)
     setMessage(null)
 
@@ -171,10 +167,10 @@ export default function Bank() {
       const data = await response.json()
 
       if (response.ok) {
-        setMessage({ type: 'success', text: `Transfert de ${amount}€ effectué avec succès !` })
+        setMessage({ type: 'success', text: `Virement de ${amount}€ effectué avec succès !` })
         setRecipient('')
+        setRecipientSearch('')
         setAmount('')
-        setRecipientSuggestions([])
         await refreshProfile()
         await loadTransactions()
       } else {
@@ -190,16 +186,13 @@ export default function Bank() {
   const handleClaimDaily = async () => {
     setLoading(true)
     setMessage(null)
-
     try {
       const response = await fetch('/api/bank/transactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'daily' })
       })
-
       const data = await response.json()
-
       if (response.ok) {
         setMessage({ type: 'success', text: 'Récompense quotidienne récupérée (+50€) !' })
         await refreshProfile()
@@ -219,13 +212,10 @@ export default function Bank() {
       setMessage({ type: 'error', text: 'Veuillez sélectionner une source et ajouter une justification' })
       return
     }
-
     const source = dirtySources.find(s => s.id === selectedSourceId)
     if (!source) return
-
     setLoading(true)
     setMessage(null)
-
     try {
       const res = await fetch('/api/bank/declare', {
         method: 'POST',
@@ -236,7 +226,6 @@ export default function Bank() {
           reason: decReason
         })
       })
-
       const data = await res.json()
       if (res.ok) {
         setMessage({ type: 'success', text: 'Déclaration envoyée ! En attente de validation.' })
@@ -258,7 +247,6 @@ export default function Bank() {
   const handleClaimBonus = async (bonusId: string) => {
     setLoading(true)
     setMessage(null)
-
     try {
       const res = await fetch('/api/taxes', {
         method: 'POST',
@@ -266,7 +254,6 @@ export default function Bank() {
         body: JSON.stringify({ debtIds: [bonusId] })
       })
       const data = await res.json()
-
       if (res.ok) {
         setMessage({ type: 'success', text: 'Prime récupérée avec succès !' })
         await refreshProfile()
@@ -284,14 +271,12 @@ export default function Bank() {
 
   return (
     <div className="page-container">
-      {/* Header */}
       <div className="animate-slideIn">
         <h1 className="text-4xl font-black text-white tracking-tight">Banque</h1>
         <p className="text-discord-muted mt-1 font-medium">Gérez vos finances LunaVerse</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Sidebar / Tabs */}
         <div className="lg:col-span-1 space-y-4">
           <div className="glass-card p-2 space-y-1">
             <button
@@ -302,9 +287,8 @@ export default function Bank() {
               )}
             >
               <Send className="w-5 h-5" />
-              Transférer
+              Virement
             </button>
-
             <button
               onClick={() => setActiveTab('daily')}
               className={clsx(
@@ -325,7 +309,6 @@ export default function Bank() {
               <Clock className="w-5 h-5" />
               Historique
             </button>
-
             <button
               onClick={() => setActiveTab('declarations')}
               className={clsx(
@@ -338,12 +321,9 @@ export default function Bank() {
             </button>
           </div>
 
-          {/* Credit Card Visual */}
           <div className="relative h-48 w-full rounded-2xl overflow-hidden p-6 text-white group shadow-xl transition-transform hover:-translate-y-1" style={{ background: 'linear-gradient(135deg, #5865F2, #3b42a0)', boxShadow: '0 15px 35px rgba(88,101,242,0.3)' }}>
-            {/* Background elements */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl origin-top-right scale-150 transform-gpu group-hover:scale-110 transition-transform duration-700" />
             <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-purple-500/30 rounded-full blur-xl" />
-            
             <div className="relative z-10 flex flex-col h-full justify-between">
               <div className="flex justify-between items-start">
                 <div>
@@ -351,9 +331,7 @@ export default function Bank() {
                   <p className="text-3xl font-black">{profile?.balance.toFixed(2)} €</p>
                 </div>
                 <div className="flex flex-col items-end">
-                   <div className="px-2 py-0.5 rounded-md bg-black/40 border border-white/10 text-[9px] font-black text-yellow-400 uppercase tracking-widest mb-2">
-                     PROFIL PREMIUM
-                   </div>
+                   <div className="px-2 py-0.5 rounded-md bg-black/40 border border-white/10 text-[9px] font-black text-yellow-400 uppercase tracking-widest mb-2">PROFIL PREMIUM</div>
                    {(profile as any)?.dirty_balance > 0 && (
                      <div className="text-right">
                        <p className="text-[9px] uppercase tracking-widest text-white/60 font-bold">Argent Sale</p>
@@ -362,11 +340,8 @@ export default function Bank() {
                    )}
                 </div>
               </div>
-              
               <div>
-                <p className="font-mono text-lg tracking-[0.2em] opacity-80 mb-1">
-                  **** **** **** {(profile?.discord_id || '0000').slice(-4)}
-                </p>
+                <p className="font-mono text-lg tracking-[0.2em] opacity-80 mb-1">**** **** **** {(profile?.discord_id || '0000').slice(-4)}</p>
                 <div className="flex justify-between items-end">
                   <p className="text-sm font-bold uppercase tracking-wider">{profile?.username || 'Utilisateur'}</p>
                   <p className="text-xs font-black italic">VISA</p>
@@ -376,107 +351,149 @@ export default function Bank() {
           </div>
         </div>
 
-        {/* Main Content */}
         <div className="lg:col-span-2">
           {activeTab === 'send' && (
             <div className="glass-card animate-fadeIn">
-              <h3 className="text-xl font-black text-white mb-6">Nouveau transfert</h3>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
-                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">Destinataire</label>
-                  <div className="relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-discord-muted group-focus-within:text-discord-blurple transition-colors" />
-                    <input
-                      type="text"
-                      placeholder="Nom d'utilisateur ou ID Discord"
-                      className="glass-input w-full pl-12"
-                      value={recipient}
-                      onChange={(e) => setRecipient(e.target.value)}
-                      onFocus={() => recipientSuggestions.length > 0 && setShowSuggestions(true)}
-                    />
-                    
-                    {/* Autocomplete Suggestions */}
-                    {showSuggestions && recipientSuggestions.length > 0 && (
-                      <div className="absolute top-full left-0 right-0 mt-2 glass-card p-2 z-50 animate-fadeIn space-y-1 shadow-2xl ring-1 ring-white/10">
-                        {recipientSuggestions.map((suggestion) => (
-                          <button
-                            key={suggestion.id}
-                            onClick={() => {
-                              setRecipient(suggestion.username)
-                              setShowSuggestions(false)
-                            }}
-                            className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors text-left group"
-                          >
-                            <div className="w-8 h-8 rounded-lg overflow-hidden bg-white/10 ring-1 ring-white/10">
-                              {suggestion.avatar_url ? (
-                                <Image 
-                                  src={suggestion.avatar_url} 
-                                  alt="" 
-                                  width={32} 
-                                  height={32} 
-                                  className="w-full h-full object-cover" 
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-discord-muted uppercase">
-                                  {suggestion.username.substring(0, 2)}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-black text-white truncate group-hover:text-discord-blurple transition-colors">
-                                {suggestion.username}
-                              </p>
-                              <p className="text-[10px] font-bold text-discord-muted uppercase tracking-widest truncate">
-                                {suggestion.discord_id}
-                              </p>
-                            </div>
-                          </button>
-                        ))}
+                  <h3 className="text-xl font-black text-white mb-1">Nouveau Virement</h3>
+                  <p className="text-sm text-discord-muted">Envoyez des fonds de manière sécurisée à un autre utilisateur.</p>
+                </div>
+                <div className="space-y-4">
+                  <div className="relative" data-recipient-picker>
+                    <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">Destinataire</label>
+                    <button
+                      className="glass-input w-full flex items-center justify-between text-left focus:border-discord-blurple"
+                      onClick={() => setRecipientPickerOpen(!recipientPickerOpen)}
+                    >
+                      <span className="truncate">
+                        {recipient ? recipient : 'Sélectionner un destinataire...'}
+                      </span>
+                      <ChevronDown className={clsx('w-4 h-4 transition-transform', recipientPickerOpen && 'rotate-180')} />
+                    </button>
+                    {recipientPickerOpen && (
+                      <div className="absolute top-full left-0 w-full mt-2 bg-discord-dark/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto flex flex-col custom-scrollbar">
+                        <div className="sticky top-0 bg-discord-dark/95 p-2 border-b border-white/6 z-10">
+                          <input
+                            type="text"
+                            placeholder="Rechercher par pseudo..."
+                            className="glass-input w-full !py-1.5 !text-sm"
+                            value={recipientSearch}
+                            onChange={e => setRecipientSearch(e.target.value)}
+                            onClick={e => e.stopPropagation()}
+                            autoFocus
+                          />
+                        </div>
+                        {recipientSuggestions.length === 0 ? (
+                          <div className="p-4 text-center text-xs text-discord-muted italic">
+                            {recipientSearch.length < 2 ? 'Tapez au moins 2 caractères...' : 'Aucun utilisateur trouvé'}
+                          </div>
+                        ) : (
+                          recipientSuggestions.map(u => (
+                            <button
+                              key={u.id}
+                              onClick={() => {
+                                setRecipient(u.username)
+                                setRecipientPickerOpen(false)
+                              }}
+                              className={clsx('w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left transition-colors hover:bg-white/5', recipient === u.username && 'bg-discord-blurple/10 text-discord-blurple')}
+                            >
+                              <div className="w-8 h-8 rounded-full overflow-hidden bg-discord-dark border border-white/10">
+                                <img src={u.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} alt="" className="w-full h-full object-cover" />
+                              </div>
+                              <span className="font-bold text-white truncate">{u.username}</span>
+                            </button>
+                          ))
+                        )}
                       </div>
                     )}
-
-                    {/* Click away listener to close suggestions */}
-                    {showSuggestions && (
-                      <div 
-                        className="fixed inset-0 z-40" 
-                        onClick={() => setShowSuggestions(false)}
+                  </div>
+                  <div>
+                    <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">Montant (€)</label>
+                    <div className="relative">
+                      <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-discord-muted" />
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        className="glass-input !pl-10"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
                       />
-                    )}
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">Montant</label>
-                  <div className="relative group">
-                    <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-discord-muted group-focus-within:text-discord-blurple transition-colors" />
-                    <input
-                      type="number"
-                      placeholder="0.00"
-                      className="glass-input w-full pl-12"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                    />
-                  </div>
-                </div>
 
-                {message && (
-                  <div className={clsx(
-                    "p-4 rounded-xl text-sm font-bold animate-fadeIn",
-                    message.type === 'success' ? "bg-discord-success/10 text-discord-success border border-discord-success/20" : "bg-discord-error/10 text-discord-error border border-discord-error/20"
-                  )}>
-                    {message.text}
-                  </div>
-                )}
+                  {message && (
+                    <div className={clsx(
+                      "p-4 rounded-xl text-sm font-bold animate-fadeIn",
+                      message.type === 'success' ? "bg-discord-success/10 text-discord-success border border-discord-success/20" : "bg-discord-error/10 text-discord-error border border-discord-error/20"
+                    )}>
+                      {message.text}
+                    </div>
+                  )}
 
-                <button
-                  onClick={handleTransfer}
-                  disabled={loading}
-                  className="btn btn-primary w-full py-4 text-lg mt-4"
-                >
-                  {loading ? 'Traitement...' : 'Confirmer le transfert'}
-                </button>
+                  <button
+                    onClick={handleTransfer}
+                    disabled={loading}
+                    className="btn btn-primary w-full py-4 text-lg mt-4"
+                  >
+                    {loading ? 'Traitement...' : 'Confirmer le virement'}
+                  </button>
+                </div>
               </div>
             </div>
-          )}
+            )}
+
+            {activeTab === 'history' && (
+              <div className="glass-card animate-fadeIn">
+                <h3 className="text-xl font-black text-white mb-6">Historique des Transactions</h3>
+                <div className="space-y-3">
+                  {transactions.length > 0 ? (
+                    transactions.map((tx) => {
+                      const isPending = tx.description?.startsWith('PENDING:')
+                      const displayDesc = isPending ? tx.description.replace('PENDING: ', '') : tx.description
+                      const isOutgoing = tx.from_user_id === profile?.id || tx.amount < 0
+                      
+                      return (
+                        <div key={tx.id} className="flex items-center gap-4 p-4 hover:bg-white/5 rounded-2xl transition-all group border border-transparent hover:border-white/5">
+                          <div className={clsx(
+                            "w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
+                            !isOutgoing ? "bg-discord-success/20 text-discord-success" : "bg-white/5 text-discord-muted"
+                          )}>
+                            {!isOutgoing ? <ArrowUpRight size={24} /> : <ArrowDownRight size={24} />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-white font-bold truncate">{displayDesc || tx.type}</p>
+                              {isPending && (
+                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter bg-orange-500/20 text-orange-500 border border-orange-500/20">
+                                  ⏳ En attente
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] font-black text-discord-muted uppercase tracking-[0.2em]">
+                              {new Date(tx.created_at || tx.created).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} — {tx.type}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className={clsx(
+                              "text-lg font-black",
+                              !isOutgoing ? "text-discord-success" : "text-white"
+                            )}>
+                              {!isOutgoing ? '+' : ''}{tx.amount.toLocaleString()} €
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div className="p-12 text-center opacity-50">
+                      <Clock className="w-12 h-12 mx-auto mb-4 text-discord-muted" />
+                      <p className="text-discord-muted font-bold text-sm">Aucune transaction trouvée.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
           {activeTab === 'daily' && (
             <div className="glass-card animate-fadeIn">
