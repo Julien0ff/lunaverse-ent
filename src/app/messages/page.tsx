@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import Image from 'next/image'
@@ -56,10 +56,28 @@ export default function MessagesPage() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
+  // ── Friends API ────────────────────────────────────────────
+  const loadFriends = useCallback(async () => {
+    const res = await fetch('/api/friends')
+    if (res.ok) {
+      const data = await res.json()
+      setFriends(data.friends || [])
+      
+      // Handle auto-select from query param
+      if (chatWith) {
+        const friend = data.friends.find((f: any) => f.username === chatWith)
+        if (friend) {
+          setSelectedFriend(friend)
+          setActiveTab('chat')
+        }
+      }
+    }
+  }, [chatWith])
+
   // ── Initialization ─────────────────────────────────────────
   useEffect(() => {
     if (profile) loadFriends()
-  }, [profile, refreshProfile])
+  }, [profile, loadFriends])
 
   useEffect(() => {
     if (selectedFriend) {
@@ -107,23 +125,6 @@ export default function MessagesPage() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // ── Friends API ────────────────────────────────────────────
-  const loadFriends = async () => {
-    const res = await fetch('/api/friends')
-    if (res.ok) {
-      const data = await res.json()
-      setFriends(data.friends || [])
-      
-      // Handle auto-select from query param
-      if (chatWith) {
-        const friend = data.friends.find((f: any) => f.username === chatWith)
-        if (friend) {
-          setSelectedFriend(friend)
-          setActiveTab('chat')
-        }
-      }
-    }
-  }
 
   const handleFriendAction = async (action: 'add' | 'accept' | 'reject' | 'remove', targetId?: string) => {
     const payload: any = { action }

@@ -110,8 +110,8 @@ export default function MaisonPage() {
             <Clock className="w-12 h-12 text-discord-warning animate-pulse" />
           </div>
           <h2 className="text-3xl font-black text-white mb-4">Demande en Cours</h2>
-          <p className="text-discord-muted mb-2">Votre demande pour la maison <span className="text-white font-bold">"{house.name}"</span> est en cours d'examen.</p>
-          <p className="text-sm text-discord-muted opacity-60">L'administration validera votre demande prochainement.</p>
+          <p className="text-discord-muted mb-2">Votre demande pour la maison <span className="text-white font-bold">&quot;{house.name}&quot;</span> est en cours d&apos;examen.</p>
+          <p className="text-sm text-discord-muted opacity-60">L&apos;administration validera votre demande prochainement.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
