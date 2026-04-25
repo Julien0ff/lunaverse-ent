@@ -46,10 +46,36 @@ export async function PATCH(req: Request) {
         processed_by: user.id
       })
       .eq('id', id)
-      .select()
+      .select('*, profiles(discord_id, username)')
       .single()
 
     if (error) throw error
+
+    // Send Discord Notification
+    if (data.profiles?.discord_id) {
+      try {
+        const { sendDiscordDM } = await import('@/lib/discord-api')
+        const statusFr = status === 'accepted' ? 'VALIDÉE ✅' : 'REFUSÉE ❌'
+        const color = status === 'accepted' ? 0x57F287 : 0xED4245
+        
+        await sendDiscordDM(data.profiles.discord_id, {
+          embeds: [{
+            title: `Mise à jour d'absence - LunaVerse`,
+            description: `Votre demande d'absence pour **${data.duration}** a été **${statusFr}**.`,
+            fields: [
+              { name: 'Motif', value: data.reason },
+              { name: 'Statut', value: statusFr }
+            ],
+            color: color,
+            timestamp: new Date().toISOString(),
+            footer: { text: 'LunaVerse ENT — Système d\'Absences' }
+          }]
+        })
+      } catch (dmError) {
+        console.error('Error sending Discord DM:', dmError)
+      }
+    }
+
     return NextResponse.json({ item: data })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

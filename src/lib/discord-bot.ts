@@ -151,6 +151,10 @@ const commands = [
     .setDescription('Voir vos dernières transactions'),
 
   new SlashCommandBuilder()
+    .setName('leaderboard')
+    .setDescription('Voir le classement des plus riches'),
+
+  new SlashCommandBuilder()
     .setName('salaire')
     .setDescription('Percevoir votre salaire hebdomadaire (si disponible)'),
 
@@ -2358,6 +2362,32 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         }).join('\n')
 
         await interaction.reply({ embeds: [new EmbedBuilder().setColor(BLURPLE).setTitle('🎒 Votre Inventaire').setDescription(list).setFooter({ text: 'Utilisez /utiliser <article> pour l\'utiliser' })] })
+        break
+      }
+
+      case 'leaderboard': {
+        const { data: topUsers } = await supabase
+          .from('profiles')
+          .select('username, balance, nickname_rp')
+          .order('balance', { ascending: false })
+          .limit(10)
+
+        const embed = new EmbedBuilder()
+          .setTitle('🏆 Classement LunaVerse (Top 10)')
+          .setColor(BLURPLE)
+          .setTimestamp()
+
+        if (topUsers && topUsers.length > 0) {
+          const list = topUsers.map((u, i) => {
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`
+            return `${medal} **${u.nickname_rp || u.username}** — ${u.balance.toLocaleString()}€`
+          }).join('\n')
+          embed.setDescription(list)
+        } else {
+          embed.setDescription('Aucune donnée disponible.')
+        }
+
+        await interaction.reply({ embeds: [embed] })
         break
       }
 

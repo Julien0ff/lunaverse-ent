@@ -1,9 +1,10 @@
 'use client'
 
 import { useAuth } from '@/context/AuthContext'
-import { Wallet, TrendingUp, Gift, ArrowUpRight, ArrowDownRight, History } from 'lucide-react'
-import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import { Wallet, TrendingUp, Gift, ArrowUpRight, ArrowDownRight, History, Users, Trophy } from 'lucide-react'
+import Link from 'next/link'
+import Image from 'next/image'
 import clsx from 'clsx'
 
 interface Transaction {
@@ -20,6 +21,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [claiming, setClaiming] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [socialData, setSocialData] = useState<{ onlineUsers: any[], leaderboard: any[] }>({ onlineUsers: [], leaderboard: [] })
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -38,6 +40,7 @@ export default function Dashboard() {
 
     if (profile?.id) {
       fetchDashboardData()
+      fetch('/api/dashboard/social').then(r => r.json()).then(d => setSocialData(d))
     }
   }, [profile?.id])
 
@@ -121,41 +124,62 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Quick Actions / Status */}
-        <div className="space-y-6">
-          <div className="glass-card border-discord-success/20 group">
-            <div className="flex items-center justify-between mb-6">
-              <div className="w-12 h-12 bg-discord-success/20 rounded-2xl flex items-center justify-center group-hover:bg-discord-success transition-colors">
-                <Gift className="w-6 h-6 text-discord-success group-hover:text-discord-darker" />
-              </div>
-              <span className={clsx(
-                "text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg",
-                canClaimDaily() ? "bg-discord-success/20 text-discord-success" : "bg-white/5 text-discord-muted"
-              )}>
-                {canClaimDaily() ? "Disponible" : "En attente"}
-              </span>
+        {/* Online Users */}
+        <div className="space-y-4">
+          <div className="glass-card border-discord-blurple/20 min-h-full">
+            <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest mb-4 flex items-center gap-2">
+              <Users className="w-4 h-4 text-discord-blurple" />
+              Connectés ({socialData.onlineUsers.length})
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {socialData.onlineUsers.length > 0 ? socialData.onlineUsers.map(user => (
+                <Link 
+                  key={user.id} 
+                  href={`/profile/${user.username}`} // Fallback to current profile or search
+                  className="group relative"
+                >
+                  <div className="w-10 h-10 rounded-xl overflow-hidden ring-2 ring-discord-blurple/20 group-hover:ring-discord-blurple transition-all">
+                    <Image 
+                      src={user.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} 
+                      alt={user.username} width={40} height={40} className="object-cover w-full h-full"
+                    />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-discord-success rounded-full border-2 border-[#121316] shadow-sm" />
+                  
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-[10px] font-black rounded pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                    {user.nickname_rp || user.username}
+                  </div>
+                </Link>
+              )) : (
+                <p className="text-[10px] text-discord-muted italic">Personne en ligne...</p>
+              )}
             </div>
-            <p className="text-xs font-black text-discord-muted uppercase tracking-widest mb-1">Daily Reward</p>
-            <p className="text-3xl font-black text-white mb-4">50 €</p>
-            
-            {message && (
-              <p className={clsx(
-                "text-xs font-bold mb-3 px-2 py-1 rounded",
-                message.type === 'success' ? "text-discord-success bg-discord-success/10" : "text-discord-error bg-discord-error/10"
-              )}>
-                {message.text}
-              </p>
-            )}
-
-            <button 
-              onClick={handleClaimDaily}
-              disabled={!canClaimDaily() || claiming}
-              className={clsx(
-              "btn w-full py-3",
-              canClaimDaily() ? "btn-success shadow-lg shadow-discord-success/20" : "btn-ghost pointer-events-none opacity-50"
-            )}>
-              {claiming ? "Chargement..." : canClaimDaily() ? "Récupérer maintenant" : "Revenez demain"}
-            </button>
+          </div>
+          
+          {/* Daily Reward Small */}
+          <div className="glass-card border-discord-success/10 py-4">
+             <div className="flex items-center justify-between gap-3">
+               <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 bg-discord-success/20 rounded-xl flex items-center justify-center">
+                    <Gift className="w-5 h-5 text-discord-success" />
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest">Daily</p>
+                    <p className="text-sm font-black text-white">50 €</p>
+                 </div>
+               </div>
+               <button 
+                 onClick={handleClaimDaily}
+                 disabled={!canClaimDaily() || claiming}
+                 className={clsx(
+                   "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                   canClaimDaily() ? "bg-discord-success text-discord-darker hover:scale-105 shadow-lg shadow-discord-success/20" : "bg-white/5 text-discord-muted opacity-50"
+                 )}
+               >
+                 {claiming ? "..." : canClaimDaily() ? "Réclamer" : "Pris"}
+               </button>
+             </div>
           </div>
         </div>
       </div>
@@ -188,19 +212,28 @@ export default function Dashboard() {
             ))}
           </div>
 
-          <h3 className="text-xs font-black text-discord-muted uppercase tracking-[0.2em] px-2 mt-8">Statistiques Économiques</h3>
-          <div className="grid grid-cols-1 gap-4">
-            <div className="glass-card p-4 flex items-center gap-4">
-              <div className="w-10 h-10 bg-discord-blurple/20 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-discord-blurple" />
+          <h3 className="text-xs font-black text-discord-muted uppercase tracking-[0.2em] px-2 mt-8">Classement (Top Fortune)</h3>
+          <div className="glass-card p-0 overflow-hidden border-[#FEE75C33]">
+            {socialData.leaderboard.map((user, i) => (
+              <div 
+                key={user.id} 
+                className="flex items-center gap-3 p-3 border-b border-white/5 last:border-0 hover:bg-white/2 transition-colors"
+              >
+                <div className="w-6 text-[10px] font-black text-discord-muted">{i + 1}.</div>
+                <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
+                  <Image 
+                    src={user.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} 
+                    alt={user.username} width={32} height={32} className="object-cover w-full h-full"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-white truncate">{user.nickname_rp || user.username}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-black text-[#FEE75C]">{user.balance.toLocaleString()} €</p>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest">Revenus hebdomadaires</p>
-                <p className="text-lg font-black text-white">
-                  {(roles.find(r => r.salary_amount > 0)?.salary_amount || 0) + (roles.find(r => r.pocket_money > 0)?.pocket_money || 0)} €
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 

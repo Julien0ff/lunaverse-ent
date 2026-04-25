@@ -49,6 +49,7 @@ export default function Sidebar() {
   const { t } = useLanguage()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   // Admin check: env-hardcoded IDs handled server-side; here we just check DB roles
   const isAdmin = roles.some(r => r.name === 'admin')
@@ -74,6 +75,19 @@ export default function Sidebar() {
       }
     }
   }, [isMobileMenuOpen])
+
+  useEffect(() => {
+    const checkUnread = async () => {
+      try {
+        const res = await fetch('/api/messages/unread')
+        const data = await res.json()
+        setUnreadCount(data.count || 0)
+      } catch (e) {}
+    }
+    checkUnread()
+    const int = setInterval(checkUnread, 30000)
+    return () => clearInterval(int)
+  }, [])
 
   return (
     <>
@@ -160,12 +174,15 @@ export default function Sidebar() {
                     style={{ background: '#5865F2' }} />
                 )}
                 <div className={clsx(
-                  'w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors',
+                  'w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors relative',
                   active
                     ? 'bg-discord-blurple/20'
                     : 'bg-white/5 group-hover:bg-white/10'
                 )}>
                   <Icon className="w-4 h-4" style={{ color: active ? '#5865F2' : 'inherit' }} />
+                  {item.href === '/messages' && unreadCount > 0 && (
+                    <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-discord-error rounded-full border-2 border-[#121316] animate-pulse" />
+                  )}
                 </div>
                 <span className="truncate">{t(item.labelKey)}</span>
               </Link>

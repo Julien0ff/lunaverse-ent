@@ -118,7 +118,7 @@ export default function Cantine() {
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <span className="text-[10px] font-black bg-orange-500 text-white px-3 py-1 rounded-full uppercase tracking-[0.2em] animate-pulse">Service en cours</span>
-                  <span className="text-[10px] font-black bg-white/10 text-white/60 px-3 py-1 rounded-full uppercase tracking-[0.2em]">Aujourd'hui</span>
+                  <span className="text-[10px] font-black bg-white/10 text-white/60 px-3 py-1 rounded-full uppercase tracking-[0.2em]">Aujourd&apos;hui</span>
                 </div>
                 <h2 className="text-4xl sm:text-6xl font-black text-white tracking-tighter">
                   Menu du Jour

@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import Image from 'next/image'
-import { User, Wallet, Calendar, MessageCircle, ShoppingBag, Gamepad2, Trophy } from 'lucide-react'
+import { User, Wallet, Calendar, MessageCircle, ShoppingBag, Gamepad2, Trophy, Edit3, Save, Twitter, Instagram, Github, Link as LinkIcon, ExternalLink } from 'lucide-react'
+import clsx from 'clsx'
 
 interface Stats {
   posts: number; likesReceived: number; purchases: number
@@ -34,17 +35,54 @@ export default function ProfilePage() {
     partnerName: null, coupleSince: null
   })
   const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(false)
+  const [editBio, setEditBio] = useState('')
+  const [editSocials, setEditSocials] = useState({
+    twitter: '', instagram: '', github: '', website: ''
+  })
+  const [saving, setSaving] = useState(false)
 
   // Discord status from DB (updated by bot presenceUpdate)
   const status = resolveStatus((profile as any)?.discord_status)
 
   useEffect(() => {
     if (!profile) return
+    const p = profile as any
     fetch('/api/profile/stats')
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d) setStats(d) })
       .finally(() => setLoading(false))
+
+    setEditBio(p.bio || '')
+    setEditSocials({
+      twitter: p.twitter_url || '',
+      instagram: p.instagram_url || '',
+      github: p.github_url || '',
+      website: p.website_url || ''
+    })
   }, [profile])
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const res = await fetch('/api/profile/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bio: editBio,
+          twitter_url: editSocials.twitter,
+          instagram_url: editSocials.instagram,
+          github_url: editSocials.github,
+          website_url: editSocials.website
+        })
+      })
+      if (res.ok) {
+        setEditing(false)
+        window.location.reload()
+      }
+    } catch (e) {}
+    setSaving(false)
+  }
 
   const memberSince = profile?.created_at
     ? new Date(profile.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
@@ -241,6 +279,93 @@ export default function ProfilePage() {
             </div>
           )
         })}
+      </div>
+
+      {/* Bio & Socials */}
+      <div className="glass-card animate-fadeIn">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest flex items-center gap-2">
+            <Edit3 className="w-4 h-4 text-discord-blurple" />
+            Biographie & Réseaux
+          </h3>
+          <button 
+            onClick={() => editing ? handleSave() : setEditing(true)}
+            disabled={saving}
+            className={clsx(
+              "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all",
+              editing ? "bg-discord-success text-white" : "bg-white/5 text-discord-muted hover:text-white hover:bg-white/10"
+            )}
+          >
+            {editing ? (saving ? '...' : <><Save size={14} /> Enregistrer</>) : <><Edit3 size={14} /> Modifier</>}
+          </button>
+        </div>
+
+        {editing ? (
+          <div className="space-y-6">
+            <div>
+              <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-2 block">Bio</label>
+              <textarea 
+                className="glass-input min-h-[100px] py-4"
+                placeholder="Dites-en un peu plus sur vous..."
+                value={editBio}
+                onChange={e => setEditBio(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { key: 'twitter', icon: Twitter, label: 'Twitter URL' },
+                { key: 'instagram', icon: Instagram, label: 'Instagram URL' },
+                { key: 'github', icon: Github, label: 'GitHub URL' },
+                { key: 'website', icon: LinkIcon, label: 'Site Web' },
+              ].map(social => (
+                <div key={social.key}>
+                  <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-2 block">{social.label}</label>
+                  <div className="relative">
+                    <social.icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-discord-muted" />
+                    <input 
+                      type="text" 
+                      className="glass-input !pl-12"
+                      placeholder="https://..."
+                      value={(editSocials as any)[social.key]}
+                      onChange={e => setEditSocials(prev => ({ ...prev, [social.key]: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col md:flex-row gap-8">
+            <div className="flex-1">
+              <p className="text-sm text-white leading-relaxed whitespace-pre-wrap italic">
+                {(profile as any)?.bio || "Aucune biographie définie pour le moment."}
+              </p>
+            </div>
+            <div className="w-full md:w-64 space-y-2">
+              {[
+                { url: (profile as any)?.twitter_url, icon: Twitter, label: 'Twitter', color: '#1DA1F2' },
+                { url: (profile as any)?.instagram_url, icon: Instagram, label: 'Instagram', color: '#E4405F' },
+                { url: (profile as any)?.github_url, icon: Github, label: 'GitHub', color: '#FFFFFF' },
+                { url: (profile as any)?.website_url, icon: LinkIcon, label: 'Site Web', color: '#5865F2' },
+              ].filter(s => s.url).map((social, i) => (
+                <a 
+                  key={i}
+                  href={social.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-white/2 hover:bg-white/5 border border-white/5 transition-all group"
+                >
+                  <social.icon className="w-4 h-4 transition-transform group-hover:scale-110" style={{ color: social.color }} />
+                  <span className="text-xs font-bold text-white flex-1">{social.label}</span>
+                  <ExternalLink className="w-3 h-3 opacity-20 group-hover:opacity-100" />
+                </a>
+              ))}
+              {![(profile as any)?.twitter_url, (profile as any)?.instagram_url, (profile as any)?.github_url, (profile as any)?.website_url].some(u => u) && (
+                <p className="text-[10px] text-discord-muted italic">Aucun lien social.</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Discord Info */}
