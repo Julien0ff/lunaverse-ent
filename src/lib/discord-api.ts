@@ -1,4 +1,3 @@
-import { EmbedBuilder } from 'discord.js'
 import { createSupabaseServer } from './supabase-server'
 
 /**

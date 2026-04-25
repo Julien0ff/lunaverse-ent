@@ -1,7 +1,6 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendDiscordDM } from '@/lib/discord-api'
-import { EmbedBuilder } from 'discord.js'
 
 export async function GET() {
   try {
@@ -120,12 +119,12 @@ export async function POST(request: NextRequest) {
 
       // Notify via Discord DM
       try {
-        const embed = new EmbedBuilder()
-          .setTitle('📅 Récompense Quotidienne')
-          .setColor(0x5865F2) // Blurple
-          .setDescription(`Vous avez récupéré vos **${dailyAmount}€** quotidiens !`)
-          .setTimestamp()
-        await sendDiscordDM(profile.id, embed)
+        await sendDiscordDM(profile.id, {
+          title: '📅 Récompense Quotidienne',
+          color: 0x5865F2, // Blurple
+          description: `Vous avez récupéré vos **${dailyAmount}€** quotidiens !`,
+          timestamp: new Date().toISOString()
+        })
       } catch (dmErr) {}
 
       return NextResponse.json({ success: true, message: 'Récompense quotidienne récupérée !', amount: dailyAmount })
@@ -160,12 +159,12 @@ export async function POST(request: NextRequest) {
 
         // Notify via Discord DM
         try {
-          const embed = new EmbedBuilder()
-            .setTitle('💰 Salaire Perçu')
-            .setColor(0x57F287) // Success Green
-            .setDescription(`Votre salaire de **${totalSalary}€** a été versé avec succès sur votre compte bancaire !`)
-            .setTimestamp()
-          await sendDiscordDM(profile.id, embed)
+          await sendDiscordDM(profile.id, {
+            title: '💰 Salaire Perçu',
+            color: 0x57F287, // Success Green
+            description: `Votre salaire de **${totalSalary}€** a été versé avec succès sur votre compte bancaire !`,
+            timestamp: new Date().toISOString()
+          })
         } catch (dmErr) {}
 
         return NextResponse.json({ success: true, message: 'Salaire perçu !', amount: totalSalary })
