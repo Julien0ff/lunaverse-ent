@@ -1,6 +1,7 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
+import clsx from 'clsx'
 import Sidebar from '@/components/Sidebar'
 import LoadingScreen from '@/components/LoadingScreen'
 import { useAuth } from '@/context/AuthContext'
