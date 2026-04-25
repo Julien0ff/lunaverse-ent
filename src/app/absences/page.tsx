@@ -27,6 +27,7 @@ export default function AbsencesPage() {
     try {
       const res = await fetch('/api/absences')
       const data = await res.json()
+      console.log('[Absences] Loaded data:', data)
       if (data.items) setAbsences(data.items)
     } catch (e) {}
     setLoading(false)

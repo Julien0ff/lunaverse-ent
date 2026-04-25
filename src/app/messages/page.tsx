@@ -451,7 +451,7 @@ export default function MessagesPage() {
                                  <img 
                                    src={m.content} 
                                    alt="Image" 
-                                   className="max-w-full rounded-xl object-contain bg-black/20 cursor-zoom-in hover:scale-[1.01] transition-transform shadow-2xl" 
+                                   className="max-w-xs max-h-80 rounded-xl object-contain bg-black/20 cursor-zoom-in hover:scale-[1.01] transition-transform shadow-2xl" 
                                    onClick={() => window.open(m.content, '_blank')}
                                  />
                               ) : (

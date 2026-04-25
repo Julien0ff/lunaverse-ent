@@ -18,7 +18,7 @@ export async function GET(req: Request) {
     
     let query = supabase
       .from('absences')
-      .select('*, profiles(username, nickname_rp, avatar_url)')
+      .select('*, profile:profiles(username, nickname_rp, avatar_url)')
     
     if (!isAdmin) {
       query = query.eq('user_id', user.id)

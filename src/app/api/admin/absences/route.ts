@@ -8,13 +8,14 @@ export async function GET(req: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     // Check admin role
-    const { data: roles } = await supabase.from('user_roles').select('roles(name)').eq('user_id', user.id)
-    const isAdmin = roles?.some((r: any) => ['admin', 'staff', 'principal'].includes(r.roles?.name?.toLowerCase()))
+    const { data: roles } = await supabase.from('user_roles').select('role:roles(name)').eq('user_id', user.id)
+    const adminRoles = ['admin', 'staff', 'principal']
+    const isAdmin = roles?.some((r: any) => adminRoles.includes(r.role?.name?.toLowerCase()))
     if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const { data: absences, error } = await supabase
       .from('absences')
-      .select('*, profiles(username, avatar_url, nickname_rp)')
+      .select('*, profile:profiles(username, avatar_url, nickname_rp)')
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -32,8 +33,9 @@ export async function PATCH(req: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     // Check admin role
-    const { data: roles } = await supabase.from('user_roles').select('roles(name)').eq('user_id', user.id)
-    const isAdmin = roles?.some((r: any) => ['admin', 'staff', 'principal'].includes(r.roles?.name?.toLowerCase()))
+    const { data: roles } = await supabase.from('user_roles').select('role:roles(name)').eq('user_id', user.id)
+    const adminRoles = ['admin', 'staff', 'principal']
+    const isAdmin = roles?.some((r: any) => adminRoles.includes(r.role?.name?.toLowerCase()))
     if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const { id, status } = await req.json()

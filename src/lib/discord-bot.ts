@@ -2778,6 +2778,24 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         break
       }
 
+      case 'set_channel_house': {
+        if (!await isAdmin(user.id, interaction)) return interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
+        const salon = interaction.options.getChannel('salon')
+        if (!salon) return
+        await setServerSetting('house_request_channel', salon.id)
+        await interaction.reply({ content: `✅ Salon des demandes configuré sur <#${salon.id}>`, ephemeral: true })
+        break
+      }
+
+      case 'set_house_category': {
+        if (!await isAdmin(user.id, interaction)) return interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
+        const cat = interaction.options.getChannel('categorie')
+        if (!cat) return
+        await setServerSetting('house_category', cat.id)
+        await interaction.reply({ content: `✅ Catégorie des maisons configurée sur **${cat.name}**`, ephemeral: true })
+        break
+      }
+
       case 'maison_setup': {
         if (!await isAdmin(user.id, interaction)) return interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
         const channelId = await getServerSetting('house_request_channel')
