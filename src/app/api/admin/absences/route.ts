@@ -9,7 +9,7 @@ export async function GET(req: Request) {
 
     // Check admin role
     const { data: roles } = await supabase.from('user_roles').select('roles(name)').eq('user_id', user.id)
-    const isAdmin = roles?.some((r: any) => r.roles?.name?.toLowerCase() === 'admin')
+    const isAdmin = roles?.some((r: any) => ['admin', 'staff', 'principal'].includes(r.roles?.name?.toLowerCase()))
     if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const { data: absences, error } = await supabase
@@ -33,7 +33,7 @@ export async function PATCH(req: Request) {
 
     // Check admin role
     const { data: roles } = await supabase.from('user_roles').select('roles(name)').eq('user_id', user.id)
-    const isAdmin = roles?.some((r: any) => r.roles?.name?.toLowerCase() === 'admin')
+    const isAdmin = roles?.some((r: any) => ['admin', 'staff', 'principal'].includes(r.roles?.name?.toLowerCase()))
     if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const { id, status } = await req.json()

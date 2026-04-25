@@ -29,8 +29,18 @@ export async function GET(req: Request) {
     if (error) throw error
     return NextResponse.json({ items: absences })
   } catch (err: any) {
-    console.error('[API Absences] Error:', err)
-    return NextResponse.json({ error: err.message, details: err }, { status: 500 })
+    console.error('[API Absences] CRITICAL ERROR:', {
+      message: err.message,
+      code: err.code,
+      details: err.details,
+      hint: err.hint,
+      stack: err.stack
+    })
+    return NextResponse.json({ 
+      error: err.message, 
+      code: err.code,
+      details: err.details 
+    }, { status: 500 })
   }
 }
 

@@ -13,14 +13,17 @@ CREATE TABLE IF NOT EXISTS messages (
 
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their own messages" ON messages;
 CREATE POLICY "Users can view their own messages"
 ON messages FOR SELECT
 USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
 
+DROP POLICY IF EXISTS "Users can insert their own messages" ON messages;
 CREATE POLICY "Users can insert their own messages"
 ON messages FOR INSERT
 WITH CHECK (auth.uid() = sender_id);
 
+DROP POLICY IF EXISTS "Users can update their received messages as read" ON messages;
 CREATE POLICY "Users can update their received messages as read"
 ON messages FOR UPDATE
 USING (auth.uid() = receiver_id);
@@ -37,18 +40,22 @@ CREATE TABLE IF NOT EXISTS friends (
 
 ALTER TABLE friends ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their own friend relationships" ON friends;
 CREATE POLICY "Users can view their own friend relationships"
 ON friends FOR SELECT
 USING (auth.uid() = user1_id OR auth.uid() = user2_id);
 
+DROP POLICY IF EXISTS "Users can insert their own friend requests" ON friends;
 CREATE POLICY "Users can insert their own friend requests"
 ON friends FOR INSERT
 WITH CHECK (auth.uid() = user1_id);
 
+DROP POLICY IF EXISTS "Users can update their own friend relationships" ON friends;
 CREATE POLICY "Users can update their own friend relationships"
 ON friends FOR UPDATE
 USING (auth.uid() = user1_id OR auth.uid() = user2_id);
 
+DROP POLICY IF EXISTS "Users can delete their own friend relationships" ON friends;
 CREATE POLICY "Users can delete their own friend relationships"
 ON friends FOR DELETE
 USING (auth.uid() = user1_id OR auth.uid() = user2_id);

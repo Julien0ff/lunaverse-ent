@@ -113,6 +113,20 @@ export default function MaisonPage() {
           <p className="text-discord-muted mb-2">Votre demande pour la maison <span className="text-white font-bold">&quot;{house.name}&quot;</span> est en cours d&apos;examen.</p>
           <p className="text-sm text-discord-muted opacity-60">L&apos;administration validera votre demande prochainement.</p>
         </div>
+      ) : house.status === 'rejected' ? (
+        <div className="glass-card p-12 text-center border-discord-error/20 animate-scaleIn">
+          <div className="w-24 h-24 bg-discord-error/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <ShieldAlert className="w-12 h-12 text-discord-error" />
+          </div>
+          <h2 className="text-3xl font-black text-white mb-4">Demande Refusée</h2>
+          <p className="text-discord-muted mb-6">Votre demande pour la maison <span className="text-white font-bold">&quot;{house.name}&quot;</span> a été refusée par l&apos;administration.</p>
+          <button 
+            onClick={() => setHouse(null)}
+            className="btn btn-primary px-8 py-3"
+          >
+            Refaire une demande
+          </button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar */}
