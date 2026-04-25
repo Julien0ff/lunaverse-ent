@@ -8,11 +8,11 @@ import {
   ShieldAlert, Users, Wallet, Dices, ShoppingCart,
   Plus, Pencil, Trash2, Send, RefreshCw, Search,
   ChevronDown, Check, X, Settings, BookOpen, Save, Clock,
-  FileText, CheckCircle2, AlertCircle, Calendar, Paperclip
+  FileText, CheckCircle2, AlertCircle, Calendar, Paperclip, Home
 } from 'lucide-react'
 import clsx from 'clsx'
 
-type AdminTab = 'users' | 'finances' | 'shop' | 'roles' | 'money' | 'suggestions' | 'cantine' | 'declarations' | 'absences'
+type AdminTab = 'users' | 'finances' | 'shop' | 'roles' | 'money' | 'suggestions' | 'cantine' | 'declarations' | 'absences' | 'maisons'
 
 interface AdminUser {
   id: string; discord_id: string; username: string
@@ -60,6 +60,7 @@ export default function AdminPage() {
   const [canteenMenus, setCanteenMenus] = useState<CanteenMenu[]>([])
   const [declarations, setDeclarations] = useState<any[]>([])
   const [absences, setAbsences] = useState<any[]>([])
+  const [houses, setHouses] = useState<any[]>([])
 
   // Forms
   const [giveSelectedIds, setGiveSelectedIds] = useState<string[]>([])
@@ -116,7 +117,7 @@ export default function AdminPage() {
     await Promise.allSettled([
       loadUsers(), loadTaxes(), loadItems(), 
       loadRoles(), loadSuggestions(), loadCanteen(),
-      loadDeclarations(), loadAbsences()
+      loadDeclarations(), loadAbsences(), loadHouses()
     ])
   }, [])
 
@@ -159,6 +160,10 @@ export default function AdminPage() {
     const r = await fetch('/api/admin/absences')
     if (r.ok) setAbsences((await r.json()).items || [])
   }
+  const loadHouses = async () => {
+    const r = await fetch('/api/admin/houses')
+    if (r.ok) setHouses((await r.json()).items || [])
+  }
 
   const processAbsence = async (id: string, status: 'accepted' | 'refused') => {
     try {
@@ -170,6 +175,22 @@ export default function AdminPage() {
       if (res.ok) {
         showMsg('success', `Absence ${status === 'accepted' ? 'validée' : 'refusée'}`)
         loadAbsences()
+      } else {
+        showMsg('error', (await res.json()).error)
+      }
+    } catch (e) {}
+  }
+
+  const processHouse = async (id: string, status: 'active' | 'rejected') => {
+    try {
+      const res = await fetch('/api/admin/houses', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status })
+      })
+      if (res.ok) {
+        showMsg('success', `Maison ${status === 'active' ? 'validée' : 'refusée'}`)
+        loadHouses()
       } else {
         showMsg('error', (await res.json()).error)
       }
@@ -397,6 +418,7 @@ export default function AdminPage() {
     { id: 'money', label: 'Primes', icon: Wallet },
     { id: 'declarations', label: 'Déclarations', icon: FileText },
     { id: 'absences', label: 'Absences', icon: Calendar },
+    { id: 'maisons', label: 'Maisons', icon: Home },
   ]
 
   // Premium Slider Component
@@ -1579,6 +1601,91 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Maisons Tab ────────────────────────────────────── */}
+      {tab === 'maisons' && (
+        <div className="space-y-6 animate-fadeIn">
+          <div className="grid grid-cols-1 gap-4">
+            {houses.filter(h => h.status === 'pending').map(house => (
+              <div key={house.id} className="glass-card p-6 flex flex-col md:flex-row items-center justify-between gap-4 border-l-4 border-l-discord-blurple shadow-xl">
+                 <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full overflow-hidden relative shadow-lg">
+                      <Image src={house.profiles?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} fill alt="" />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-black text-white">{house.name}</h4>
+                      <p className="text-sm text-discord-muted flex items-center gap-2">
+                        Demandé par <span className="text-discord-blurple font-bold">@{house.profiles?.username}</span>
+                      </p>
+                    </div>
+                 </div>
+
+                 <div className="flex items-center gap-3 w-full md:w-auto">
+                    <button 
+                      onClick={() => processHouse(house.id, 'active')}
+                      className="flex-1 md:flex-initial btn btn-success py-2 text-xs flex items-center gap-2"
+                    >
+                      <CheckCircle2 size={14} /> Accepter
+                    </button>
+                    <button 
+                      onClick={() => processHouse(house.id, 'rejected')}
+                      className="flex-1 md:flex-initial btn btn-error py-2 text-xs flex items-center gap-2"
+                    >
+                      <X size={14} /> Refuser
+                    </button>
+                 </div>
+              </div>
+            ))}
+
+            {houses.filter(h => h.status === 'pending').length === 0 && (
+              <div className="glass-card py-20 text-center opacity-50 border-dashed">
+                <Home className="w-16 h-16 text-discord-blurple mx-auto mb-4" />
+                <p className="text-xl font-bold text-white">Aucune demande de maison</p>
+                <p className="text-sm text-discord-muted">Le marché immobilier est calme !</p>
+              </div>
+            )}
+          </div>
+
+          {/* Recently processed houses */}
+          <div className="mt-8 space-y-3">
+             <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest px-1">Historique des Maisons</h3>
+             <div className="glass-card p-0 overflow-hidden overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="border-b border-white/6 text-[10px] font-black text-discord-muted uppercase tracking-widest bg-black/20">
+                    <tr>
+                      <th className="p-4">Maison</th>
+                      <th className="p-4">Propriétaire</th>
+                      <th className="p-4 text-center">Statut</th>
+                      <th className="p-4 text-right">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/4">
+                    {houses.filter(h => h.status !== 'pending').slice(0, 10).map(h => (
+                      <tr key={h.id} className="hover:bg-white/2 transition-colors">
+                        <td className="p-4 font-bold text-white">{h.name}</td>
+                        <td className="p-4 flex items-center gap-2">
+                           <div className="w-6 h-6 rounded-full overflow-hidden relative"><Image src={h.profiles?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} fill alt="" /></div>
+                           <span className="text-discord-muted">{h.profiles?.username}</span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <span className={clsx(
+                             "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                             h.status === 'active' ? "bg-discord-success/10 text-discord-success border-discord-success/20" : "bg-discord-error/10 text-discord-error border-discord-error/20"
+                          )}>
+                             {h.status === 'active' ? 'Active' : 'Refusée'}
+                          </span>
+                        </td>
+                        <td className="p-4 text-right text-discord-muted text-xs">
+                          {new Date(h.updated_at).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+             </div>
           </div>
         </div>
       )}

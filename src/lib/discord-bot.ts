@@ -1,7 +1,7 @@
 import { config } from 'dotenv'
 config({ path: '.env.local' })
 
-import { Client, GatewayIntentBits, SlashCommandBuilder, REST, Routes, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, PermissionFlagsBits } from 'discord.js'
+import { Client, GatewayIntentBits, SlashCommandBuilder, REST, Routes, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, PermissionFlagsBits, ChannelType } from 'discord.js'
 import { createClient } from '@supabase/supabase-js'
 // Memory fallback for settings if table doesn't exist yet
 const memorySettings = new Map<string, any>()
@@ -83,15 +83,6 @@ const commands = [
     .setName('daily')
     .setDescription('Réclamer votre récompense quotidienne'),
 
-  new SlashCommandBuilder()
-    .setName('post')
-    .setDescription('Créer un post sur le réseau social')
-    .addStringOption(option =>
-      option.setName('contenu').setDescription('Le contenu du post').setRequired(true)
-    )
-    .addStringOption(option =>
-      option.setName('image').setDescription('URL d\'une image').setRequired(false)
-    ),
 
   new SlashCommandBuilder()
     .setName('slots')
@@ -142,9 +133,6 @@ const commands = [
       option.setName('quantite').setDescription('La quantité').setRequired(false)
     ),
 
-  new SlashCommandBuilder()
-    .setName('feed')
-    .setDescription('Voir les derniers posts du réseau social'),
 
   new SlashCommandBuilder()
     .setName('historique')
@@ -239,8 +227,26 @@ const commands = [
     .setDescription('Voir les objets actuellement en vente sur Luna Market'),
 
   new SlashCommandBuilder()
-    .setName('leaderboard')
-    .setDescription('Voir le classement des plus riches'),
+    .setName('set_channel_house')
+    .setDescription('[ADMIN] Configurer le salon pour les demandes de maison')
+    .addChannelOption(o => o.setName('salon').setDescription('Le salon où envoyer le bouton').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('set_house_category')
+    .setDescription('[ADMIN] Configurer la catégorie où créer les salons de maison')
+    .addChannelOption(o => o.setName('categorie').setDescription('La catégorie Discord').addChannelTypes(ChannelType.GuildCategory).setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('maison_setup')
+    .setDescription('[ADMIN] Envoyer l\'embed pour demander une maison'),
+
+  new SlashCommandBuilder()
+    .setName('dormir')
+    .setDescription('Se reposer dans sa maison (Restaure la fatigue)'),
+
+  new SlashCommandBuilder()
+    .setName('frigo')
+    .setDescription('Ouvrir le frigo de sa maison (Restaure la faim/soif)'),
 ]
 
 // Helper functions
@@ -826,6 +832,87 @@ client.on('ready', async () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'canteen_menus' }, async () => {
         try { await updateCanteenMenuMessage() } catch (err) { console.error('canteen sync fail', err) }
       })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'houses' }, async (payload: any) => {
+        try {
+          const house = payload.new
+          const oldHouse = payload.old
+          
+          // Only trigger if status changed to active and no channel exists yet
+          if (house.status === 'active' && !house.discord_channel_id) {
+            const { data: owner } = await supabase.from('profiles').select('discord_id, username').eq('id', house.owner_id).single()
+            if (!owner?.discord_id) return
+
+            const categoryId = await getServerSetting('house_category_id')
+            const guild = client.guilds.cache.first() // Assuming single guild bot for simplicity or find guild by member
+            if (!guild) return
+
+            const member = await guild.members.fetch(owner.discord_id).catch(() => null)
+            if (!member) return
+
+            // Create private channel
+            const channelName = `🏠-${house.name.toLowerCase().replace(/\s+/g, '-')}`.substring(0, 32)
+            const channel = await guild.channels.create({
+              name: channelName,
+              type: ChannelType.GuildText,
+              parent: categoryId || null,
+              permissionOverwrites: [
+                { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] }, // Hide for everyone
+                { id: owner.discord_id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.AttachFiles] }
+              ]
+            })
+
+            // Update DB
+            await supabase.from('houses').update({ discord_channel_id: channel.id }).eq('id', house.id)
+
+            // Welcome message
+            const embed = new EmbedBuilder()
+              .setTitle(`🏠 Bienvenue dans votre maison : ${house.name}`)
+              .setDescription(`Félicitations <@${owner.discord_id}>, votre demande de propriété a été acceptée !\n\n**Commandes utilisables ici :**\n• \`/dormir\` : Pour restaurer votre énergie (nécessite un Lit)\n• \`/frigo\` : Pour restaurer faim/soif (nécessite un Frigo)\n\nVous pouvez gérer les accès et vos meubles directement sur l'ENT.`)
+              .setColor(SUCCESS)
+              .setThumbnail(member.user.displayAvatarURL())
+
+            await channel.send({ content: `<@${owner.discord_id}>`, embeds: [embed] })
+          }
+
+          // PERMISSION SYNC (on any update if channel exists)
+          if (house.discord_channel_id) {
+            const guild = client.guilds.cache.first()
+            if (!guild) return
+            const channel = await guild.channels.fetch(house.discord_channel_id).catch(() => null)
+            if (channel && channel.isTextBased()) {
+              const { data: owner } = await supabase.from('profiles').select('discord_id').eq('id', house.owner_id).single()
+              const { data: members } = await supabase.from('profiles').select('discord_id').in('id', house.members || [])
+              const { data: blacklist } = await supabase.from('profiles').select('discord_id').in('id', house.blacklist || [])
+              const { data: adminRoles } = await supabase.from('roles').select('discord_role_id').eq('name', 'admin') // Assuming 'admin' is the staff role name
+
+              const overwrites: any[] = [
+                { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] }
+              ]
+
+              // Add Staff Access
+              for (const admin of (adminRoles || [])) {
+                if (admin.discord_role_id) {
+                  overwrites.push({ id: admin.discord_role_id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] })
+                }
+              }
+
+              if (owner?.discord_id) {
+                overwrites.push({ id: owner.discord_id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.ManageMessages] })
+              }
+
+              for (const m of (members || [])) {
+                if (m.discord_id) overwrites.push({ id: m.discord_id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.AttachFiles] })
+              }
+
+              for (const b of (blacklist || [])) {
+                if (b.discord_id) overwrites.push({ id: b.discord_id, deny: [PermissionFlagsBits.ViewChannel] })
+              }
+
+              await (channel as any).permissionOverwrites.set(overwrites)
+            }
+          }
+        } catch (err) { console.error('house sync relay fail', err) }
+      })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, async (payload: any) => {
         // A new user just logged into the ENT for the first time → sync their Discord roles
         try {
@@ -1107,6 +1194,22 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   if (interaction.isModalSubmit()) {
+    if (interaction.customId === 'house_request_modal') {
+      const profile = await getProfile(interaction.user.id)
+      if (!profile) return interaction.reply({ content: '❌ Erreur profil.', ephemeral: true })
+
+      const name = interaction.fields.getTextInputValue('name')
+      
+      const { data: existing } = await supabase.from('houses').select('id').eq('owner_id', profile.id).maybeSingle()
+      if (existing) return interaction.reply({ content: '❌ Vous avez déjà une maison ou une demande en cours.', ephemeral: true })
+
+      const { error } = await supabase.from('houses').insert([{ owner_id: profile.id, name, status: 'pending' }])
+      if (error) return interaction.reply({ content: '❌ Erreur lors de l\'enregistrement.', ephemeral: true })
+
+      await interaction.reply({ content: `✅ Votre demande pour la maison **"${name}"** a été envoyée ! Elle sera validée prochainement par l'administration.`, ephemeral: true })
+      return
+    }
+
     if (interaction.customId === 'modal_profil_edit_infos') {
       const targetProfile = await getProfile(interaction.user.id)
       if (!targetProfile) {
@@ -1408,6 +1511,26 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
       await interaction.update({ content: `🎉 Vous avez récupéré **${amount}€** !`, components: [] })
       return
     }
+    if (interaction.customId === 'house_request_start') {
+      const profile = await getProfile(interaction.user.id)
+      if (!profile) return interaction.reply({ content: '❌ Vous devez être inscrit sur l\'ENT pour demander une maison.', ephemeral: true })
+
+      const modal = new ModalBuilder()
+        .setCustomId('house_request_modal')
+        .setTitle('Demande de Maison')
+
+      const tName = new TextInputBuilder()
+        .setCustomId('name')
+        .setLabel('Nom de votre maison / projet')
+        .setPlaceholder('Ex: Villa de Julien / Bureau de l\'Union...')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true)
+
+      modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(tName))
+      await interaction.showModal(modal)
+      return
+    }
+
     if (interaction.customId.startsWith('rp_enroll|')) {
       const parts = interaction.customId.split('|')
       if (parts.length < 3) return
@@ -1859,16 +1982,6 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         break
       }
 
-      case 'setfeed': {
-        if (!await isAdmin(user.id, interaction)) {
-          await interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
-          return
-        }
-        const sFeed = interaction.options.getChannel('salon')
-        await setServerSetting('discord_feed_channel_id', sFeed?.id)
-        await interaction.reply({ content: `✅ Salon du réseau social configuré sur <#${sFeed?.id}>.`, ephemeral: true })
-        break
-      }
 
       case 'setmenu': {
         if (!await isAdmin(user.id, interaction)) {
@@ -2046,67 +2159,7 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         break
       }
 
-      case 'post': {
-        const content = interaction.options.getString('contenu')
-        const image_url = interaction.options.getString('image')
 
-        if (!content) {
-          await interaction.reply('Veuillez entrer un contenu.')
-          return
-        }
-
-        const profile = await getProfile(user.id)
-        if (!profile) {
-          await interaction.reply('Vous nestes pas enregistré.')
-          return
-        }
-
-        const { error } = await supabase.from('posts').insert([
-          {
-            user_id: profile.id,
-            content,
-            image_url,
-          }
-        ])
-
-        if (error) {
-          await interaction.reply('Erreur lors de la création du post.')
-          return
-        }
-
-        await interaction.reply({ content: 'Votre post a été créé avec succès !', ephemeral: true })
-        break
-      }
-
-      case 'feed': {
-        try {
-          const { data: posts } = await supabase
-            .from('posts')
-            .select(`
-              content,
-              user:profiles (username)
-            `)
-            .order('created_at', { ascending: false })
-            .limit(5)
-
-          if (!posts || posts.length === 0) {
-            await interaction.reply('Aucun post récent.')
-            return
-          }
-
-          const embed = new EmbedBuilder()
-            .setTitle('ENT LunaVerse • Derniers Posts')
-            .setColor(BLURPLE)
-            .setDescription(posts.map(post => `**${(post.user as any).username}**: ${post.content}`).join('\n\n').substring(0, 4000))
-            .setFooter({ text: 'Réseau Social' })
-
-          await interaction.reply({ embeds: [embed] })
-        } catch (error) {
-          console.error('Feed error:', error)
-          await interaction.reply('Erreur lors de la récupération du feed.')
-        }
-        break
-      }
 
       case 'historique': {
         try {
@@ -2706,6 +2759,76 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
           .setImage(gif)
 
         await interaction.reply({ embeds: [embed] })
+        break
+      }
+
+      case 'set_channel_house': {
+        if (!await isAdmin(user.id, interaction)) return interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
+        const salon = interaction.options.getChannel('salon')
+        await setServerSetting('house_request_channel', salon?.id)
+        await interaction.reply({ content: `✅ Salon des demandes configuré sur <#${salon?.id}>.`, ephemeral: true })
+        break
+      }
+
+      case 'set_house_category': {
+        if (!await isAdmin(user.id, interaction)) return interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
+        const cat = interaction.options.getChannel('categorie')
+        await setServerSetting('house_category_id', cat?.id)
+        await interaction.reply({ content: `✅ Catégorie des maisons configurée sur **${cat?.name}**.`, ephemeral: true })
+        break
+      }
+
+      case 'maison_setup': {
+        if (!await isAdmin(user.id, interaction)) return interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
+        const channelId = await getServerSetting('house_request_channel')
+        const channel = await client.channels.fetch(channelId).catch(() => null)
+        if (!channel || !channel.isTextBased()) return interaction.reply({ content: '❌ Salon non configuré ou invalide.', ephemeral: true })
+
+        const embed = new EmbedBuilder()
+          .setTitle('🏠 Demande de Propriété • LunaVerse')
+          .setDescription('Souhaitez-vous obtenir une résidence privée sur LunaVerse ?\n\n**Avantages :**\n• Salon Discord privé & exclusif\n• Gestion des accès (Whitelist)\n• Aménagements RP (Lit, Frigo...)\n\nCliquez sur le bouton ci-dessous pour faire votre demande.')
+          .setColor(BLURPLE)
+          .setImage('https://i.ibb.co/3ykG2W9/house-banner.png')
+
+        const btn = new ButtonBuilder()
+          .setCustomId('house_request_start')
+          .setLabel('Demander une Maison')
+          .setStyle(ButtonStyle.Primary)
+          .setEmoji('🏠')
+
+        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(btn)
+        await (channel as any).send({ embeds: [embed], components: [row] })
+        await interaction.reply({ content: '✅ Embed déployé.', ephemeral: true })
+        break
+      }
+
+      case 'dormir': {
+        const profile = await getProfile(user.id)
+        if (!profile) return interaction.reply({ content: '❌ Profil introuvable.', ephemeral: true })
+        
+        const { data: house } = await supabase.from('houses').select('*').eq('discord_channel_id', interaction.channelId).maybeSingle()
+        if (!house) return interaction.reply({ content: '❌ Cette commande n\'est utilisable que dans votre salon de maison privé.', ephemeral: true })
+
+        // Check if has bed furnishings
+        if (!house.furnishings?.bed) return interaction.reply({ content: '❌ Vous n\'avez pas encore de **Lit** dans votre maison ! Achetez-le sur l\'ENT.', ephemeral: true })
+
+        await supabase.from('profiles').update({ fatigue: 100 }).eq('id', profile.id)
+        await interaction.reply({ content: `😴 <@${user.id}> s'installe confortablement dans son lit et récupère toute son énergie !` })
+        break
+      }
+
+      case 'frigo': {
+        const profile = await getProfile(user.id)
+        if (!profile) return interaction.reply({ content: '❌ Profil introuvable.', ephemeral: true })
+        
+        const { data: house } = await supabase.from('houses').select('*').eq('discord_channel_id', interaction.channelId).maybeSingle()
+        if (!house) return interaction.reply({ content: '❌ Cette commande n\'est utilisable que dans votre salon de maison privé.', ephemeral: true })
+
+        // Check if has fridge furnishings
+        if (!house.furnishings?.fridge) return interaction.reply({ content: '❌ Vous n\'avez pas encore de **Réfrigérateur** ! Achetez-le sur l\'ENT.', ephemeral: true })
+
+        await supabase.from('profiles').update({ hunger: 100, thirst: 100 }).eq('id', profile.id)
+        await interaction.reply({ content: `❄️ <@${user.id}> ouvre son frigo et prend un bon repas frais. Faim et Soif restaurées !` })
         break
       }
     }

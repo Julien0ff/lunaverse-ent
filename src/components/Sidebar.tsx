@@ -9,7 +9,7 @@ import { useAuth } from '@/context/AuthContext'
 import {
   LayoutDashboard, Wallet, Globe, Dices,
   ShoppingCart, Shield, LogOut, Moon, Settings,
-  ChevronRight, User, BookOpen, ExternalLink, MessageCircle, Heart, Utensils, Landmark, Menu, X, ShoppingBag, Calendar
+  ChevronRight, User, BookOpen, ExternalLink, MessageCircle, Heart, Utensils, Landmark, Menu, X, ShoppingBag, Calendar, Home
 } from 'lucide-react'
 import clsx from 'clsx'
 import SettingsModal from './SettingsModal'
@@ -25,6 +25,7 @@ const NAV = [
   { href: '/dating', icon: Heart, labelKey: 'nav.dating', emoji: '💖' },
   { href: '/cantine', icon: Utensils, labelKey: 'nav.cantine', emoji: '🍱' },
   { href: '/absences', icon: Calendar, labelKey: 'nav.absences', emoji: '📅' },
+  { href: '/maison', icon: Home, labelKey: 'nav.maison', emoji: '🏠' },
   { href: '/impots', icon: Landmark, labelKey: 'nav.impots', emoji: '🧾' },
   { href: '/casino', icon: Dices, labelKey: 'nav.casino', emoji: '🎰' },
   { href: '/market', icon: ShoppingBag, labelKey: 'nav.market', emoji: '🛍️' },

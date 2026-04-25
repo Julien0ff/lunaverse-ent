@@ -353,7 +353,6 @@ export default function Bank() {
             </div>
           </div>
         </div>
-      </div>
 
       <div className="lg:col-span-2">
           {activeTab === 'send' && (
@@ -649,8 +648,8 @@ export default function Bank() {
                     </div>
                   )}
                 </div>
+              </div>
 
-              {/* History */}
               <div className="glass-card p-2">
                 <h3 className="text-lg font-black text-white px-4 py-4">Demandes récentes</h3>
                 <div className="space-y-1">
@@ -695,9 +694,9 @@ export default function Bank() {
                   )}
                 </div>
               </div>
-              </div>
             </div>
           )}
+        </div>
       </div>
     </div>
   )
