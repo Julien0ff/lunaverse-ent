@@ -9,7 +9,7 @@ import { useAuth } from '@/context/AuthContext'
 import {
   LayoutDashboard, Wallet, Globe, Dices,
   ShoppingCart, Shield, LogOut, Moon, Settings,
-  ChevronRight, User, BookOpen, ExternalLink, MessageCircle, Heart, Utensils, Landmark, Menu, X
+  ChevronRight, User, BookOpen, ExternalLink, MessageCircle, Heart, Utensils, Landmark, Menu, X, ShoppingBag
 } from 'lucide-react'
 import clsx from 'clsx'
 import SettingsModal from './SettingsModal'

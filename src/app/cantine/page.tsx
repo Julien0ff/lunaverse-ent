@@ -33,6 +33,32 @@ export default function Cantine() {
   const hasSubscription = profile?.canteen_subscription === 'weekly' || profile?.canteen_subscription === 'monthly'
 
   const mainRoleName = roles?.find(r => r.name.toLowerCase() !== 'admin')?.name || 'Étudiant'
+  
+  const handleSubscribe = async (type: 'weekly' | 'monthly') => {
+    if (!profile?.id || purchasing) return
+    setPurchasing(true)
+    setErrorMsg(null)
+
+    try {
+      const response = await fetch('/api/cantine/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type })
+      })
+      const data = await response.json()
+      if (response.ok) {
+        await refreshProfile()
+      } else {
+        setErrorMsg(data.error || 'Erreur lors de la souscription')
+        setTimeout(() => setErrorMsg(null), 4000)
+      }
+    } catch (e) {
+      setErrorMsg('Erreur de connexion')
+      setTimeout(() => setErrorMsg(null), 4000)
+    } finally {
+      setPurchasing(false)
+    }
+  }
 
   const isCurrentlyServing = () => {
     if (!activeMenu) return false
