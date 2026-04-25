@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import { Calendar, Clock, FileText, Send, AlertCircle, CheckCircle2, XCircle, Plus, Paperclip } from 'lucide-react'
+import { Calendar, Clock, FileText, Send, AlertCircle, CheckCircle2, XCircle, Plus, Paperclip, Shield } from 'lucide-react'
+import Image from 'next/image'
 import clsx from 'clsx'
 
 export default function AbsencesPage() {
-  const { profile } = useAuth()
-  const [activeTab, setActiveTab] = useState<'declare' | 'history'>('declare')
+  const { profile, roles } = useAuth()
+  const isAdmin = roles.some(r => r.name === 'admin')
+  const [activeTab, setActiveTab] = useState<'declare' | 'history' | 'admin'>('declare')
   const [reason, setReason] = useState('')
   const [duration, setDuration] = useState('')
   const [attachments, setAttachments] = useState('')
@@ -106,8 +108,21 @@ export default function AbsencesPage() {
               )}
             >
               <Clock className="w-5 h-5" />
-              Historique ({absences.length})
+              Mes Absences ({absences.filter(a => a.user_id === profile?.id).length})
             </button>
+
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab('admin')}
+                className={clsx(
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm",
+                  activeTab === 'admin' ? "bg-discord-error/20 text-white border border-discord-error/30 shadow-lg" : "text-discord-muted hover:bg-white/5"
+                )}
+              >
+                <Shield className="w-5 h-5 text-discord-error" />
+                Dossiers ENT ({absences.length})
+              </button>
+            )}
           </div>
 
           <div className="glass-card p-6 bg-discord-blurple/5 border-discord-blurple/20">
@@ -200,7 +215,9 @@ export default function AbsencesPage() {
                   <p className="font-bold text-discord-muted">Aucune absence enregistrée.</p>
                 </div>
               ) : (
-                absences.map((abs) => (
+                absences
+                  .filter(abs => activeTab === 'admin' || abs.user_id === profile?.id)
+                  .map((abs) => (
                   <div key={abs.id} className="glass-card group hover:border-white/10 transition-colors p-6">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-4">
@@ -213,6 +230,14 @@ export default function AbsencesPage() {
                           {getStatusIcon(abs.status)}
                         </div>
                         <div>
+                          {activeTab === 'admin' && abs.profile && (
+                            <div className="flex items-center gap-2 mb-2 bg-white/5 px-2 py-1 rounded-lg w-fit border border-white/5">
+                               <div className="w-4 h-4 rounded-full overflow-hidden relative">
+                                  <Image src={abs.profile.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} fill alt="" />
+                               </div>
+                               <span className="text-[10px] font-black text-discord-blurple uppercase tracking-widest">{abs.profile.nickname_rp || abs.profile.username}</span>
+                            </div>
+                          )}
                           <p className="text-white font-bold text-lg mb-1">{abs.reason}</p>
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] font-black text-discord-muted uppercase tracking-widest">
                             <span className="flex items-center gap-1.5"><Clock className="w-3 h-3" /> {abs.duration}</span>

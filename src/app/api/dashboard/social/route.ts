@@ -5,11 +5,12 @@ export async function GET() {
   try {
     const supabase = createSupabaseServer()
 
-    // Online Users (from profiles where discord_status is not 'offline')
+    // Online Users (Active on site in the last 15 minutes)
+    const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString()
     const { data: onlineUsers } = await supabase
       .from('profiles')
       .select('id, username, avatar_url, discord_status, nickname_rp')
-      .neq('discord_status', 'offline')
+      .gt('last_seen_at', fifteenMinsAgo)
       .limit(10)
 
     // Top Users for Dashboard Leaderboard

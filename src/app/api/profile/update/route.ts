@@ -8,7 +8,7 @@ export async function PATCH(req: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const updates = await req.json()
-    const allowed = ['bio', 'twitter_url', 'instagram_url', 'github_url', 'website_url']
+    const allowed = ['bio', 'twitter_url', 'instagram_url', 'github_url', 'website_url', 'last_seen_at']
     const filtered = Object.keys(updates)
       .filter(key => allowed.includes(key))
       .reduce((obj: any, key) => {

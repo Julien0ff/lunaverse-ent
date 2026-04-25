@@ -7,11 +7,23 @@ export async function GET(req: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { data: absences, error } = await supabase
-      .from('absences')
-      .select('*')
+    // Check if admin
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('role:roles(name)')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+    
+    const isAdmin = roles?.some((r: any) => r.role.name === 'admin')
+
+    let query = supabase
+      .from('absences')
+      .select('*, profile:profiles(username, nickname_rp, avatar_url)')
+    
+    if (!isAdmin) {
+      query = query.eq('user_id', user.id)
+    }
+
+    const { data: absences, error } = await query.order('created_at', { ascending: false })
 
     if (error) throw error
     return NextResponse.json({ items: absences })

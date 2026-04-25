@@ -41,6 +41,13 @@ export default function Dashboard() {
     if (profile?.id) {
       fetchDashboardData()
       fetch('/api/dashboard/social').then(r => r.json()).then(d => setSocialData(d))
+      
+      // Update site activity
+      fetch('/api/profile/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ last_seen_at: new Date().toISOString() })
+      })
     }
   }, [profile?.id])
 
@@ -125,34 +132,34 @@ export default function Dashboard() {
         </div>
 
         {/* Online Users */}
-        <div className="space-y-4">
-          <div className="glass-card border-discord-blurple/20 min-h-full">
+        <div className="flex flex-col gap-4">
+          <div className="glass-card border-discord-blurple/20 flex-1">
             <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest mb-4 flex items-center gap-2">
               <Users className="w-4 h-4 text-discord-blurple" />
-              Connectés ({socialData.onlineUsers.length})
+              Sur le site ({socialData.onlineUsers.length})
             </h3>
             <div className="flex flex-wrap gap-2">
-              {socialData.onlineUsers.length > 0 ? socialData.onlineUsers.map(user => (
+              {socialData.onlineUsers.length > 0 ? socialData.onlineUsers.map(u => (
                 <Link 
-                  key={user.id} 
-                  href={`/profile/${user.username}`} // Fallback to current profile or search
+                  key={u.id} 
+                  href={`/messages?chat=${u.username}`}
                   className="group relative"
                 >
-                  <div className="w-10 h-10 rounded-xl overflow-hidden ring-2 ring-discord-blurple/20 group-hover:ring-discord-blurple transition-all">
+                  <div className="w-9 h-9 rounded-xl overflow-hidden ring-2 ring-discord-blurple/20 group-hover:ring-discord-blurple transition-all">
                     <Image 
-                      src={user.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} 
-                      alt={user.username} width={40} height={40} className="object-cover w-full h-full"
+                      src={u.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} 
+                      alt={u.username} width={36} height={36} className="object-cover w-full h-full"
                     />
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-discord-success rounded-full border-2 border-[#121316] shadow-sm" />
+                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-discord-success rounded-full border-2 border-[#121316] shadow-sm" />
                   
                   {/* Tooltip */}
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-[10px] font-black rounded pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
-                    {user.nickname_rp || user.username}
+                    {u.nickname_rp || u.username}
                   </div>
                 </Link>
               )) : (
-                <p className="text-[10px] text-discord-muted italic">Personne en ligne...</p>
+                <p className="text-[10px] text-discord-muted italic">Seul au monde...</p>
               )}
             </div>
           </div>
@@ -161,8 +168,8 @@ export default function Dashboard() {
           <div className="glass-card border-discord-success/10 py-4">
              <div className="flex items-center justify-between gap-3">
                <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 bg-discord-success/20 rounded-xl flex items-center justify-center">
-                    <Gift className="w-5 h-5 text-discord-success" />
+                 <div className="w-10 h-10 bg-discord-success/20 rounded-xl flex items-center justify-center group-hover:bg-discord-success transition-colors">
+                    <Gift className="w-5 h-5 text-discord-success group-hover:text-discord-darker" />
                  </div>
                  <div>
                     <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest">Daily</p>

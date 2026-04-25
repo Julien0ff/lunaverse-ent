@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import Image from 'next/image'
 import {
@@ -34,6 +35,8 @@ interface Message {
 
 export default function MessagesPage() {
   const { profile, supabase, refreshProfile } = useAuth()
+  const searchParams = useSearchParams()
+  const chatWith = searchParams.get('chat')
   
   const [activeTab, setActiveTab] = useState<'chat' | 'friends'>('chat')
   const [friends, setFriends] = useState<Friend[]>([])
@@ -110,6 +113,15 @@ export default function MessagesPage() {
     if (res.ok) {
       const data = await res.json()
       setFriends(data.friends || [])
+      
+      // Handle auto-select from query param
+      if (chatWith) {
+        const friend = data.friends.find((f: any) => f.username === chatWith)
+        if (friend) {
+          setSelectedFriend(friend)
+          setActiveTab('chat')
+        }
+      }
     }
   }
 
@@ -220,7 +232,7 @@ export default function MessagesPage() {
   const sentRequests = friends.filter(f => f.status === 'pending' && f.is_initiator)
 
   return (
-    <div className="page-container h-[calc(100vh-2rem)] sm:h-[calc(100vh-4rem)] flex flex-col pt-0 px-2 sm:px-4 md:px-6 mb-2 overflow-hidden">
+    <div className="h-screen md:h-[calc(100vh-4rem)] flex flex-col overflow-hidden bg-[#0a0a0c]">
       
       {/* ── Toasts ──────────────────────────────────────── */}
       {toast && (
@@ -234,7 +246,7 @@ export default function MessagesPage() {
       )}
 
       {/* ── App Layout ──────────────────────────────────── */}
-      <div className="flex-1 flex overflow-hidden glass-card p-0 border-white/5 rounded-2xl animate-fadeIn mt-4 relative">
+      <div className="flex-1 flex overflow-hidden border-t border-white/5 relative">
         
         {/* Left Sidebar (Contacts / Friends) */}
         <div className={clsx(

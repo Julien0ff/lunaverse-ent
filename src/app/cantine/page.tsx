@@ -34,30 +34,23 @@ export default function Cantine() {
 
   const mainRoleName = roles?.find(r => r.name.toLowerCase() !== 'admin')?.name || 'Étudiant'
 
-  const handleSubscribe = async (type: 'weekly' | 'monthly') => {
-    if (!profile?.id || purchasing) return
-    setPurchasing(true)
-    setErrorMsg(null)
+  const isCurrentlyServing = () => {
+    if (!activeMenu) return false
+    const now = new Date()
+    // Compare only if it's the right day
+    const menuDate = new Date(activeMenu.menu_date)
+    if (menuDate.toDateString() !== now.toDateString()) return false
 
-    try {
-      const response = await fetch('/api/cantine/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type })
-      })
-      const data = await response.json()
-      if (response.ok) {
-        await refreshProfile()
-      } else {
-        setErrorMsg(data.error || 'Erreur lors de la souscription')
-        setTimeout(() => setErrorMsg(null), 4000)
-      }
-    } catch (e) {
-      setErrorMsg('Erreur de connexion')
-      setTimeout(() => setErrorMsg(null), 4000)
-    } finally {
-      setPurchasing(false)
-    }
+    const [hStart, mStart] = activeMenu.time_start.split(':').map(Number)
+    const [hEnd, mEnd] = activeMenu.time_end.split(':').map(Number)
+    
+    const start = new Date(now)
+    start.setHours(hStart, mStart, 0)
+    
+    const end = new Date(now)
+    end.setHours(hEnd, mEnd, 0)
+    
+    return now >= start && now <= end
   }
 
   const handleUnsubscribe = async () => {
@@ -117,7 +110,11 @@ export default function Cantine() {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-12 relative z-10">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-[10px] font-black bg-orange-500 text-white px-3 py-1 rounded-full uppercase tracking-[0.2em] animate-pulse">Service en cours</span>
+                  {isCurrentlyServing() ? (
+                    <span className="text-[10px] font-black bg-orange-500 text-white px-3 py-1 rounded-full uppercase tracking-[0.2em] animate-pulse">Service en cours</span>
+                  ) : (
+                    <span className="text-[10px] font-black bg-white/10 text-discord-muted px-3 py-1 rounded-full uppercase tracking-[0.2em]">Service terminé / À venir</span>
+                  )}
                   <span className="text-[10px] font-black bg-white/10 text-white/60 px-3 py-1 rounded-full uppercase tracking-[0.2em]">Aujourd&apos;hui</span>
                 </div>
                 <h2 className="text-4xl sm:text-6xl font-black text-white tracking-tighter">
@@ -135,45 +132,43 @@ export default function Cantine() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 relative z-10">
                {activeMenu.starter && (
-                 <div className="space-y-3 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all hover:bg-white/[0.04] group/item">
-                    <p className="text-[10px] font-black text-discord-muted uppercase tracking-[0.3em] flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-discord-muted" /> Entrée
+                 <div className="p-6 rounded-3xl bg-white/[0.03] border border-white/5">
+                    <p className="text-[9px] font-black text-discord-muted uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
+                      <span className="w-1 h-1 rounded-full bg-discord-muted" /> Entrée
                     </p>
-                    <p className="text-2xl font-bold text-white leading-snug group-hover/item:text-orange-400 transition-colors">{activeMenu.starter}</p>
+                    <p className="text-lg font-bold text-white leading-tight">{activeMenu.starter}</p>
                  </div>
                )}
-               <div className="space-y-4 p-8 sm:p-10 rounded-[3rem] bg-gradient-to-br from-orange-500/20 to-orange-600/5 border border-orange-500/30 sm:col-span-2 lg:col-span-1 shadow-2xl shadow-orange-500/5 group/item">
-                  <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping" /> Plat Principal
+               <div className="p-6 rounded-3xl bg-orange-500/10 border border-orange-500/20">
+                  <p className="text-[9px] font-black text-orange-500 uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
+                    <span className="w-1 h-1 rounded-full bg-orange-500" /> Plat Principal
                   </p>
-                  <p className="text-4xl sm:text-5xl font-black text-white leading-tight group-hover/item:scale-[1.02] transition-transform origin-left">{activeMenu.main}</p>
+                  <p className="text-xl font-black text-white leading-tight">{activeMenu.main}</p>
                </div>
                {activeMenu.side && (
-                 <div className="space-y-3 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all hover:bg-white/[0.04] group/item">
-                    <p className="text-[10px] font-black text-orange-400 uppercase tracking-[0.3em] flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-orange-400" /> Accompagnement
+                 <div className="p-6 rounded-3xl bg-white/[0.03] border border-white/5">
+                    <p className="text-[9px] font-black text-orange-400 uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
+                      <span className="w-1 h-1 rounded-full bg-orange-400" /> Accompagnement
                     </p>
-                    <p className="text-2xl font-bold text-white leading-snug group-hover/item:text-orange-400 transition-colors">{activeMenu.side}</p>
+                    <p className="text-lg font-bold text-white leading-tight">{activeMenu.side}</p>
                  </div>
                )}
-               {activeMenu.dessert && (
-                 <div className="space-y-3 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all hover:bg-white/[0.04] group/item">
-                    <p className="text-[10px] font-black text-pink-400 uppercase tracking-[0.3em] flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-pink-400" /> Dessert
-                    </p>
-                    <p className="text-2xl font-bold text-white leading-snug group-hover/item:text-pink-400 transition-colors">{activeMenu.dessert}</p>
-                 </div>
-               )}
-               {activeMenu.drink && (
-                 <div className="space-y-3 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all hover:bg-white/[0.04] group/item">
-                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400" /> Boisson
-                    </p>
-                    <p className="text-2xl font-bold text-white leading-snug group-hover/item:text-blue-400 transition-colors">{activeMenu.drink}</p>
-                 </div>
-               )}
+               <div className="flex flex-col gap-4">
+                 {activeMenu.dessert && (
+                   <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex-1">
+                      <p className="text-[9px] font-black text-pink-400 uppercase tracking-[0.3em] mb-1">🍰 Dessert</p>
+                      <p className="text-sm font-bold text-white">{activeMenu.dessert}</p>
+                   </div>
+                 )}
+                 {activeMenu.drink && (
+                   <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex-1">
+                      <p className="text-[9px] font-black text-blue-400 uppercase tracking-[0.3em] mb-1">🥤 Boisson</p>
+                      <p className="text-sm font-bold text-white">{activeMenu.drink}</p>
+                   </div>
+                 )}
+               </div>
             </div>
 
             {activeMenu.note && (
