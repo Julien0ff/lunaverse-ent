@@ -16,7 +16,16 @@ export async function GET() {
     if (error) throw error
     return NextResponse.json({ count: count || 0 })
   } catch (err: any) {
-    console.error('[API Messages Unread] Error:', err)
-    return NextResponse.json({ error: err.message, details: err }, { status: 500 })
+    console.error('[API Messages Unread] CRITICAL ERROR:', {
+      message: err.message,
+      code: err.code,
+      details: err.details,
+      hint: err.hint
+    })
+    return NextResponse.json({ 
+      error: err.message, 
+      code: err.code,
+      details: err.details 
+    }, { status: 500 })
   }
 }

@@ -13,7 +13,8 @@ export async function GET(req: Request) {
       .select('role:roles(name)')
       .eq('user_id', user.id)
     
-    const isAdmin = roles?.some((r: any) => r.role?.name?.toLowerCase() === 'admin')
+    const adminRoles = ['admin', 'staff', 'principal']
+    const isAdmin = roles?.some((r: any) => adminRoles.includes(r.role?.name?.toLowerCase()))
     
     let query = supabase
       .from('absences')

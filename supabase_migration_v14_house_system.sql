@@ -26,6 +26,14 @@ CREATE POLICY "Owners can update their own house"
 ON houses FOR UPDATE
 USING (auth.uid() = owner_id);
 
+CREATE POLICY "Users can insert their own house requests"
+ON houses FOR INSERT
+WITH CHECK (auth.uid() = owner_id);
+
+CREATE POLICY "Owners can delete their own house requests"
+ON houses FOR DELETE
+USING (auth.uid() = owner_id);
+
 -- CONFIG TABLE (for bot settings)
 CREATE TABLE IF NOT EXISTS server_config (
     key VARCHAR PRIMARY KEY,
