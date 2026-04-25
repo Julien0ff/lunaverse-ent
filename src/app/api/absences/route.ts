@@ -13,11 +13,11 @@ export async function GET(req: Request) {
       .select('role:roles(name)')
       .eq('user_id', user.id)
     
-    const isAdmin = roles?.some((r: any) => r.role.name === 'admin')
-
+    const isAdmin = roles?.some((r: any) => r.role?.name?.toLowerCase() === 'admin')
+    
     let query = supabase
       .from('absences')
-      .select('*, profile:profiles(username, nickname_rp, avatar_url)')
+      .select('*, profiles(username, nickname_rp, avatar_url)')
     
     if (!isAdmin) {
       query = query.eq('user_id', user.id)
@@ -28,7 +28,8 @@ export async function GET(req: Request) {
     if (error) throw error
     return NextResponse.json({ items: absences })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[API Absences] Error:', err)
+    return NextResponse.json({ error: err.message, details: err }, { status: 500 })
   }
 }
 

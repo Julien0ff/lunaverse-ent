@@ -9,7 +9,7 @@ export async function GET(req: Request) {
 
     // Check admin role
     const { data: roles } = await supabase.from('user_roles').select('roles(name)').eq('user_id', user.id)
-    const isAdmin = roles?.some((r: any) => r.roles.name === 'Admin')
+    const isAdmin = roles?.some((r: any) => r.roles?.name?.toLowerCase() === 'admin')
     if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const { data: absences, error } = await supabase
@@ -20,7 +20,8 @@ export async function GET(req: Request) {
     if (error) throw error
     return NextResponse.json({ items: absences })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[API Admin Absences] Error:', err)
+    return NextResponse.json({ error: err.message, details: err }, { status: 500 })
   }
 }
 
@@ -32,7 +33,7 @@ export async function PATCH(req: Request) {
 
     // Check admin role
     const { data: roles } = await supabase.from('user_roles').select('roles(name)').eq('user_id', user.id)
-    const isAdmin = roles?.some((r: any) => r.roles.name === 'Admin')
+    const isAdmin = roles?.some((r: any) => r.roles?.name?.toLowerCase() === 'admin')
     if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const { id, status } = await req.json()

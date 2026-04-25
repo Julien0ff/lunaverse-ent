@@ -11,11 +11,12 @@ export async function GET() {
       .from('messages')
       .select('*', { count: 'exact', head: true })
       .eq('receiver_id', user.id)
-      .eq('is_read', false)
+      .eq('read', false)
 
     if (error) throw error
     return NextResponse.json({ count: count || 0 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[API Messages Unread] Error:', err)
+    return NextResponse.json({ error: err.message, details: err }, { status: 500 })
   }
 }
