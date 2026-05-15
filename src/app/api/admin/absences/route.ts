@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 
     const { data: absences, error } = await supabase
       .from('absences')
-      .select('*, profile:profiles(username, avatar_url, nickname_rp)')
+      .select('*, profile:profiles!absences_user_id_fkey(username, avatar_url, nickname_rp)')
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -49,7 +49,7 @@ export async function PATCH(req: Request) {
         processed_by: user.id
       })
       .eq('id', id)
-      .select('*, profiles(discord_id, username)')
+      .select('*, profiles!absences_user_id_fkey(discord_id, username)')
       .single()
 
     if (error) throw error

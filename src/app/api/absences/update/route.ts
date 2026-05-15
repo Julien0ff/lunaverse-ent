@@ -25,7 +25,7 @@ export async function PATCH(req: Request) {
       .from('absences')
       .update({ status })
       .eq('id', id)
-      .select('*, profile:profiles(discord_id)')
+      .select('*, profile:profiles!absences_user_id_fkey(discord_id)')
       .single()
 
     if (error) throw error

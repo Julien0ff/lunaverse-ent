@@ -8,11 +8,22 @@ import {
   ShieldAlert, Users, Wallet, Dices, ShoppingCart,
   Plus, Pencil, Trash2, Send, RefreshCw, Search,
   ChevronDown, Check, X, Settings, BookOpen, Save, Clock,
-  FileText, CheckCircle2, AlertCircle, Calendar, Paperclip, Home
+  FileText, CheckCircle2, AlertCircle, Calendar, Paperclip, Home, Megaphone, Info
 } from 'lucide-react'
 import clsx from 'clsx'
 
-type AdminTab = 'users' | 'finances' | 'shop' | 'roles' | 'money' | 'suggestions' | 'cantine' | 'declarations' | 'absences' | 'maisons'
+const SUBJECTS = [
+  'ALLEMAND', 'ANGLAIS', 'ARTS PLASTIQUES', 'BRANLETTE COLLECTIVE', 'CLUB (au choix)',
+  'CRIMINOLOGIE', 'CUISINE', 'CYBERSÉCURITÉ', 'DROIT', 'DROIT CONSTITUTIONNEL DE LA VE RÉPUBLIQUE',
+  'ÉDUCATION MORALE ET CIVIQUE', 'ÉDUCATION MUSICALE', 'ÉDUCATION PHYSIQUE ET SPORTIVE', 'ESPAGNOL',
+  'EVENT', 'EXAMENS NATIONAUX', 'FORMATION HUMAINE', 'FRANÇAIS', 'Gestion Etab', 'HISTOIRE-GÉOGRAPHIE',
+  'HYMNE', 'INFIRMERIE', 'MATHÉMATIQUES', 'Matière non désignée', 'Permanence', 'PHYSIQUE-CHIMIE',
+  'PPMS', 'Prévention', 'Réservation de salle', 'SCIENCE DE LA VIE QUOTIDIENNE',
+  'SCIENCES DE LA VIE ET DE LA TERRE', 'SCIENCES ÉCONOMIQUES ET SOCIALES', 'SORTIE SCOLAIRE',
+  'TECHNOLOGIE', 'TP PHYSIQUE-CHIMIE', 'VIE POLITIQUE FRANÇAISE'
+]
+
+type AdminTab = 'users' | 'finances' | 'shop' | 'roles' | 'money' | 'suggestions' | 'cantine' | 'declarations' | 'absences' | 'maisons' | 'annonces'
 
 interface AdminUser {
   id: string; discord_id: string; username: string
@@ -82,6 +93,10 @@ export default function AdminPage() {
   })
   const [decProcessing, setDecProcessing] = useState<string | null>(null)
   const [penaltyMap, setPenaltyMap] = useState<Record<string, boolean>>({})
+
+  // Announcements
+  const [newCourse, setNewCourse] = useState({ target_class: 'nova', subject: '', teacher_id: '', date: '', time_start: '', time_end: '' })
+  const [newInfo, setNewInfo] = useState({ target_class: 'both', subject: '', teacher_id: '', replacement_teacher_id: '', info_status: 'supprime', info_text: '', date: '', time_start: '' })
 
   // Inline nickname RP editing
   const [nicknameEditing, setNicknameEditing] = useState<string | null>(null)
@@ -331,6 +346,65 @@ export default function AdminPage() {
     if (r.ok) { showMsg('success', 'Menu supprimé'); loadCanteen() }
   }
 
+  const createAnnouncement = async () => {
+    if (!newCourse.subject || !newCourse.date || !newCourse.time_start || !newCourse.time_end) {
+      return showMsg('error', 'Veuillez remplir tous les champs obligatoires (matière, date, heure de début et de fin).')
+    }
+    const startTime = new Date(`${newCourse.date}T${newCourse.time_start}`).toISOString()
+    const endTime = new Date(`${newCourse.date}T${newCourse.time_end}`).toISOString()
+    
+    const r = await fetch('/api/admin/announcements', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'course',
+        target_class: newCourse.target_class,
+        subject: newCourse.subject,
+        teacher_id: newCourse.teacher_id || null,
+        start_time: startTime,
+        end_time: endTime
+      })
+    })
+    if (r.ok) {
+      showMsg('success', 'Annonce de cours planifiée !')
+      setNewCourse({ target_class: 'nova', subject: '', teacher_id: '', date: '', time_start: '', time_end: '' })
+    } else {
+      showMsg('error', (await r.json()).error)
+    }
+  }
+
+  const createInfoTrafic = async () => {
+    if (!newInfo.info_status) {
+      return showMsg('error', 'Veuillez sélectionner un statut.')
+    }
+    
+    let startTime = null
+    if (newInfo.date && newInfo.time_start) {
+        startTime = new Date(`${newInfo.date}T${newInfo.time_start}`).toISOString()
+    }
+    
+    const r = await fetch('/api/admin/announcements', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'info',
+        target_class: newInfo.target_class,
+        subject: newInfo.subject || null,
+        teacher_id: newInfo.teacher_id || null,
+        replacement_teacher_id: newInfo.replacement_teacher_id || null,
+        start_time: startTime,
+        info_status: newInfo.info_status,
+        info_text: newInfo.info_text || null
+      })
+    })
+    if (r.ok) {
+      showMsg('success', 'Info-trafic publiée sur Discord !')
+      setNewInfo({ target_class: 'both', subject: '', teacher_id: '', replacement_teacher_id: '', info_status: 'supprime', info_text: '', date: '', time_start: '' })
+    } else {
+      showMsg('error', (await r.json()).error)
+    }
+  }
+
   const createTax = async () => {
     if (!taxSelectedIds.length) { showMsg('error', 'Sélectionnez au moins un utilisateur'); return }
     const r = await fetch('/api/admin/taxes', {
@@ -418,6 +492,7 @@ export default function AdminPage() {
     { id: 'money', label: 'Primes', icon: Wallet },
     { id: 'declarations', label: 'Déclarations', icon: FileText },
     { id: 'absences', label: 'Absences', icon: Calendar },
+    { id: 'annonces', label: 'Annonces', icon: Megaphone },
     { id: 'maisons', label: 'Maisons', icon: Home },
   ]
 
@@ -1689,6 +1764,223 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+      {/* ── Annonces & Info-Trafic Tab ──────────────────────────────── */}
+      {tab === 'annonces' && (
+        <div className="space-y-6 animate-fadeIn">
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Section A: Annonces de Cours */}
+            <div className="glass-card p-6 space-y-4">
+              <div className="flex items-center gap-3 mb-6">
+                <Clock className="w-8 h-8 text-discord-blurple" />
+                <div>
+                  <h2 className="text-xl font-black text-white">Annonces de Cours</h2>
+                  <p className="text-xs text-discord-muted">Planifier l'envoi d'une annonce (Samedis et Dimanches)</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-discord-muted uppercase">Classe Cible</label>
+                  <select
+                    className="glass-input w-full"
+                    value={newCourse.target_class}
+                    onChange={e => setNewCourse({ ...newCourse, target_class: e.target.value })}
+                  >
+                    <option value="nova">Classe Nova</option>
+                    <option value="nebuleuse">Classe Nébuleuse</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-discord-muted uppercase">Matière</label>
+                  <select
+                    className="glass-input w-full"
+                    value={newCourse.subject}
+                    onChange={e => setNewCourse({ ...newCourse, subject: e.target.value })}
+                  >
+                    <option value="">Sélectionnez une matière...</option>
+                    {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-discord-muted uppercase">Professeur (Optionnel)</label>
+                  <select
+                    className="glass-input w-full"
+                    value={newCourse.teacher_id}
+                    onChange={e => setNewCourse({ ...newCourse, teacher_id: e.target.value })}
+                  >
+                    <option value="">Sélectionnez un professeur...</option>
+                    {users.map(u => <option key={u.id} value={u.id}>{u.nickname_rp || u.username}</option>)}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-discord-muted uppercase">Date</label>
+                    <input
+                      type="date"
+                      className="glass-input w-full"
+                      value={newCourse.date}
+                      onChange={e => {
+                        const date = new Date(e.target.value)
+                        if (date.getDay() !== 0 && date.getDay() !== 6) {
+                            showMsg('error', 'Les cours ne peuvent être planifiés que les samedis et dimanches.')
+                            setNewCourse({ ...newCourse, date: '' })
+                        } else {
+                            setNewCourse({ ...newCourse, date: e.target.value })
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-discord-muted uppercase">Début</label>
+                    <input
+                      type="time"
+                      className="glass-input w-full"
+                      value={newCourse.time_start}
+                      onChange={e => setNewCourse({ ...newCourse, time_start: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-discord-muted uppercase">Fin</label>
+                    <input
+                      type="time"
+                      className="glass-input w-full"
+                      value={newCourse.time_end}
+                      onChange={e => setNewCourse({ ...newCourse, time_end: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <button onClick={createAnnouncement} className="btn bg-discord-blurple hover:bg-discord-blurple/80 text-white py-3 w-full mt-2 font-bold flex items-center justify-center gap-2">
+                  <Save className="w-5 h-5" /> Planifier le Cours
+                </button>
+              </div>
+            </div>
+
+            {/* Section B: Info-Trafic */}
+            <div className="glass-card p-6 space-y-4 border-l-4 border-discord-error shadow-xl shadow-discord-error/10">
+              <div className="flex items-center gap-3 mb-6">
+                <Info className="w-8 h-8 text-discord-error" />
+                <div>
+                  <h2 className="text-xl font-black text-white">Info-Trafic</h2>
+                  <p className="text-xs text-discord-muted">Annonces immédiates sur Discord (Cours modifiés, absences)</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-discord-muted uppercase">Statut</label>
+                  <select
+                    className="glass-input w-full border-discord-error/50 focus:border-discord-error"
+                    value={newInfo.info_status}
+                    onChange={e => setNewInfo({ ...newInfo, info_status: e.target.value })}
+                  >
+                    <option value="supprime">Cours Supprimé</option>
+                    <option value="remplace">Professeur Remplacé</option>
+                    <option value="retard">Retard</option>
+                    <option value="deplace">Cours Déplacé</option>
+                    <option value="autre">Autre</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-discord-muted uppercase">Matière Concernée (Optionnel)</label>
+                  <select
+                    className="glass-input w-full"
+                    value={newInfo.subject}
+                    onChange={e => setNewInfo({ ...newInfo, subject: e.target.value })}
+                  >
+                    <option value="">Sélectionnez une matière...</option>
+                    {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-discord-muted uppercase">Classe Concernée</label>
+                    <select
+                        className="glass-input w-full"
+                        value={newInfo.target_class}
+                        onChange={e => setNewInfo({ ...newInfo, target_class: e.target.value })}
+                    >
+                        <option value="both">Général (Les deux classes)</option>
+                        <option value="nova">Classe Nova</option>
+                        <option value="nebuleuse">Classe Nébuleuse</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-discord-muted uppercase">Prof. Titulaire</label>
+                    <select
+                      className="glass-input w-full"
+                      value={newInfo.teacher_id}
+                      onChange={e => setNewInfo({ ...newInfo, teacher_id: e.target.value })}
+                    >
+                      <option value="">Sélectionnez...</option>
+                      {users.map(u => <option key={u.id} value={u.id}>{u.nickname_rp || u.username}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {newInfo.info_status === 'remplace' && (
+                  <div className="space-y-1 animate-fadeIn">
+                    <label className="text-xs font-bold text-discord-success uppercase">Professeur Remplaçant</label>
+                    <select
+                      className="glass-input w-full border-discord-success/50"
+                      value={newInfo.replacement_teacher_id}
+                      onChange={e => setNewInfo({ ...newInfo, replacement_teacher_id: e.target.value })}
+                    >
+                      <option value="">Sélectionnez le remplaçant...</option>
+                      {users.map(u => <option key={u.id} value={u.id}>{u.nickname_rp || u.username}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-discord-muted uppercase">Date (Optionnel)</label>
+                    <input
+                      type="date"
+                      className="glass-input w-full"
+                      value={newInfo.date}
+                      onChange={e => setNewInfo({ ...newInfo, date: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-discord-muted uppercase">Heure (Optionnel)</label>
+                    <input
+                      type="time"
+                      className="glass-input w-full"
+                      value={newInfo.time_start}
+                      onChange={e => setNewInfo({ ...newInfo, time_start: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-discord-muted uppercase">Informations Complémentaires</label>
+                  <textarea
+                    rows={2}
+                    className="glass-input w-full resize-none"
+                    placeholder="Ex: Le cours est reporté à la semaine prochaine..."
+                    value={newInfo.info_text}
+                    onChange={e => setNewInfo({ ...newInfo, info_text: e.target.value })}
+                  />
+                </div>
+
+                <button onClick={createInfoTrafic} className="btn bg-discord-error hover:bg-discord-error/80 text-white py-3 w-full mt-2 font-bold flex items-center justify-center gap-2">
+                  <Send className="w-5 h-5" /> Publier l'Alerte Info-Trafic
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

@@ -501,10 +501,10 @@ client.on('ready', async () => {
   // ── Auto-salary cron: runs every minute, triggers on Monday at midnight ──────────
   setInterval(async () => {
     const now = new Date()
-    // Monday = 1, 00:00–00:01
-    if (now.getDay() !== 1 || now.getHours() !== 0 || now.getMinutes() > 1) return
-
-    console.log('💳 Distributing weekly salaries...')
+    
+    // ── Auto-salary cron: Monday = 1, 00:00–00:01
+    if (now.getDay() === 1 && now.getHours() === 0 && now.getMinutes() <= 1) {
+      console.log('💳 Distributing weekly salaries...')
     try {
       // Get all profiles that haven't received salary in 6+ days
       const sixDaysAgo = new Date(now.getTime() - 6 * 24 * 3600 * 1000)
@@ -545,6 +545,7 @@ client.on('ready', async () => {
     } catch (err) {
       console.error('❌ Salary cron error:', err)
     }
+    } // End of Salary Cron
     // ── Salary Reminder J-5 (Wednesday noon) ──
     if (now.getDay() === 3 && now.getHours() === 12 && now.getMinutes() === 0) {
       console.log('💳 Sending J-5 salary reminder...')
@@ -724,6 +725,54 @@ client.on('ready', async () => {
       }
     } catch (err) {
       console.error('Failed to process pending transactions:', err)
+    }
+
+    // ── Course Announcements Scheduler ───────────────────────
+    try {
+      const { data: announcements } = await supabase
+        .from('course_announcements')
+        .select('*, teacher:profiles!course_announcements_teacher_id_fkey(username, nickname_rp)')
+        .eq('status', 'pending')
+        .eq('type', 'course')
+        .lte('start_time', now.toISOString())
+
+      for (const ann of announcements || []) {
+        let channelId = ''
+        let classText = ''
+        let roleMention = ''
+
+        if (ann.target_class === 'nova') {
+          channelId = '1491538879059070986'
+          classText = 'Classe Nova'
+          roleMention = `<@&1487572001542508626>`
+        } else if (ann.target_class === 'nebuleuse') {
+          channelId = '1491538962114805863'
+          classText = 'Classe Nébuleuse'
+          roleMention = `<@&1487571897364254841>`
+        }
+
+        if (channelId) {
+          const channel = client.channels.cache.get(channelId)
+          if (channel && channel.isTextBased()) {
+            const embed = new EmbedBuilder()
+              .setTitle('📚 ANNONCE DE COURS')
+              .setColor(0x5865F2)
+              .setDescription(
+                `**Matière:** ${ann.subject}\n` +
+                `**Professeur:** ${ann.teacher?.nickname_rp || ann.teacher?.username || 'Non spécifié'}\n` +
+                `**Heure:** ${new Date(ann.start_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - ${new Date(ann.end_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+              )
+              .setFooter({ text: 'LunaVerse ENT — Annonce Automatique' })
+
+            await (channel as any).send({ content: roleMention, embeds: [embed] }).catch(() => null)
+          }
+        }
+        
+        // Mark as sent
+        await supabase.from('course_announcements').update({ status: 'sent' }).eq('id', ann.id)
+      }
+    } catch (err) {
+      console.error('Failed to process course announcements:', err)
     }
 
   }, 60_000) // check every minute
