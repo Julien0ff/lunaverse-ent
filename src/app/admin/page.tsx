@@ -1784,7 +1784,7 @@ export default function AdminPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-discord-muted uppercase">Classe Cible</label>
                   <select
-                    className="glass-input w-full bg-[#2B2D31]"
+                    className="glass-input w-full"
                     value={newCourse.target_class}
                     onChange={e => setNewCourse({ ...newCourse, target_class: e.target.value })}
                   >
@@ -1796,7 +1796,7 @@ export default function AdminPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-discord-muted uppercase">Matière</label>
                   <select
-                    className="glass-input w-full bg-[#2B2D31]"
+                    className="glass-input w-full"
                     value={newCourse.subject}
                     onChange={e => setNewCourse({ ...newCourse, subject: e.target.value })}
                   >
@@ -1808,7 +1808,7 @@ export default function AdminPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-discord-muted uppercase">Professeur (Optionnel)</label>
                   <select
-                    className="glass-input w-full bg-[#2B2D31]"
+                    className="glass-input w-full"
                     value={newCourse.teacher_id}
                     onChange={e => setNewCourse({ ...newCourse, teacher_id: e.target.value })}
                   >

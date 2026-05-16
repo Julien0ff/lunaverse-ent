@@ -416,6 +416,11 @@ a {
   background: rgba(255, 255, 255, 0.07);
 }
 
+select.glass-input option {
+  background-color: var(--discord-darker);
+  color: white;
+}
+
 textarea.glass-input {
   resize: none;
   min-height: 90px;
