@@ -430,7 +430,7 @@ export default function MessagesPage() {
                       const prevDiff = i > 0 && messages[i - 1].sender_id === m.sender_id;
                       
                       return (
-                        <div key={m.id} className={clsx('flex gap-3 sm:gap-4 max-w-[90%] sm:max-w-[75%] animate-slideUp', isMe ? 'ml-auto flex-row-reverse' : '')} style={{ animationDelay: `${i * 10}ms` }}>
+                        <div key={m.id} className={clsx('flex gap-2 sm:gap-4 max-w-full sm:max-w-[85%] animate-slideUp', isMe ? 'ml-auto flex-row-reverse' : '')} style={{ animationDelay: `${i * 10}ms` }}>
                           {!prevDiff ? (
                              <div className="w-8 h-8 sm:w-9 sm:h-9 relative rounded-full overflow-hidden flex-shrink-0 mt-auto ring-2 ring-white/5 shadow-xl transition-transform hover:scale-110">
                                <Image src={isMe ? profile?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png' : selectedFriend.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} alt="" fill className="object-cover" />
@@ -466,7 +466,7 @@ export default function MessagesPage() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                <div className="p-3 sm:p-4 bg-black/60 border-t border-white/5 flex-shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
+                <div className="p-3 sm:p-4 bg-black/60 border-t border-white/5 flex-shrink-0 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] md:pb-4">
                   <form onSubmit={sendMessage} className="flex items-center gap-2 sm:gap-3 bg-white/5 rounded-2xl p-2 border border-white/10 focus-within:border-discord-blurple/50 focus-within:bg-white/10 transition-all relative">
                     <button 
                       type="button"

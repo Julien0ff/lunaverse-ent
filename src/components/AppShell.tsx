@@ -3,7 +3,9 @@
 import { usePathname, useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import Sidebar from '@/components/Sidebar'
+import NotificationCenter from '@/components/NotificationCenter'
 import LoadingScreen from '@/components/LoadingScreen'
+import Image from 'next/image'
 import { useAuth } from '@/context/AuthContext'
 import { useEffect, useState, useCallback } from 'react'
 import NotificationToast from '@/components/NotificationToast'
@@ -120,11 +122,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {/* Layout : sidebar fixe + contenu scrollable */}
             <div className="flex min-h-screen relative" style={{ background: 'var(--discord-dark)' }}>
                 <Sidebar />
+                
+                {/* Mobile Top Header */}
+                <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-discord-dark/90 backdrop-blur-md border-b border-white/5 z-[80] flex items-center justify-between px-5 shadow-lg">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
+                            <Image src="/logo.png" alt="Logo" width={40} height={40} className="w-full h-full object-contain" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="font-black text-white text-sm tracking-tight leading-none">LunaVerse</span>
+                            <span className="text-[10px] font-bold text-discord-muted uppercase tracking-widest mt-0.5">ENT Scolaire</span>
+                        </div>
+                    </div>
+                    <NotificationCenter />
+                </header>
+
                 {/* Main content — offset by sidebar width on desktop. Bottom padding on mobile for navbar. */}
                 <main
                     className={clsx(
-                        "flex-1 w-full md:ml-[280px]",
-                        pathname === '/messages' ? "h-[calc(100vh-125px)] md:h-screen" : "min-h-screen pb-[125px] md:pb-0 overflow-y-auto"
+                        "flex-1 w-full md:ml-[280px] pt-16 md:pt-0",
+                        pathname === '/messages' ? "h-[calc(100vh-125px-64px)] md:h-screen" : "min-h-screen pb-[125px] md:pb-0 overflow-y-auto"
                     )}
                 >
                     <div className={clsx(

@@ -913,14 +913,20 @@ client.on('ready', async () => {
             // Update DB
             await supabase.from('houses').update({ discord_channel_id: channel.id }).eq('id', house.id)
 
-            // Welcome message
+            // Welcome message & Owner Panel
             const embed = new EmbedBuilder()
               .setTitle(`🏠 Bienvenue dans votre maison : ${house.name}`)
-              .setDescription(`Félicitations <@${owner.discord_id}>, votre demande de propriété a été acceptée !\n\n**Commandes utilisables ici :**\n• \`/dormir\` : Pour restaurer votre énergie (nécessite un Lit)\n• \`/frigo\` : Pour restaurer faim/soif (nécessite un Frigo)\n\nVous pouvez gérer les accès et vos meubles directement sur l'ENT.`)
+              .setDescription(`Félicitations <@${owner.discord_id}>, votre demande de propriété a été acceptée !\n\n**Panneau du Propriétaire :**\nUtilisez les boutons ci-dessous pour gérer votre maison. Vous pouvez aussi gérer les accès avancés et vos meubles (DLCs) directement sur l'ENT.`)
               .setColor(SUCCESS)
               .setThumbnail(member.user.displayAvatarURL())
 
-            await channel.send({ content: `<@${owner.discord_id}>`, embeds: [embed] })
+            const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+              new ButtonBuilder().setCustomId(`house_manage_whitelist|${house.id}`).setLabel('Whitelist').setStyle(ButtonStyle.Primary).setEmoji('✅'),
+              new ButtonBuilder().setCustomId(`house_manage_blacklist|${house.id}`).setLabel('Blacklist').setStyle(ButtonStyle.Danger).setEmoji('⛔'),
+              new ButtonBuilder().setLabel('Accéder à l\'ENT').setStyle(ButtonStyle.Link).setURL('https://ent.lunaverse.fr')
+            )
+
+            await channel.send({ content: `<@${owner.discord_id}>`, embeds: [embed], components: [row] })
           }
 
           // PERMISSION SYNC (on any update if channel exists)
@@ -1580,6 +1586,15 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
       return
     }
 
+    if (interaction.customId.startsWith('house_manage_')) {
+      const isWhitelist = interaction.customId.includes('whitelist')
+      await interaction.reply({
+        content: `🛠️ La gestion de la ${isWhitelist ? 'Whitelist' : 'Blacklist'} (ainsi que vos meubles/DLCs) se fait directement sur l'ENT !\n👉 Cliquez sur le bouton "Accéder à l'ENT" ou rendez-vous sur **https://ent.lunaverse.fr/dashboard** dans l'onglet Maisons.`,
+        ephemeral: true
+      })
+      return
+    }
+
     if (interaction.customId.startsWith('rp_enroll|')) {
       const parts = interaction.customId.split('|')
       if (parts.length < 3) return
@@ -2043,6 +2058,17 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         await setServerSetting('discord_canteen_menu_message_id', null)
         await interaction.reply({ content: `✅ Salon du menu de la cantine configuré sur <#${sMenu?.id}>.`, ephemeral: true })
         await updateCanteenMenuMessage()
+        break
+      }
+
+      case 'set_house_category': {
+        if (!await isAdmin(user.id, interaction)) {
+          await interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
+          return
+        }
+        const category = interaction.options.getChannel('categorie')
+        await setServerSetting('house_category_id', category?.id)
+        await interaction.reply({ content: `✅ Les nouveaux salons de maison seront créés dans la catégorie **${category?.name}**.`, ephemeral: true })
         break
       }
 

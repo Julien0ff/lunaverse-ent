@@ -42,7 +42,8 @@ interface CanteenMenu {
   starter: string; main: string; side?: string; dessert: string; drink?: string; note: string
 }
 interface TaxRecord {
-  id: string; target_id: string; reason: string; amount: number; is_preleve: boolean
+  id: string; user_id: string; reason: string; amount: number; is_preleve: boolean; is_paid: boolean
+  target?: { username: string; discord_id: string }
 }
 interface ShopItem {
   id: string; name: string; description: string; price: number
@@ -72,6 +73,7 @@ export default function AdminPage() {
   const [declarations, setDeclarations] = useState<any[]>([])
   const [absences, setAbsences] = useState<any[]>([])
   const [houses, setHouses] = useState<any[]>([])
+  const [announcements, setAnnouncements] = useState<any[]>([])
 
   // Forms
   const [giveSelectedIds, setGiveSelectedIds] = useState<string[]>([])
@@ -132,7 +134,8 @@ export default function AdminPage() {
     await Promise.allSettled([
       loadUsers(), loadTaxes(), loadItems(), 
       loadRoles(), loadSuggestions(), loadCanteen(),
-      loadDeclarations(), loadAbsences(), loadHouses()
+      loadDeclarations(), loadAbsences(), loadHouses(),
+      loadAnnouncements()
     ])
   }, [])
 
@@ -179,6 +182,10 @@ export default function AdminPage() {
     const r = await fetch('/api/admin/houses')
     if (r.ok) setHouses((await r.json()).items || [])
   }
+  const loadAnnouncements = async () => {
+    const r = await fetch('/api/admin/announcements')
+    if (r.ok) setAnnouncements((await r.json()).items || [])
+  }
 
   const processAbsence = async (id: string, status: 'accepted' | 'refused') => {
     try {
@@ -205,6 +212,27 @@ export default function AdminPage() {
       })
       if (res.ok) {
         showMsg('success', `Maison ${status === 'active' ? 'validée' : 'refusée'}`)
+        loadHouses()
+      } else {
+        showMsg('error', (await res.json()).error)
+      }
+    } catch (e) {}
+  }
+
+  const updateHouseFurnishing = async (houseId: string, dlcId: string, value: boolean) => {
+    const house = houses.find(h => h.id === houseId)
+    if (!house) return
+    const newFurnishings = { ...(house.furnishings || {}) }
+    newFurnishings[dlcId] = value
+    
+    try {
+      const res = await fetch('/api/admin/houses', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: houseId, furnishings: newFurnishings })
+      })
+      if (res.ok) {
+        showMsg('success', 'DLC mis à jour')
         loadHouses()
       } else {
         showMsg('error', (await res.json()).error)
@@ -368,6 +396,7 @@ export default function AdminPage() {
     if (r.ok) {
       showMsg('success', 'Annonce de cours planifiée !')
       setNewCourse({ target_class: 'nova', subject: '', teacher_id: '', date: '', time_start: '', time_end: '' })
+      loadAnnouncements()
     } else {
       showMsg('error', (await r.json()).error)
     }
@@ -398,8 +427,33 @@ export default function AdminPage() {
       })
     })
     if (r.ok) {
-      showMsg('success', 'Info-trafic publiée sur Discord !')
+      showMsg('success', 'Info-trafic créé !')
       setNewInfo({ target_class: 'both', subject: '', teacher_id: '', replacement_teacher_id: '', info_status: 'supprime', info_text: '', date: '', time_start: '' })
+      loadAnnouncements()
+    } else {
+      showMsg('error', (await r.json()).error)
+    }
+  }
+
+  const publishAnnouncement = async (id: string, action: 'publish' | 'unpublish') => {
+    const r = await fetch('/api/admin/announcements', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, action })
+    })
+    if (r.ok) {
+      showMsg('success', action === 'publish' ? 'Publié avec succès !' : 'Dépublié avec succès !')
+      loadAnnouncements()
+    } else {
+      showMsg('error', (await r.json()).error)
+    }
+  }
+
+  const deleteAnnouncement = async (id: string) => {
+    const r = await fetch(`/api/admin/announcements?id=${id}`, { method: 'DELETE' })
+    if (r.ok) {
+      showMsg('success', 'Annonce supprimée')
+      loadAnnouncements()
     } else {
       showMsg('error', (await r.json()).error)
     }
@@ -1125,7 +1179,7 @@ export default function AdminPage() {
                 <div key={t.id} className="glass-card flex items-center justify-between gap-4 py-3">
                   <div>
                     <p className="font-bold text-white text-sm">
-                      Utilisateur cible : <span className="text-discord-muted font-mono">{t.target_id}</span>
+                      Utilisateur : <span className="text-discord-blurple font-bold">@{t.target?.username || t.user_id || 'Inconnu'}</span>
                     </p>
                     <p className="text-xs text-discord-muted">{t.reason}</p>
                     <div className="mt-1 flex items-center gap-2">
@@ -1139,6 +1193,31 @@ export default function AdminPage() {
                 </div>
               ))}
               {taxes.filter(t => Number(t.amount) > 0).length === 0 && <p className="text-discord-muted text-sm px-1">Aucun prélèvement enregistré.</p>}
+            </div>
+          </div>
+          
+          {/* Primes list (Negative taxes) */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest px-1">Historique des Primes ({taxes.filter(t => Number(t.amount) < 0).length})</h3>
+            <div className="max-h-[500px] overflow-y-auto space-y-2 pr-1">
+              {taxes.filter(t => Number(t.amount) < 0).map(t => (
+                <div key={t.id} className="glass-card flex items-center justify-between gap-4 py-3 border-l-2 border-l-discord-success">
+                  <div>
+                    <p className="font-bold text-white text-sm">
+                      Bénéficiaire : <span className="text-discord-success font-bold">@{t.target?.username || t.user_id || 'Inconnu'}</span>
+                    </p>
+                    <p className="text-xs text-discord-muted">{t.reason}</p>
+                    <div className="mt-1 flex items-center gap-2">
+                       <span className="text-discord-success font-black">+{Math.abs(t.amount)}€</span>
+                       {t.is_paid ? <span className="bg-discord-success/20 text-discord-success px-2 py-0.5 rounded text-[10px] font-bold">Versé</span> : <span className="bg-discord-warning/20 text-discord-warning px-2 py-0.5 rounded text-[10px] font-bold">À réclamer</span>}
+                    </div>
+                  </div>
+                  <button onClick={() => deleteTax(t.id)} className="btn btn-error px-2 py-1.5 flex-shrink-0">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+              {taxes.filter(t => Number(t.amount) < 0).length === 0 && <p className="text-discord-muted text-sm px-1">Aucune prime enregistrée.</p>}
             </div>
           </div>
         </div>
@@ -1762,6 +1841,65 @@ export default function AdminPage() {
                 </table>
              </div>
           </div>
+
+          {/* Active houses & DLCs */}
+          <div className="mt-8 space-y-4">
+             <h3 className="text-xl font-black text-white px-1">Maisons Actives & DLCs</h3>
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+               {houses.filter(h => h.status === 'active').map(house => (
+                 <div key={house.id} className="glass-card p-6 flex flex-col gap-4 border-l-4 border-l-discord-success shadow-xl">
+                   <div className="flex items-center justify-between">
+                     <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full overflow-hidden relative shadow-lg">
+                          <Image src={house.profiles?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} fill alt="" />
+                        </div>
+                        <div>
+                          <h4 className="text-xl font-black text-white">{house.name}</h4>
+                          <p className="text-sm text-discord-muted flex items-center gap-2">
+                            Propriétaire : <span className="text-discord-blurple font-bold">@{house.profiles?.username}</span>
+                          </p>
+                        </div>
+                     </div>
+                     <button 
+                       onClick={() => processHouse(house.id, 'rejected')}
+                       className="w-8 h-8 rounded-full bg-discord-error/10 text-discord-error flex items-center justify-center hover:bg-discord-error hover:text-white transition-colors"
+                       title="Détruire la maison"
+                     >
+                       <Trash2 size={14} />
+                     </button>
+                   </div>
+                   
+                   <div className="bg-white/5 p-4 rounded-xl border border-white/5 space-y-3">
+                      <h5 className="text-xs font-bold text-discord-muted uppercase tracking-widest">Meubles & Aménagements (DLCs)</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { id: 'bed', label: 'Lit (Énergie)', icon: '🛏️' },
+                          { id: 'fridge', label: 'Frigo (Faim/Soif)', icon: '❄️' },
+                          { id: 'pool', label: 'Piscine', icon: '🏊' },
+                          { id: 'garage', label: 'Garage', icon: '🚗' },
+                          { id: 'cinema', label: 'Home Cinéma', icon: '🍿' },
+                          { id: 'security', label: 'Système d\'Alarme', icon: '🚨' }
+                        ].map(dlc => {
+                           const hasDlc = house.furnishings && house.furnishings[dlc.id]
+                           return (
+                             <button
+                               key={dlc.id}
+                               onClick={() => updateHouseFurnishing(house.id, dlc.id, !hasDlc)}
+                               className={clsx(
+                                 "px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 border",
+                                 hasDlc ? "bg-discord-blurple/20 text-discord-blurple border-discord-blurple/30" : "bg-black/20 text-discord-muted border-white/5 hover:bg-white/5 hover:text-white"
+                               )}
+                             >
+                               {dlc.icon} {dlc.label}
+                             </button>
+                           )
+                        })}
+                      </div>
+                   </div>
+                 </div>
+               ))}
+             </div>
+          </div>
         </div>
       )}
       {/* ── Annonces & Info-Trafic Tab ──────────────────────────────── */}
@@ -1976,11 +2114,79 @@ export default function AdminPage() {
                 </button>
               </div>
             </div>
-
           </div>
+
+          {/* Lists of announcements */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8 animate-fadeIn">
+            <div className="space-y-4">
+               <h3 className="text-lg font-black text-white px-1">Cours Planifiés</h3>
+               <div className="space-y-3">
+                 {announcements.filter(a => a.type === 'course').map(a => (
+                   <div key={a.id} className="glass-card p-4 flex flex-col gap-3">
+                     <div className="flex justify-between items-start">
+                       <div>
+                         <p className="font-bold text-white">{a.subject}</p>
+                         <p className="text-xs text-discord-muted">Classe : {a.target_class} • Prof : {a.teacher?.nickname_rp || 'Aucun'}</p>
+                         <p className="text-xs text-discord-muted">
+                           {a.start_time ? new Date(a.start_time).toLocaleString() : 'Date non définie'}
+                         </p>
+                       </div>
+                       <span className={clsx("text-[10px] px-2 py-0.5 rounded-full uppercase font-bold border", a.status === 'sent' ? "bg-discord-success/10 text-discord-success border-discord-success/20" : "bg-discord-warning/10 text-discord-warning border-discord-warning/20")}>
+                         {a.status === 'sent' ? 'Publié' : 'En attente'}
+                       </span>
+                     </div>
+                     <div className="flex gap-2">
+                       {a.status === 'pending' && (
+                         <button onClick={() => publishAnnouncement(a.id, 'publish')} className="btn btn-success py-1.5 px-3 text-xs flex-1">Publier</button>
+                       )}
+                       {a.status === 'sent' && (
+                         <button onClick={() => publishAnnouncement(a.id, 'unpublish')} className="btn btn-error py-1.5 px-3 text-xs flex-1">Retirer</button>
+                       )}
+                       <button onClick={() => deleteAnnouncement(a.id)} className="btn bg-white/5 hover:bg-white/10 py-1.5 px-3 text-xs text-discord-error shadow-none">Supprimer</button>
+                     </div>
+                   </div>
+                 ))}
+                 {announcements.filter(a => a.type === 'course').length === 0 && (
+                   <p className="text-sm text-discord-muted p-4 text-center glass-card">Aucun cours planifié.</p>
+                 )}
+               </div>
+            </div>
+
+            <div className="space-y-4">
+               <h3 className="text-lg font-black text-white px-1">Alertes Info-Trafic en cours</h3>
+               <div className="space-y-3">
+                 {announcements.filter(a => a.type === 'info').map(a => (
+                   <div key={a.id} className="glass-card p-4 flex flex-col gap-3 border-l-2 border-l-discord-error">
+                     <div className="flex justify-between items-start">
+                       <div>
+                         <p className="font-bold text-white uppercase">{a.info_status}</p>
+                         <p className="text-xs text-discord-muted">Matière : {a.subject || 'N/A'} • Classe : {a.target_class}</p>
+                         {a.info_text && <p className="text-xs text-discord-muted italic mt-1">&quot;{a.info_text}&quot;</p>}
+                       </div>
+                       <span className={clsx("text-[10px] px-2 py-0.5 rounded-full uppercase font-bold border", a.status === 'sent' ? "bg-discord-success/10 text-discord-success border-discord-success/20" : "bg-discord-muted/10 text-discord-muted border-discord-muted/20")}>
+                         {a.status === 'sent' ? 'Actif' : 'Désactivé'}
+                       </span>
+                     </div>
+                     <div className="flex gap-2">
+                       {a.status === 'pending' && (
+                         <button onClick={() => publishAnnouncement(a.id, 'publish')} className="btn btn-success py-1.5 px-3 text-xs flex-1">Réactiver</button>
+                       )}
+                       {a.status === 'sent' && (
+                         <button onClick={() => publishAnnouncement(a.id, 'unpublish')} className="btn btn-error py-1.5 px-3 text-xs flex-1">Désactiver</button>
+                       )}
+                       <button onClick={() => deleteAnnouncement(a.id)} className="btn bg-white/5 hover:bg-white/10 py-1.5 px-3 text-xs text-discord-error shadow-none">Supprimer</button>
+                     </div>
+                   </div>
+                 ))}
+                 {announcements.filter(a => a.type === 'info').length === 0 && (
+                   <p className="text-sm text-discord-muted p-4 text-center glass-card">Aucune alerte en cours.</p>
+                 )}
+               </div>
+            </div>
+          </div>
+
         </div>
       )}
-
     </div>
   )
 }

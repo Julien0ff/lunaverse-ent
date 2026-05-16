@@ -117,13 +117,12 @@ export default function Sidebar() {
       {/* ── Logo + Notifications ─────────────────────────────── */}
       <div className="flex items-center justify-between px-5 py-6 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg"
-            style={{ background: 'linear-gradient(135deg,#5865F2,#4752C4)', boxShadow: '0 4px 15px rgba(88,101,242,0.4)' }}>
+          <div className="w-11 h-11 flex items-center justify-center flex-shrink-0 overflow-hidden">
             <Image
               src="/logo.png" alt="LunaVerse"
-              width={32}
-              height={32}
-              className="w-8 h-8 object-contain"
+              width={44}
+              height={44}
+              className="w-full h-full object-contain"
             />
           </div>
           <div className="min-w-0">
@@ -196,7 +195,7 @@ export default function Sidebar() {
         {/* PRONOTE direct link */}
         <div className="mt-2">
           <a
-            href={process.env.NEXT_PUBLIC_PRONOTE_URL || 'https://prn-26.rededuc.fr/'}
+            href={process.env.NEXT_PUBLIC_PRONOTE_URL || 'https://pronote.lunaverse.fr'}
             target="_blank"
             rel="noopener noreferrer"
             className={clsx(

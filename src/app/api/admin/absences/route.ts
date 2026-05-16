@@ -54,6 +54,15 @@ export async function PATCH(req: Request) {
 
     if (error) throw error
 
+    // Insert web notification
+    await supabase.from('notifications').insert({
+      user_id: data.user_id,
+      title: `Absence ${status === 'accepted' ? 'Validée' : 'Refusée'}`,
+      message: `Votre absence a été ${status === 'accepted' ? 'validée' : 'refusée'} par l'administration.`,
+      type: status === 'accepted' ? 'success' : 'error',
+      link: '/dashboard'
+    })
+
     // Send Discord Notification
     if (data.profiles?.discord_id) {
       try {

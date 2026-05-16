@@ -89,6 +89,15 @@ export async function POST(request: NextRequest) {
            errors.push({ id: rawId, error: taxError.message })
            continue
         }
+
+        // Web notification
+        await admin.from('notifications').insert([{
+          user_id: targetUser.id,
+          title: auto_deduct ? 'Nouveau Prélèvement' : 'Nouvel Impôt à Payer',
+          message: `Raison : ${reason} (Montant : ${amt}€)`,
+          type: 'money',
+          link: '/finances'
+        }])
       } catch (err: any) {
         errors.push({ id: rawId, error: err.message })
         continue

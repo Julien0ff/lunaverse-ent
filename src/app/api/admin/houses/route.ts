@@ -35,22 +35,34 @@ export async function PATCH(req: Request) {
     const isAdmin = roles?.some((r: any) => r.roles?.name?.toLowerCase() === 'admin')
     if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-    const { id, status, discord_channel_id, category_id } = await req.json()
-    if (!id || !status) return NextResponse.json({ error: 'ID and status required' }, { status: 400 })
+    const { id, status, discord_channel_id, category_id, furnishings } = await req.json()
+    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+
+    const updateData: any = { updated_at: new Date().toISOString() }
+    if (status !== undefined) updateData.status = status
+    if (discord_channel_id !== undefined) updateData.discord_channel_id = discord_channel_id
+    if (category_id !== undefined) updateData.category_id = category_id
+    if (furnishings !== undefined) updateData.furnishings = furnishings
 
     const { data: house, error } = await supabase
       .from('houses')
-      .update({
-        status,
-        discord_channel_id,
-        category_id,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', id)
-      .select()
+      .select('*, profiles(discord_id)')
       .single()
 
     if (error) throw error
+
+    if (status !== undefined) {
+      await supabase.from('notifications').insert({
+        user_id: house.owner_id,
+        title: `Maison ${status === 'active' ? 'Validée' : 'Refusée'}`,
+        message: `Votre demande pour la maison "${house.name}" a été ${status === 'active' ? 'acceptée' : 'refusée'}.`,
+        type: status === 'active' ? 'success' : 'error',
+        link: '/dashboard'
+      })
+    }
+
     return NextResponse.json({ item: house })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

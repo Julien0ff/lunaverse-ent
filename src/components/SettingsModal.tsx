@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
-import { X, Moon, Sun, Languages, Bell, Shield, User, Rocket, Zap, Settings, Check, ExternalLink, Palette } from 'lucide-react'
+import { X, Moon, Sun, Languages, Bell, Shield, User, Rocket, Zap, Settings, Check, ExternalLink, Palette, MessageSquarePlus, Bug, Send } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
@@ -14,7 +14,7 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<'profile' | 'appearance' | 'language' | 'notifications' | 'admin'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'appearance' | 'language' | 'notifications' | 'admin' | 'suggestions' | 'bugs'>('profile')
   const [mounted, setMounted] = useState(false)
   const [selectedTheme, setSelectedTheme] = useState('dark')
   const [webEnabled, setWebEnabled] = useState(true)
@@ -23,6 +23,13 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [isAdminUser, setIsAdminUser] = useState(false)
   const [dynamicStatsEnabled, setDynamicStatsEnabled] = useState(true)
   const [savingAdmin, setSavingAdmin] = useState(false)
+  
+  const [suggestionTitle, setSuggestionTitle] = useState('')
+  const [suggestionText, setSuggestionText] = useState('')
+  const [bugTitle, setBugTitle] = useState('')
+  const [bugText, setBugText] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [feedbackMsg, setFeedbackMsg] = useState('')
   
   const { profile, supabase, refreshProfile } = useAuth()
   const { locale, setLocale, t } = useLanguage()
@@ -103,6 +110,47 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     }
   }
 
+  const submitFeedback = async (type: 'suggestion' | 'bug') => {
+    if ((type === 'suggestion' && (!suggestionTitle || !suggestionText)) ||
+        (type === 'bug' && (!bugTitle || !bugText))) {
+       setFeedbackMsg('Veuillez remplir tous les champs.')
+       setTimeout(() => setFeedbackMsg(''), 3000)
+       return
+    }
+
+    setIsSubmitting(true)
+    setFeedbackMsg('')
+    try {
+      const payload = type === 'suggestion' 
+        ? { type, title: suggestionTitle, description: suggestionText }
+        : { type, title: bugTitle, description: bugText };
+        
+      const res = await fetch('/api/settings/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      if (res.ok) {
+        if (type === 'suggestion') {
+          setSuggestionTitle('')
+          setSuggestionText('')
+        } else {
+          setBugTitle('')
+          setBugText('')
+        }
+        setFeedbackMsg('✅ Envoyé avec succès !')
+      } else {
+        setFeedbackMsg('❌ Erreur lors de l\'envoi.')
+      }
+    } catch (e) {
+      console.error(e)
+      setFeedbackMsg('❌ Erreur lors de l\'envoi.')
+    } finally {
+      setIsSubmitting(false)
+      setTimeout(() => setFeedbackMsg(''), 4000)
+    }
+  }
+
   if (!isOpen || !mounted) return null
 
   const TABS = [
@@ -110,6 +158,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     { id: 'appearance', label: t('settings.appearance'), icon: Palette },
     { id: 'language', label: t('settings.language'), icon: Languages },
     { id: 'notifications', label: t('settings.notifications'), icon: Bell },
+    { id: 'suggestions', label: 'Suggestions', icon: MessageSquarePlus },
+    { id: 'bugs', label: 'Signaler un Bug', icon: Bug },
   ]
   if (isAdminUser) TABS.push({ id: 'admin', label: 'Admin', icon: Settings })
 
@@ -293,6 +343,94 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                            )} />
                         </div>
                       </div>
+                    </div>
+                 </div>
+              </div>
+            )}
+
+            {activeTab === 'suggestions' && (
+              <div className="space-y-6 animate-slideUp">
+                 <div className="p-8 rounded-[40px] bg-white/[0.02] border border-white/5 border-dashed">
+                    <div className="flex items-center gap-4 mb-8">
+                       <div className="w-16 h-16 bg-discord-success/10 rounded-[24px] flex items-center justify-center text-discord-success">
+                          <MessageSquarePlus size={32} />
+                       </div>
+                       <div>
+                          <h4 className="text-xl font-black text-white">Boîte à Idées</h4>
+                          <p className="text-xs text-discord-muted uppercase tracking-widest font-bold">Améliorez le LunaVerse</p>
+                       </div>
+                    </div>
+                    
+                    {feedbackMsg && <div className="mb-4 text-center font-bold text-sm text-discord-success">{feedbackMsg}</div>}
+
+                    <div className="space-y-4">
+                       <input 
+                         type="text" 
+                         placeholder="Titre de votre suggestion" 
+                         className="glass-input w-full bg-white/5 border-white/10 text-white"
+                         value={suggestionTitle}
+                         onChange={e => setSuggestionTitle(e.target.value)}
+                         maxLength={100}
+                       />
+                       <textarea 
+                         rows={4} 
+                         placeholder="Décrivez votre idée en détail..." 
+                         className="glass-input w-full bg-white/5 border-white/10 text-white resize-none"
+                         value={suggestionText}
+                         onChange={e => setSuggestionText(e.target.value)}
+                         maxLength={1000}
+                       />
+                       <button 
+                         onClick={() => submitFeedback('suggestion')}
+                         disabled={isSubmitting}
+                         className="btn bg-discord-success hover:bg-discord-success/80 text-black w-full py-3 font-bold flex items-center justify-center gap-2"
+                       >
+                         <Send size={18} /> {isSubmitting ? 'Envoi...' : 'Envoyer la Suggestion'}
+                       </button>
+                    </div>
+                 </div>
+              </div>
+            )}
+
+            {activeTab === 'bugs' && (
+              <div className="space-y-6 animate-slideUp">
+                 <div className="p-8 rounded-[40px] bg-white/[0.02] border border-white/5 border-dashed">
+                    <div className="flex items-center gap-4 mb-8">
+                       <div className="w-16 h-16 bg-discord-error/10 rounded-[24px] flex items-center justify-center text-discord-error">
+                          <Bug size={32} />
+                       </div>
+                       <div>
+                          <h4 className="text-xl font-black text-white">Signaler un Bug</h4>
+                          <p className="text-xs text-discord-muted uppercase tracking-widest font-bold">Aidez-nous à corriger les problèmes</p>
+                       </div>
+                    </div>
+
+                    {feedbackMsg && <div className="mb-4 text-center font-bold text-sm text-discord-error">{feedbackMsg}</div>}
+
+                    <div className="space-y-4">
+                       <input 
+                         type="text" 
+                         placeholder="Résumé du problème" 
+                         className="glass-input w-full bg-white/5 border-white/10 text-white focus:border-discord-error/50"
+                         value={bugTitle}
+                         onChange={e => setBugTitle(e.target.value)}
+                         maxLength={100}
+                       />
+                       <textarea 
+                         rows={4} 
+                         placeholder="Étapes pour reproduire, ce qui s'est passé, etc..." 
+                         className="glass-input w-full bg-white/5 border-white/10 text-white resize-none focus:border-discord-error/50"
+                         value={bugText}
+                         onChange={e => setBugText(e.target.value)}
+                         maxLength={1000}
+                       />
+                       <button 
+                         onClick={() => submitFeedback('bug')}
+                         disabled={isSubmitting}
+                         className="btn bg-discord-error hover:bg-discord-error/80 text-white w-full py-3 font-bold flex items-center justify-center gap-2"
+                       >
+                         <Bug size={18} /> {isSubmitting ? 'Envoi...' : 'Signaler le Bug'}
+                       </button>
                     </div>
                  </div>
               </div>
