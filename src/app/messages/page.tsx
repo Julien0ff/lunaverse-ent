@@ -442,11 +442,11 @@ export default function MessagesPage() {
                               {isMe ? 'Vous' : selectedFriend.username} • {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                             </span>}
                             <div className={clsx(
-                              'px-4 py-2.5 rounded-2xl text-[13px] font-medium shadow-lg break-words max-w-full border transition-all hover:brightness-110',
+                              'px-4 py-2.5 rounded-2xl text-[13px] font-medium shadow-lg break-words max-w-full border transition-all hover:brightness-110 overflow-hidden',
                               isMe 
                                 ? 'bg-gradient-to-br from-discord-blurple to-[#4752c4] text-white rounded-br-sm border-white/10 shadow-discord-blurple/20' 
                                 : 'bg-white/10 text-white rounded-bl-sm border-white/5 backdrop-blur-sm'
-                            )}>
+                            )} style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
                               {m.content.startsWith('http') && m.content.match(/\.(jpeg|jpg|gif|png|webp|svg)/i) ? (
                                  <img 
                                    src={m.content} 

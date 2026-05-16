@@ -124,7 +124,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <main
                     className={clsx(
                         "flex-1 w-full md:ml-[280px]",
-                        pathname === '/messages' ? "h-[calc(100vh-68px)] md:h-screen" : "min-h-screen pb-24 md:pb-0 overflow-y-auto"
+                        pathname === '/messages' ? "h-[calc(100vh-125px)] md:h-screen" : "min-h-screen pb-[125px] md:pb-0 overflow-y-auto"
                     )}
                 >
                     <div className={clsx(
