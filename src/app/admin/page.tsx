@@ -1776,7 +1776,7 @@ export default function AdminPage() {
                 <Clock className="w-8 h-8 text-discord-blurple" />
                 <div>
                   <h2 className="text-xl font-black text-white">Annonces de Cours</h2>
-                  <p className="text-xs text-discord-muted">Planifier l'envoi d'une annonce (Samedis et Dimanches)</p>
+                  <p className="text-xs text-discord-muted">Planifier l&apos;envoi d&apos;une annonce (Samedis et Dimanches)</p>
                 </div>
               </div>
 
@@ -1972,7 +1972,7 @@ export default function AdminPage() {
                 </div>
 
                 <button onClick={createInfoTrafic} className="btn bg-discord-error hover:bg-discord-error/80 text-white py-3 w-full mt-2 font-bold flex items-center justify-center gap-2">
-                  <Send className="w-5 h-5" /> Publier l'Alerte Info-Trafic
+                  <Send className="w-5 h-5" /> Publier l&apos;Alerte Info-Trafic
                 </button>
               </div>
             </div>
