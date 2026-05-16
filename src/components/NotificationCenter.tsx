@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Bell, X, Trash2, Check, ExternalLink, Inbox } from 'lucide-react'
 import { useNotifications } from '@/context/NotificationContext'
 import { useLanguage } from '@/context/LanguageContext'
@@ -10,6 +11,11 @@ export default function NotificationCenter() {
   const { notifications, unreadCount, markAsRead, deleteNotification } = useNotifications()
   const { t } = useLanguage()
   const [isOpen, setIsOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   return (
     <div className="relative">
@@ -25,7 +31,7 @@ export default function NotificationCenter() {
         )}
       </button>
 
-      {isOpen && (
+      {isOpen && mounted && createPortal(
         <>
           <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 md:p-8 animate-fadeIn">
             <div 
@@ -118,7 +124,8 @@ export default function NotificationCenter() {
               </div>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   )

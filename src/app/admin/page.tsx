@@ -1119,9 +1119,9 @@ export default function AdminPage() {
 
           {/* Taxes list */}
           <div className="space-y-3">
-            <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest px-1">Historique des Prélèvements ({taxes.length})</h3>
+            <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest px-1">Historique des Prélèvements ({taxes.filter(t => Number(t.amount) > 0).length})</h3>
             <div className="max-h-[500px] overflow-y-auto space-y-2 pr-1">
-              {taxes.map(t => (
+              {taxes.filter(t => Number(t.amount) > 0).map(t => (
                 <div key={t.id} className="glass-card flex items-center justify-between gap-4 py-3">
                   <div>
                     <p className="font-bold text-white text-sm">
@@ -1138,7 +1138,7 @@ export default function AdminPage() {
                   </button>
                 </div>
               ))}
-              {taxes.length === 0 && <p className="text-discord-muted text-sm px-1">Aucun prélèvement enregistré.</p>}
+              {taxes.filter(t => Number(t.amount) > 0).length === 0 && <p className="text-discord-muted text-sm px-1">Aucun prélèvement enregistré.</p>}
             </div>
           </div>
         </div>
@@ -1592,12 +1592,12 @@ export default function AdminPage() {
               <div key={abs.id} className="glass-card flex flex-col md:flex-row items-start md:items-center gap-6 p-6 group">
                 <div className="flex items-center gap-4 flex-1">
                    <div className="w-12 h-12 rounded-2xl relative overflow-hidden ring-2 ring-white/5">
-                      <Image src={abs.profiles?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} fill className="object-cover" alt="" />
+                      <Image src={abs.profile?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} fill className="object-cover" alt="" />
                    </div>
                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="font-black text-white text-lg">{abs.profiles?.nickname_rp || abs.profiles?.username}</span>
-                        <span className="text-[10px] font-mono text-discord-muted bg-black/40 px-1.5 py-0.5 rounded uppercase tracking-tighter">{abs.profiles?.discord_id}</span>
+                        <span className="font-black text-white text-lg">{abs.profile?.nickname_rp || abs.profile?.username || 'Utilisateur inconnu'}</span>
+                        <span className="text-[10px] font-mono text-discord-muted bg-black/40 px-1.5 py-0.5 rounded uppercase tracking-tighter">{abs.user_id?.split('-')[0]}</span>
                       </div>
                       <p className="text-sm text-discord-muted line-clamp-1 italic">&quot;{abs.reason}&quot;</p>
                       <div className="flex items-center gap-3 mt-1.5">
@@ -1647,7 +1647,7 @@ export default function AdminPage() {
                     <th className="p-4">Utilisateur</th>
                     <th className="p-4">Raison</th>
                     <th className="p-4">Durée</th>
-                    <th className="p-4 text-center">Status</th>
+                    <th className="p-4 text-center">Statut</th>
                     <th className="p-4 text-right">Date</th>
                   </tr>
                 </thead>
@@ -1655,8 +1655,8 @@ export default function AdminPage() {
                   {absences.filter(a => a.status !== 'pending').slice(0, 10).map(abs => (
                     <tr key={abs.id} className="hover:bg-white/2 transition-colors">
                       <td className="p-4 flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full overflow-hidden relative"><Image src={abs.profiles?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} fill alt="" /></div>
-                        <span className="font-bold text-white whitespace-nowrap">{abs.profiles?.username}</span>
+                        <div className="w-6 h-6 rounded-full overflow-hidden relative"><Image src={abs.profile?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} fill alt="" /></div>
+                        <span className="font-bold text-white whitespace-nowrap">{abs.profile?.nickname_rp || abs.profile?.username || 'Inconnu'}</span>
                       </td>
                       <td className="p-4 text-discord-muted italic truncate max-w-[200px]">{abs.reason}</td>
                       <td className="p-4 text-white font-bold">{abs.duration}</td>
@@ -1784,7 +1784,7 @@ export default function AdminPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-discord-muted uppercase">Classe Cible</label>
                   <select
-                    className="glass-input w-full"
+                    className="glass-input w-full bg-[#2B2D31]"
                     value={newCourse.target_class}
                     onChange={e => setNewCourse({ ...newCourse, target_class: e.target.value })}
                   >
@@ -1796,7 +1796,7 @@ export default function AdminPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-discord-muted uppercase">Matière</label>
                   <select
-                    className="glass-input w-full"
+                    className="glass-input w-full bg-[#2B2D31]"
                     value={newCourse.subject}
                     onChange={e => setNewCourse({ ...newCourse, subject: e.target.value })}
                   >
@@ -1808,7 +1808,7 @@ export default function AdminPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-discord-muted uppercase">Professeur (Optionnel)</label>
                   <select
-                    className="glass-input w-full"
+                    className="glass-input w-full bg-[#2B2D31]"
                     value={newCourse.teacher_id}
                     onChange={e => setNewCourse({ ...newCourse, teacher_id: e.target.value })}
                   >
@@ -1875,7 +1875,7 @@ export default function AdminPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-discord-muted uppercase">Statut</label>
                   <select
-                    className="glass-input w-full border-discord-error/50 focus:border-discord-error"
+                    className="glass-input w-full border-discord-error/50 focus:border-discord-error bg-[#2B2D31]"
                     value={newInfo.info_status}
                     onChange={e => setNewInfo({ ...newInfo, info_status: e.target.value })}
                   >
@@ -1890,7 +1890,7 @@ export default function AdminPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-discord-muted uppercase">Matière Concernée (Optionnel)</label>
                   <select
-                    className="glass-input w-full"
+                    className="glass-input w-full bg-[#2B2D31]"
                     value={newInfo.subject}
                     onChange={e => setNewInfo({ ...newInfo, subject: e.target.value })}
                   >
@@ -1903,7 +1903,7 @@ export default function AdminPage() {
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-discord-muted uppercase">Classe Concernée</label>
                     <select
-                        className="glass-input w-full"
+                        className="glass-input w-full bg-[#2B2D31]"
                         value={newInfo.target_class}
                         onChange={e => setNewInfo({ ...newInfo, target_class: e.target.value })}
                     >
@@ -1915,7 +1915,7 @@ export default function AdminPage() {
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-discord-muted uppercase">Prof. Titulaire</label>
                     <select
-                      className="glass-input w-full"
+                      className="glass-input w-full bg-[#2B2D31]"
                       value={newInfo.teacher_id}
                       onChange={e => setNewInfo({ ...newInfo, teacher_id: e.target.value })}
                     >
@@ -1929,7 +1929,7 @@ export default function AdminPage() {
                   <div className="space-y-1 animate-fadeIn">
                     <label className="text-xs font-bold text-discord-success uppercase">Professeur Remplaçant</label>
                     <select
-                      className="glass-input w-full border-discord-success/50"
+                      className="glass-input w-full border-discord-success/50 bg-[#2B2D31]"
                       value={newInfo.replacement_teacher_id}
                       onChange={e => setNewInfo({ ...newInfo, replacement_teacher_id: e.target.value })}
                     >

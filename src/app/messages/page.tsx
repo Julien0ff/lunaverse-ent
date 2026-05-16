@@ -228,7 +228,7 @@ export default function MessagesPage() {
   const sentRequests = friends.filter(f => f.status === 'pending' && f.is_initiator)
 
   return (
-    <div className="h-[calc(100vh-96px)] md:h-screen flex flex-col overflow-hidden bg-[#313338]">
+    <div className="h-full w-full flex flex-col overflow-hidden bg-[#313338]">
         
         {/* ── Toasts ──────────────────────────────────────── */}
         {toast && (
@@ -487,7 +487,7 @@ export default function MessagesPage() {
                       type="text"
                       value={msgInput}
                       onChange={e => setMsgInput(e.target.value)}
-                      placeholder={window.innerWidth < 640 ? "Message..." : `Envoyer un message à @${selectedFriend.username}...`}
+                      placeholder="Message..."
                       className="flex-1 bg-transparent border-none outline-none text-white placeholder:text-discord-muted text-sm px-1 py-1 min-w-0"
                     />
                     <button
