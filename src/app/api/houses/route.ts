@@ -45,3 +45,34 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
+
+export async function PATCH(req: Request) {
+  try {
+    const supabase = createSupabaseServer()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const updates = await req.json()
+    const { whitelist, blacklist } = updates
+
+    const updateData: any = {}
+    if (whitelist !== undefined) updateData.whitelist = whitelist
+    if (blacklist !== undefined) updateData.blacklist = blacklist
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'Aucune donnée à mettre à jour' }, { status: 400 })
+    }
+
+    const { data: house, error } = await supabase
+      .from('houses')
+      .update(updateData)
+      .eq('owner_id', user.id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return NextResponse.json({ success: true, house })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}

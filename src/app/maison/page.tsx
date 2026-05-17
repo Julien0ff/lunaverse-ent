@@ -14,8 +14,9 @@ export default function MaisonPage() {
   const [msg, setMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  // Management states
   const [activeTab, setActiveTab] = useState<'info' | 'members' | 'settings'>('info')
+  const [newWhitelistId, setNewWhitelistId] = useState('')
+  const [newBlacklistId, setNewBlacklistId] = useState('')
 
   useEffect(() => {
     loadHouse()
@@ -49,6 +50,38 @@ export default function MaisonPage() {
       }
     } catch (e) {}
     setSubmitting(false)
+  }
+
+  const updateList = async (type: 'whitelist' | 'blacklist', action: 'add' | 'remove', userId: string) => {
+    if (!house) return
+    const currentList = house[type] || []
+    let newList = [...currentList]
+    
+    if (action === 'add') {
+      if (!userId || newList.includes(userId)) return
+      newList.push(userId)
+    } else {
+      newList = newList.filter((id: string) => id !== userId)
+    }
+
+    try {
+      const res = await fetch('/api/houses', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [type]: newList })
+      })
+      if (res.ok) {
+        setHouse({ ...house, [type]: newList })
+        setMsg({ type: 'success', text: 'Liste mise à jour avec succès.' })
+        if (type === 'whitelist') setNewWhitelistId('')
+        if (type === 'blacklist') setNewBlacklistId('')
+      } else {
+        const data = await res.json()
+        setMsg({ type: 'error', text: data.error || 'Erreur de mise à jour' })
+      }
+    } catch (e) {
+      setMsg({ type: 'error', text: 'Erreur réseau' })
+    }
   }
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><div className="w-10 h-10 border-4 border-discord-blurple border-t-transparent rounded-full animate-spin" /></div>
@@ -208,23 +241,77 @@ export default function MaisonPage() {
             {activeTab === 'members' && (
               <div className="space-y-6 animate-fadeIn">
                 <div className="glass-card p-8">
-                  <div className="flex items-center justify-between mb-8">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                     <h3 className="text-xl font-black text-white">Whitelist (Accès autorisés)</h3>
-                    <button className="btn bg-discord-blurple hover:bg-discord-blurple-dark text-white px-4 py-2 text-xs flex items-center gap-2">
-                      <UserPlus className="w-4 h-4" /> Ajouter
-                    </button>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        placeholder="ID Joueur (Base de données)" 
+                        className="glass-input text-xs py-2 w-48"
+                        value={newWhitelistId}
+                        onChange={(e) => setNewWhitelistId(e.target.value)}
+                      />
+                      <button 
+                        onClick={() => updateList('whitelist', 'add', newWhitelistId)}
+                        className="btn bg-discord-blurple hover:bg-discord-blurple-dark text-white px-4 py-2 text-xs flex items-center gap-2 shrink-0">
+                        <UserPlus className="w-4 h-4" /> Ajouter
+                      </button>
+                    </div>
                   </div>
-                  <div className="text-center py-10 text-discord-muted border border-dashed border-white/10 rounded-2xl">
-                    <Users className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                    <p className="text-sm">Personne n&apos;est dans votre whitelist pour le moment.</p>
-                  </div>
+                  
+                  {(!house.whitelist || house.whitelist.length === 0) ? (
+                    <div className="text-center py-10 text-discord-muted border border-dashed border-white/10 rounded-2xl">
+                      <Users className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                      <p className="text-sm">Personne n&apos;est dans votre whitelist pour le moment.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {house.whitelist.map((id: string) => (
+                        <div key={id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5">
+                          <span className="text-sm font-medium text-white">{id}</span>
+                          <button onClick={() => updateList('whitelist', 'remove', id)} className="p-2 text-discord-error hover:bg-discord-error/10 rounded-lg transition-colors">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="glass-card p-8 border-discord-error/20">
-                   <h3 className="text-xl font-black text-discord-error mb-8">Blacklist (Interdits)</h3>
-                   <div className="text-center py-6 text-discord-muted italic text-xs">
-                     La liste est vide.
+                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                     <h3 className="text-xl font-black text-discord-error">Blacklist (Interdits)</h3>
+                     <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        placeholder="ID Joueur (Base de données)" 
+                        className="glass-input text-xs py-2 w-48 border-discord-error/30 focus:border-discord-error"
+                        value={newBlacklistId}
+                        onChange={(e) => setNewBlacklistId(e.target.value)}
+                      />
+                      <button 
+                        onClick={() => updateList('blacklist', 'add', newBlacklistId)}
+                        className="btn bg-discord-error hover:bg-red-600 text-white px-4 py-2 text-xs flex items-center gap-2 shrink-0">
+                        <UserPlus className="w-4 h-4" /> Ajouter
+                      </button>
+                    </div>
                    </div>
+                   {(!house.blacklist || house.blacklist.length === 0) ? (
+                     <div className="text-center py-6 text-discord-muted italic text-xs">
+                       La liste est vide.
+                     </div>
+                   ) : (
+                    <div className="space-y-2">
+                      {house.blacklist.map((id: string) => (
+                        <div key={id} className="flex items-center justify-between p-3 bg-discord-error/5 rounded-lg border border-discord-error/10">
+                          <span className="text-sm font-medium text-discord-error">{id}</span>
+                          <button onClick={() => updateList('blacklist', 'remove', id)} className="p-2 text-discord-muted hover:text-white transition-colors">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                   )}
                 </div>
               </div>
             )}
@@ -236,16 +323,20 @@ export default function MaisonPage() {
                   { id: 'bed', name: 'Lit King Size', icon: '🛏️', desc: 'Permet d&apos;utiliser la commande /dormir.' },
                   { id: 'tv', name: 'Home Cinéma', icon: '📺', desc: 'Ambiance sonore exclusive.' },
                   { id: 'safe', name: 'Coffre Fort', icon: '🔒', desc: 'Stockage d&apos;argent liquide sécurisé.' }
-                ].map(item => (
-                  <div key={item.id} className="glass-card p-6 flex items-start gap-4 hover:border-white/20 transition-all opacity-50 group">
+                ].map(item => {
+                  const isOwned = house?.furnishings?.[item.id] === true
+                  return (
+                  <div key={item.id} className={clsx("glass-card p-6 flex items-start gap-4 transition-all group", isOwned ? "border-discord-blurple/50 bg-discord-blurple/5" : "hover:border-white/20 opacity-50")}>
                     <div className="text-4xl">{item.icon}</div>
                     <div className="flex-1">
                       <h4 className="text-lg font-black text-white mb-1">{item.name}</h4>
                       <p className="text-xs text-discord-muted mb-4">{item.desc}</p>
-                      <button className="text-[10px] font-black text-discord-muted uppercase tracking-widest group-hover:text-discord-blurple transition-colors">Non possédé</button>
+                      <button className={clsx("text-[10px] font-black uppercase tracking-widest transition-colors", isOwned ? "text-discord-blurple" : "text-discord-muted group-hover:text-white")}>
+                        {isOwned ? 'Installé' : 'Non possédé'}
+                      </button>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             )}
           </div>

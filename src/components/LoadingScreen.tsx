@@ -31,21 +31,21 @@ export default function LoadingScreen() {
       <div className="relative z-10 flex flex-col items-center gap-8">
         {/* Logo */}
         <div className="relative">
-          <div className="w-24 h-24 rounded-3xl bg-discord-blurple/20 border border-discord-blurple/30 flex items-center justify-center shadow-2xl shadow-discord-blurple/20"
+          <div className="w-24 h-24 rounded-full bg-discord-blurple/20 border border-discord-blurple/30 flex items-center justify-center shadow-2xl shadow-discord-blurple/20 overflow-hidden"
             style={{ animation: 'pulse-glow 2s ease-in-out infinite' }}>
             <Image
               src="/logo.png"
               alt="LunaVerse"
-              width={72}
-              height={72}
-              className="w-[72px] h-[72px] object-contain drop-shadow-xl"
+              width={96}
+              height={96}
+              className="w-full h-full object-cover drop-shadow-xl rounded-full"
             />
             {/* Fallback moon emoji */}
             <span className="text-4xl hidden">🌙</span>
           </div>
           {/* Spinning ring */}
-          <div className="absolute inset-0 rounded-3xl"
-            style={{ border: '2px solid transparent', borderTopColor: '#5865F2', animation: 'spin 1.2s linear infinite', borderRadius: '24px' }} />
+          <div className="absolute inset-0 rounded-full"
+            style={{ border: '2px solid transparent', borderTopColor: '#5865F2', animation: 'spin 1.2s linear infinite', borderRadius: '50%' }} />
         </div>
 
         {/* Title */}

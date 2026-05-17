@@ -117,12 +117,12 @@ export default function Sidebar() {
       {/* ── Logo + Notifications ─────────────────────────────── */}
       <div className="flex items-center justify-between px-5 py-6 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div className="w-11 h-11 flex items-center justify-center flex-shrink-0 overflow-hidden rounded-full">
             <Image
               src="/logo.png" alt="LunaVerse"
               width={44}
               height={44}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover rounded-full"
             />
           </div>
           <div className="min-w-0">

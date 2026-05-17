@@ -579,13 +579,13 @@ client.on('ready', async () => {
 
           // 1. Periodic Loss (Toutes les 6 heures)
           if (hour % 6 === 0) {
-            h = Math.max(0, h - 25);
-            t = Math.max(0, t - 30);
+            h = Math.max(0, h - 10);
+            t = Math.max(0, t - 15);
           }
 
           // 2. Daily Penalties (Minuit)
           if (hour === 0) {
-            t = Math.max(0, t - 100);
+            t = Math.max(0, t - 20);
             y = Math.max(0, y - 25);
           }
 
@@ -608,8 +608,8 @@ client.on('ready', async () => {
             health: s 
           }).eq('id', p.id);
 
-          // Critical state alerts (DM)
-          if (h <= 10 || t <= 10 || f <= 10 || s <= 20) {
+          // Critical state alerts (DM) - Only every 6 hours to avoid spam
+          if ((h <= 10 || t <= 10 || f <= 10 || s <= 20) && hour % 6 === 0) {
             const member = await client.users.fetch(p.discord_id).catch(() => null);
             if (member) {
               const warnings = [];

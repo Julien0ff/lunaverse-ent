@@ -126,8 +126,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 {/* Mobile Top Header */}
                 <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-discord-dark/90 backdrop-blur-md border-b border-white/5 z-[80] flex items-center justify-between px-5 shadow-lg">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
-                            <Image src="/logo.png" alt="Logo" width={40} height={40} className="w-full h-full object-contain" />
+                        <div className="w-10 h-10 flex items-center justify-center flex-shrink-0 rounded-full overflow-hidden">
+                            <Image src="/logo.png" alt="Logo" width={40} height={40} className="w-full h-full object-cover rounded-full" />
                         </div>
                         <div className="flex flex-col">
                             <span className="font-black text-white text-sm tracking-tight leading-none">LunaVerse</span>
@@ -141,7 +141,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <main
                     className={clsx(
                         "flex-1 w-full md:ml-[280px] pt-16 md:pt-0",
-                        pathname === '/messages' ? "h-[calc(100vh-125px-64px)] md:h-screen" : "min-h-screen pb-[125px] md:pb-0 overflow-y-auto"
+                        pathname === '/messages' ? "h-[calc(100dvh-125px-64px)] md:h-screen" : "min-h-[100dvh] pb-[125px] md:pb-0 overflow-y-auto"
                     )}
                 >
                     <div className={clsx(

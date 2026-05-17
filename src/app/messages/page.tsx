@@ -466,7 +466,7 @@ export default function MessagesPage() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                <div className="p-3 sm:p-4 bg-black/60 border-t border-white/5 flex-shrink-0 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] md:pb-4">
+                <div className="p-3 sm:p-4 bg-black/60 border-t border-white/5 flex-shrink-0 pb-3 md:pb-4">
                   <form onSubmit={sendMessage} className="flex items-center gap-2 sm:gap-3 bg-white/5 rounded-2xl p-2 border border-white/10 focus-within:border-discord-blurple/50 focus-within:bg-white/10 transition-all relative">
                     <button 
                       type="button"

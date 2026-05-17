@@ -73,13 +73,13 @@ export default function LoginPage() {
 
           {/* Logo */}
           <div className="login-logo animate-fadeIn" style={{ animationDelay: '100ms' }}>
-            <div className="login-logo-icon">
+            <div className="login-logo-icon rounded-full overflow-hidden">
               <Image
                 src="/logo.png"
                 alt="LunaVerse"
                 width={80}
                 height={80}
-                className="w-20 h-20 object-contain drop-shadow-2xl"
+                className="w-full h-full object-cover drop-shadow-2xl rounded-full"
               />
               <Moon className="w-14 h-14 text-white hidden" />
             </div>
