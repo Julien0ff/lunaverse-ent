@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { ShoppingBag, Tag, Search, Filter, ArrowUpRight, Clock, User, AlertCircle, CheckCircle2, Wallet } from 'lucide-react'
 import Image from 'next/image'
 import clsx from 'clsx'
 
 export default function MarketPage() {
   const { profile, refreshProfile } = useAuth()
+  const { t } = useLanguage()
   const [listings, setListings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [buyingId, setBuyingId] = useState<string | null>(null)
@@ -50,11 +52,11 @@ export default function MarketPage() {
       const res = await fetch(`/api/market/${id}/buy`, { method: 'POST' })
       const data = await res.json()
       if (res.ok) {
-        setMsg({ type: 'success', text: 'Objet acheté avec succès !' })
+        setMsg({ type: 'success', text: t('market_page.bought_success') })
         loadListings()
         refreshProfile()
       } else {
-        setMsg({ type: 'error', text: data.error || 'Erreur lors de l\'achat' })
+        setMsg({ type: 'error', text: data.error || t('market_page.buy_error') })
       }
     } catch (e) {
       setMsg({ type: 'error', text: 'Erreur de connexion' })
@@ -73,7 +75,7 @@ export default function MarketPage() {
       })
       const data = await res.json()
       if (res.ok) {
-        setMsg({ type: 'success', text: 'Objet mis en vente !' })
+        setMsg({ type: 'success', text: t('market_page.listed_success') })
         setShowSellModal(false)
         loadListings()
         refreshProfile()
@@ -102,30 +104,30 @@ export default function MarketPage() {
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-black text-white flex items-center gap-3">
                 <Tag className="text-pink-500 w-6 h-6" />
-                Vendre un objet
+                {t('market_page.sell_item')}
               </h2>
               <button onClick={() => setShowSellModal(false)} className="text-discord-muted hover:text-white">✕</button>
             </div>
 
             <form onSubmit={handleSell} className="space-y-6">
               <div>
-                <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-2 block">Objet à vendre</label>
+                <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-2 block">{t('market_page.item_to_sell')}</label>
                 <select 
                   className="glass-input w-full bg-[#1e1f22]"
                   required
                   value={sellingData.item_id}
                   onChange={e => setSellingData({ ...sellingData, item_id: e.target.value })}
                 >
-                  <option value="">-- Sélectionner un objet --</option>
+                  <option value="">{t('market_page.select_item')}</option>
                   {inventory.map(inv => (
-                    <option key={inv.item.id} value={inv.item.id}>{inv.item.name} ({inv.quantity} possédé{inv.quantity > 1 ? 's' : ''})</option>
+                    <option key={inv.item.id} value={inv.item.id}>{inv.item.name} ({inv.quantity} {t('market_page.owned')}{inv.quantity > 1 ? 's' : ''})</option>
                   ))}
                 </select>
-                {inventory.length === 0 && <p className="text-[10px] text-discord-error mt-2">Vous n&apos;avez aucun objet à vendre.</p>}
+                {inventory.length === 0 && <p className="text-[10px] text-discord-error mt-2">{t('market_page.no_items_to_sell')}</p>}
               </div>
 
               <div>
-                <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-2 block">Prix de vente (€)</label>
+                <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-2 block">{t('market_page.sale_price')}</label>
                 <input 
                   type="number" 
                   className="glass-input" 
@@ -135,16 +137,16 @@ export default function MarketPage() {
                   onChange={e => setSellingData({ ...sellingData, price: e.target.value })}
                 />
                 <p className="text-[10px] text-discord-muted mt-2">
-                  Taxe de mise en vente : <span className="text-pink-400 font-bold">{previewFee}€</span>
+                  {t('market_page.listing_fee').replace('{fee}', previewFee)}
                 </p>
               </div>
 
               <div>
-                <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-2 block">Photo de l&apos;objet (Optionnel)</label>
+                <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-2 block">{t('market_page.item_photo')}</label>
                 <input 
                   type="text" 
                   className="glass-input" 
-                  placeholder="URL de l'image (ex: canette de Monster)..."
+                  placeholder={t('market_page.photo_placeholder')}
                   value={sellingData.image_url}
                   onChange={e => setSellingData({ ...sellingData, image_url: e.target.value })}
                 />
@@ -155,7 +157,7 @@ export default function MarketPage() {
                 disabled={submitting || !sellingData.item_id}
                 className="btn btn-primary w-full py-4 text-lg shadow-xl shadow-discord-blurple/20 group"
               >
-                {submitting ? 'Traitement...' : 'Publier l\'annonce'}
+                {submitting ? t('bank_page.processing') : t('market_page.publish')}
               </button>
             </form>
           </div>
@@ -168,7 +170,7 @@ export default function MarketPage() {
             <ShoppingBag className="text-pink-500 w-10 h-10" />
             Luna Market
           </h1>
-          <p className="text-discord-muted mt-2">La place de marché entre citoyens de LunaVerse.</p>
+          <p className="text-discord-muted mt-2">{t('market_page.subtitle')}</p>
         </div>
         
         <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -177,7 +179,7 @@ export default function MarketPage() {
             className="btn bg-pink-500 hover:bg-pink-400 text-white px-8 py-4 rounded-3xl flex items-center gap-3 shadow-xl shadow-pink-500/20 group"
           >
             <Tag className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-            Vendre un objet
+            {t('market_page.sell_item')}
           </button>
 
           <div className="flex items-center gap-4 bg-black/40 p-4 rounded-3xl border border-white/5 shadow-2xl">
@@ -185,7 +187,7 @@ export default function MarketPage() {
               <Wallet className="w-5 h-5 text-discord-success" />
             </div>
             <div>
-              <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest">Votre Solde</p>
+              <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest">{t('market_page.your_balance')}</p>
               <p className="text-xl font-black text-white tracking-tight">{profile?.balance?.toLocaleString() || 0} €</p>
             </div>
           </div>
@@ -208,7 +210,7 @@ export default function MarketPage() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-discord-muted" />
           <input 
             type="text" 
-            placeholder="Rechercher un objet ou un vendeur..." 
+            placeholder={t('market_page.search_placeholder')} 
             className="glass-input !pl-12"
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -216,7 +218,7 @@ export default function MarketPage() {
         </div>
         <button className="btn bg-white/5 hover:bg-white/10 text-white flex items-center gap-2 px-6">
           <Filter className="w-5 h-5" />
-          Filtres
+          {t('market_page.filters')}
         </button>
       </div>
 
@@ -226,7 +228,7 @@ export default function MarketPage() {
       ) : filteredListings.length === 0 ? (
         <div className="glass-card text-center py-20 opacity-50 border-dashed">
           <Tag className="w-16 h-16 mx-auto mb-4 text-discord-muted" />
-          <p className="text-xl font-bold text-white">Aucun objet en vente pour le moment.</p>
+          <p className="text-xl font-bold text-white">{t('market_page.no_items')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -251,7 +253,7 @@ export default function MarketPage() {
                    <div className="w-6 h-6 rounded-full overflow-hidden relative ring-1 ring-white/10">
                       <Image src={listing.seller.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} fill alt="" />
                    </div>
-                   <span className="text-[10px] font-black text-discord-muted uppercase tracking-widest truncate">Vendu par {listing.seller.nickname_rp || listing.seller.username}</span>
+                   <span className="text-[10px] font-black text-discord-muted uppercase tracking-widest truncate">{t('market_page.sold_by').replace('{name}', listing.seller.nickname_rp || listing.seller.username)}</span>
                 </div>
 
                 <h3 className="text-xl font-black text-white mb-1 group-hover:text-pink-400 transition-colors">{listing.item.name}</h3>
@@ -259,7 +261,7 @@ export default function MarketPage() {
                 
                 <div className="flex items-center justify-between gap-4 mt-auto">
                    <div>
-                      <p className="text-[10px] font-black text-discord-muted uppercase tracking-[0.2em] mb-0.5">Prix demandé</p>
+                      <p className="text-[10px] font-black text-discord-muted uppercase tracking-[0.2em] mb-0.5">{t('market_page.asking_price')}</p>
                       <p className="text-2xl font-black text-white tracking-tighter">{listing.price.toLocaleString()} €</p>
                    </div>
                    <button 
@@ -272,7 +274,7 @@ export default function MarketPage() {
                          : "bg-pink-500 hover:bg-pink-400 text-white shadow-pink-500/20"
                      )}
                    >
-                     {buyingId === listing.id ? '...' : listing.seller_id === profile?.id ? 'Votre offre' : 'Acheter'}
+                     {buyingId === listing.id ? '...' : listing.seller_id === profile?.id ? t('market_page.your_listing') : t('market_page.buy')}
                    </button>
                 </div>
               </div>

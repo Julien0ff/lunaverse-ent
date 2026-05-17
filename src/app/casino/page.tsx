@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { Dices, TrendingDown, Sparkles, Trophy, AlertCircle } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -56,7 +57,7 @@ function ResultOverlay({ result, onClose }: { result: 'win' | 'lose' | null; onC
           {isWin ? 'VICTOIRE !' : 'DÉFAITE !'}
         </div>
         <div className={clsx('text-sm font-bold uppercase tracking-widest', isWin ? 'text-discord-success/60' : 'text-discord-error/60')}>
-          Cliquez pour continuer
+          Click to continue
         </div>
       </div>
     </div>
@@ -65,6 +66,7 @@ function ResultOverlay({ result, onClose }: { result: 'win' | 'lose' | null; onC
 
 export default function CasinoPage() {
   const { profile, refreshProfile } = useAuth()
+  const { t } = useLanguage()
   const [games, setGames] = useState<CasinoGame[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedGame, setSelectedGame] = useState<CasinoGame | null>(null)
@@ -140,13 +142,13 @@ export default function CasinoPage() {
     if (!profile || !bet || !selectedGame) return
     const betAmount = parseFloat(bet)
 
-    if (isNaN(betAmount) || betAmount <= 0) { showMessage('error', 'Montant invalide.'); return }
+    if (isNaN(betAmount) || betAmount <= 0) { showMessage('error', t('casino_page.invalid_amount')); return }
     if (betAmount < selectedGame.min_bet || betAmount > selectedGame.max_bet) {
-      showMessage('error', `Mise entre ${selectedGame.min_bet}€ et ${selectedGame.max_bet}€.`); return
+      showMessage('error', t('casino_page.bet_range').replace('{min}', selectedGame.min_bet.toString()).replace('{max}', selectedGame.max_bet.toString())); return
     }
-    if (profile.balance < betAmount) { showMessage('error', 'Solde insuffisant.'); return }
+    if (profile.balance < betAmount) { showMessage('error', t('casino_page.insufficient')); return }
     if ((gameType === 'coin' || gameType === 'dice') && !guess) {
-      showMessage('error', 'Choisissez votre pari.'); return
+      showMessage('error', t('casino_page.choose_bet')); return
     }
 
     setSpinning(true)
@@ -269,22 +271,22 @@ export default function CasinoPage() {
               <span className="text-5xl">🎰</span>
               Casino
             </h1>
-            <p className="text-discord-muted mt-1 font-medium">Tentez votre chance et multipliez vos gains !</p>
+            <p className="text-discord-muted mt-1 font-medium">{t('casino_page.subtitle')}</p>
           </div>
           {/* Session stats */}
           <div className="hidden md:flex items-center gap-6 px-5 py-3 bg-white/5 border border-white/8 rounded-2xl">
             <div className="text-center">
-              <p className="text-xs font-black text-discord-muted uppercase tracking-widest">Victoires</p>
+              <p className="text-xs font-black text-discord-muted uppercase tracking-widest">{t('casino_page.wins')}</p>
               <p className="text-xl font-black text-discord-success">{stats.wins}</p>
             </div>
             <div className="w-px h-8 bg-white/10" />
             <div className="text-center">
-              <p className="text-xs font-black text-discord-muted uppercase tracking-widest">Défaites</p>
+              <p className="text-xs font-black text-discord-muted uppercase tracking-widest">{t('casino_page.losses')}</p>
               <p className="text-xl font-black text-discord-error">{stats.losses}</p>
             </div>
             <div className="w-px h-8 bg-white/10" />
             <div className="text-center">
-              <p className="text-xs font-black text-discord-muted uppercase tracking-widest">Gains nets</p>
+              <p className="text-xs font-black text-discord-muted uppercase tracking-widest">{t('casino_page.net_gains')}</p>
               <p className={clsx('text-xl font-black', stats.totalWon >= 0 ? 'text-discord-success' : 'text-discord-error')}>
                 {stats.totalWon >= 0 ? '+' : ''}{stats.totalWon.toFixed(0)}€
               </p>
@@ -297,13 +299,13 @@ export default function CasinoPage() {
       <div className="flex flex-wrap items-center gap-3 animate-fadeIn">
         <div className="px-4 py-2 bg-discord-blurple/15 border border-discord-blurple/25 rounded-xl flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-discord-success animate-pulse" />
-          <span className="text-sm font-bold text-white">Solde : {profile?.balance.toFixed(0)} €</span>
+          <span className="text-sm font-bold text-white">{t('casino_page.balance_label').replace('{amount}', (profile?.balance.toFixed(0) || '0'))}</span>
         </div>
         
         {(profile as any)?.dirty_balance > 0 && (
           <div className="px-4 py-2 bg-red-500/15 border border-red-500/25 rounded-xl flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-red-500" />
-            <span className="text-sm font-bold text-red-100">Argent Sale : {(profile as any).dirty_balance.toFixed(0)} €</span>
+            <span className="text-sm font-bold text-red-100">{t('casino_page.dirty_money').replace('{amount}', (profile as any).dirty_balance.toFixed(0))}</span>
           </div>
         )}
 
@@ -315,14 +317,14 @@ export default function CasinoPage() {
               : "bg-white/5 border-white/10 text-white"
           )}>
             <Sparkles className={clsx("w-4 h-4", (profile as any).casino_streak >= 3 && "animate-pulse")} />
-            <span className="text-sm font-black">SÉRIE : {(profile as any).casino_streak} 🔥</span>
+            <span className="text-sm font-black">{t('casino_page.streak').replace('{count}', (profile as any).casino_streak.toString())}</span>
           </div>
         )}
 
         {(profile as any)?.casino_streak >= 3 && (
           <div className="px-4 py-2 bg-discord-error/20 border border-discord-error/40 rounded-xl flex items-center gap-2 text-discord-error shadow-lg shadow-discord-error/10">
             <AlertCircle className="w-4 h-4" />
-            <span className="text-sm font-black uppercase tracking-tighter">Risque : -{(profile as any).streak_accumulated_winnings?.toFixed(0)}€ en cas de défaite !</span>
+            <span className="text-sm font-black uppercase tracking-tighter">{t('casino_page.risk').replace('{amount}', ((profile as any).streak_accumulated_winnings?.toFixed(0) || '0'))}</span>
           </div>
         )}
       </div>
@@ -331,14 +333,14 @@ export default function CasinoPage() {
       {games.length === 0 ? (
         <div className="casino-card text-center py-16">
           <div className="text-6xl mb-4">🎰</div>
-          <h2 className="text-xl font-bold text-white mb-2">Aucun jeu disponible</h2>
-          <p className="text-discord-muted">Les jeux de casino seront bientôt disponibles.</p>
+          <h2 className="text-xl font-bold text-white mb-2">{t('casino_page.no_games')}</h2>
+          <p className="text-discord-muted">{t('casino_page.games_soon')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Game selector */}
           <div className="space-y-2">
-            <p className="text-xs font-black text-discord-muted uppercase tracking-widest px-1 mb-3">Choisir un jeu</p>
+            <p className="text-xs font-black text-discord-muted uppercase tracking-widest px-1 mb-3">{t('casino_page.choose_game')}</p>
             {games.map(game => (
               <button
                 key={game.id}
@@ -498,14 +500,14 @@ export default function CasinoPage() {
               {currentGameType === 'blackjack' && (
                 <div className="p-6 bg-white/3 border border-dashed border-white/10 rounded-2xl text-center">
                   <div className="text-4xl mb-2">🃏</div>
-                  <p className="text-sm text-discord-muted">Battez le croupier pour un paiement × 2.0. Un Blackjack naturel paie × 2.5 !</p>
+                  <p className="text-sm text-discord-muted">{t('casino_page.blackjack_desc')}</p>
                 </div>
               )}
 
               {/* Bet amount */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-black text-discord-muted uppercase tracking-widest">Montant de la mise</p>
+                  <p className="text-xs font-black text-discord-muted uppercase tracking-widest">{t('casino_page.bet_amount')}</p>
                   <span className="text-xs text-discord-muted">{selectedGame.min_bet}€ — {selectedGame.max_bet}€</span>
                 </div>
                 <div className="relative">
@@ -558,12 +560,12 @@ export default function CasinoPage() {
                 {spinning ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    En cours…
+                    {t('casino_page.spinning')}
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-5 h-5" />
-                    {currentGameType === 'slots' ? 'Lancer les rouleaux' : 'Jouer'}
+                    {currentGameType === 'slots' ? t('casino_page.spin_slots') : t('casino_page.play')}
                   </>
                 )}
               </button>
@@ -571,7 +573,7 @@ export default function CasinoPage() {
               {/* Slots odds */}
               {currentGameType === 'slots' && (
                 <div className="mt-2 p-4 bg-white/3 border border-white/6 rounded-2xl">
-                  <p className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2">Gains potentiels</p>
+                  <p className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2">{t('casino_page.potential_wins')}</p>
                   <div className="grid grid-cols-3 gap-2 text-center text-xs">
                     <div className="p-2 bg-white/4 rounded-xl"><div>🍒🍒🍒</div><div className="text-discord-success font-bold mt-1">× 10</div></div>
                     <div className="p-2 bg-white/4 rounded-xl"><div>💎💎💎</div><div className="text-discord-success font-bold mt-1">× 25</div></div>

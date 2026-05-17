@@ -1,12 +1,14 @@
 'use client'
 
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { usePathname, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useEffect } from 'react'
 
 export default function LoadingScreen() {
   const { user, loading } = useAuth()
+  const { t } = useLanguage()
   const pathname = usePathname()
   const router = useRouter()
 
@@ -31,27 +33,27 @@ export default function LoadingScreen() {
       <div className="relative z-10 flex flex-col items-center gap-8">
         {/* Logo */}
         <div className="relative">
-          <div className="w-24 h-24 rounded-full bg-discord-blurple/20 border border-discord-blurple/30 flex items-center justify-center shadow-2xl shadow-discord-blurple/20 overflow-hidden"
+          <div className="w-24 h-24 rounded-[2rem] bg-discord-blurple/20 border border-discord-blurple/30 flex items-center justify-center shadow-2xl shadow-discord-blurple/20 overflow-hidden"
             style={{ animation: 'pulse-glow 2s ease-in-out infinite' }}>
             <Image
               src="/logo.png"
               alt="LunaVerse"
               width={96}
               height={96}
-              className="w-full h-full object-cover drop-shadow-xl rounded-full"
+              className="w-full h-full object-cover drop-shadow-xl rounded-[2rem]"
             />
             {/* Fallback moon emoji */}
             <span className="text-4xl hidden">🌙</span>
           </div>
           {/* Spinning ring */}
-          <div className="absolute inset-0 rounded-full"
-            style={{ border: '2px solid transparent', borderTopColor: '#5865F2', animation: 'spin 1.2s linear infinite', borderRadius: '50%' }} />
+          <div className="absolute inset-0 rounded-[2rem]"
+            style={{ border: '2px solid transparent', borderTopColor: '#5865F2', animation: 'spin 1.2s linear infinite' }} />
         </div>
 
         {/* Title */}
         <div className="text-center">
           <h1 className="text-3xl font-black text-white tracking-tight">LunaVerse</h1>
-          <p className="text-discord-muted text-sm font-medium mt-1">ENT Scolaire RP</p>
+          <p className="text-discord-muted text-sm font-medium mt-1">{t('appshell.school')}</p>
         </div>
 
         {/* Progress dots */}

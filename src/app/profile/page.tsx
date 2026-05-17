@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import Image from 'next/image'
 import { User, Wallet, Calendar, MessageCircle, ShoppingBag, Gamepad2, Trophy, Edit3, Save, Twitter, Instagram, Github, Link as LinkIcon, ExternalLink } from 'lucide-react'
 import clsx from 'clsx'
@@ -19,17 +20,18 @@ interface DiscordStatus { label: string; color: string }
  * The `discord_status` column is updated by the bot via presenceUpdate events.
  * Requires: profiles table to have `discord_status VARCHAR` column.
  */
-function resolveStatus(s?: string | null): DiscordStatus {
+function resolveStatus(s: string | null | undefined, t: (key: string) => string): DiscordStatus {
   switch (s) {
-    case 'online': return { label: '● En ligne', color: '#57F287' }
-    case 'idle': return { label: '◔ Absent', color: '#FEE75C' }
-    case 'dnd': return { label: '⊘ Ne pas déranger', color: '#ED4245' }
-    default: return { label: '○ Hors ligne', color: '#8D9299' }
+    case 'online': return { label: t('profile.status.online'), color: '#57F287' }
+    case 'idle': return { label: t('profile.status.idle'), color: '#FEE75C' }
+    case 'dnd': return { label: t('profile.status.dnd'), color: '#ED4245' }
+    default: return { label: t('profile.status.offline'), color: '#8D9299' }
   }
 }
 
 export default function ProfilePage() {
   const { profile, roles, user } = useAuth()
+  const { t, locale } = useLanguage()
   const [stats, setStats] = useState<Stats>({
     posts: 0, likesReceived: 0, purchases: 0, casinoWins: 0, totalWon: 0, totalLost: 0,
     partnerName: null, coupleSince: null
@@ -43,7 +45,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
 
   // Discord status from DB (updated by bot presenceUpdate)
-  const status = resolveStatus((profile as any)?.discord_status)
+  const status = resolveStatus((profile as any)?.discord_status, t)
 
   useEffect(() => {
     if (!profile) return
@@ -84,18 +86,19 @@ export default function ProfilePage() {
     setSaving(false)
   }
 
+  const dateLocale = locale === 'fr' ? 'fr-FR' : 'en-US'
   const memberSince = profile?.created_at
-    ? new Date(profile.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+    ? new Date(profile.created_at).toLocaleDateString(dateLocale, { month: 'long', year: 'numeric' })
     : user?.created_at
-      ? new Date(user.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+      ? new Date(user.created_at).toLocaleDateString(dateLocale, { month: 'long', year: 'numeric' })
       : null
 
   return (
     <div className="page-container">
       {/* Header */}
       <div className="animate-slideIn">
-        <h1 className="text-4xl font-black text-white tracking-tight">Mon Profil</h1>
-        <p className="text-discord-muted mt-1 font-medium">Votre identité LunaVerse.</p>
+        <h1 className="text-4xl font-black text-white tracking-tight">{t('profile.title')}</h1>
+        <p className="text-discord-muted mt-1 font-medium">{t('profile.subtitle')}</p>
       </div>
 
       {/* Profile Card */}
@@ -139,7 +142,7 @@ export default function ProfilePage() {
               </h2>
               {roles.some(r => r.name === 'Admin') && (
                 <span className="bg-discord-blurple/20 text-discord-blurple text-[10px] font-black px-2 py-0.5 rounded-md border border-discord-blurple/30 uppercase tracking-widest w-fit mx-auto md:mx-0">
-                  Staff
+                  {t('profile.staff')}
                 </span>
               )}
             </div>
@@ -147,7 +150,7 @@ export default function ProfilePage() {
             {/* RP Identity */}
             {(profile as any)?.nickname_rp && (
               <div className="mb-4 animate-fadeIn flex items-center justify-center md:justify-start gap-2">
-                <span className="text-xs font-black text-discord-muted uppercase tracking-[0.2em]">Identité RP :</span>
+                <span className="text-xs font-black text-discord-muted uppercase tracking-[0.2em]">{t('profile.rp_identity')}</span>
                 <span className="text-sm font-bold text-white bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 shadow-inner">
                   {(profile as any).nickname_rp}
                 </span>
@@ -157,9 +160,9 @@ export default function ProfilePage() {
             {/* Couple Status */}
             {stats.partnerName && (
               <div className="mb-3 animate-fadeIn flex items-center justify-center md:justify-start gap-2">
-                <span className="text-xs font-black text-discord-muted uppercase tracking-[0.2em]">Relation :</span>
+                <span className="text-xs font-black text-discord-muted uppercase tracking-[0.2em]">{t('profile.relationship')}</span>
                 <span className="text-sm font-bold text-white bg-discord-blurple/20 px-3 py-1 rounded-lg border border-discord-blurple/30 flex items-center gap-1.5 shadow-sm shadow-discord-blurple/10">
-                  💖 En couple avec <strong className="text-discord-blurple drop-shadow-md">{stats.partnerName}</strong>
+                  {t('profile.in_relationship')} <strong className="text-discord-blurple drop-shadow-md">{stats.partnerName}</strong>
                 </span>
               </div>
             )}
@@ -180,7 +183,7 @@ export default function ProfilePage() {
                 </span>
               )) : (
                 <span className="px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-white/5 text-discord-muted border border-white/8">
-                  Aucun rôle assigné
+                  {t('profile.no_role')}
                 </span>
               )}
             </div>
@@ -188,7 +191,7 @@ export default function ProfilePage() {
             {memberSince && (
               <p className="text-discord-muted text-sm flex items-center justify-center md:justify-start gap-2">
                 <Calendar className="w-4 h-4" />
-                Membre depuis {memberSince}
+                {t('profile.member_since').replace('{date}', memberSince || '')}
               </p>
             )}
           </div>
@@ -197,7 +200,7 @@ export default function ProfilePage() {
           <div className="flex-shrink-0 text-center p-6 rounded-3xl border"
             style={{ background: 'rgba(88,101,242,0.08)', borderColor: 'rgba(88,101,242,0.2)' }}>
             <Wallet className="w-6 h-6 mx-auto mb-2" style={{ color: '#5865F2' }} />
-            <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">Solde</p>
+            <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">{t('profile.balance_card')}</p>
             <p className="text-3xl font-black text-white">
               {(profile?.balance ?? 0).toFixed(0)}<span className="text-lg ml-1" style={{ color: '#5865F2' }}>€</span>
             </p>
@@ -210,14 +213,14 @@ export default function ProfilePage() {
         <div className="glass-card animate-fadeIn" style={{ borderColor: 'rgba(87,242,135,0.15)' }}>
           <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest mb-4 flex items-center gap-2">
             <Wallet className="w-4 h-4 text-discord-success" />
-            Revenus hebdomadaires
+            {t('profile.weekly_income')}
           </h3>
           <div className="flex flex-wrap gap-4 items-center">
             {roles.filter(r => (r as any).salary_amount > 0).map(r => (
               <div key={r.id + 'sal'} className="flex items-center gap-2">
                 <span className="text-xs px-2 py-1 rounded-lg font-bold"
                   style={{ background: `${r.color || '#5865F2'}20`, color: r.color || '#5865F2' }}>
-                  💼 Salaire · {r.name}
+                  {t('profile.salary').replace('{role}', r.name)}
                 </span>
                 <span className="font-black text-discord-success">{(r as any).salary_amount} €</span>
               </div>
@@ -226,23 +229,23 @@ export default function ProfilePage() {
               <div key={r.id + 'pock'} className="flex items-center gap-2">
                 <span className="text-xs px-2 py-1 rounded-lg font-bold"
                   style={{ background: `${r.color || '#5865F2'}20`, color: r.color || '#5865F2' }}>
-                  🎒 Argent de poche · {r.name}
+                  {t('profile.pocket_money').replace('{role}', r.name)}
                 </span>
                 <span className="font-black" style={{ color: '#FEE75C' }}>{(r as any).pocket_money} €</span>
               </div>
             ))}
             <div className="ml-auto text-right">
-              <p className="text-[10px] text-discord-muted uppercase tracking-widest">Prochain versement</p>
+              <p className="text-[10px] text-discord-muted uppercase tracking-widest">{t('profile.next_payment')}</p>
               <p className="text-sm font-black text-white">
                 {(profile as any)?.last_salary
                   ? (() => {
                     const next = new Date((profile as any).last_salary)
                     next.setDate(next.getDate() + 7)
                     return next > new Date()
-                      ? `Lundi ${next.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`
-                      : '✅ Disponible'
+                      ? `${next.toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'short' })}`
+                      : t('profile.available')
                   })()
-                  : '✅ Disponible'
+                  : t('profile.available')
                 }
               </p>
             </div>
@@ -253,10 +256,10 @@ export default function ProfilePage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {([
-          { icon: MessageCircle, label: 'Posts créés', value: stats.posts, hex: '#5865F2' },
-          { icon: ShoppingBag, label: 'Achats effectués', value: stats.purchases, hex: '#57F287' },
-          { icon: Gamepad2, label: 'Victoires casino', value: stats.casinoWins, hex: '#FEE75C' },
-          { icon: Trophy, label: 'Gains totaux', value: `${stats.totalWon.toFixed(0)} €`, hex: '#57F287' },
+          { icon: MessageCircle, label: t('profile.stats.posts'), value: stats.posts, hex: '#5865F2' },
+          { icon: ShoppingBag, label: t('profile.stats.purchases'), value: stats.purchases, hex: '#57F287' },
+          { icon: Gamepad2, label: t('profile.stats.casino_wins'), value: stats.casinoWins, hex: '#FEE75C' },
+          { icon: Trophy, label: t('profile.stats.total_won'), value: `${stats.totalWon.toFixed(0)} €`, hex: '#57F287' },
         ] as const).map((stat, i) => {
           const Icon = stat.icon
           return (
@@ -286,7 +289,7 @@ export default function ProfilePage() {
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest flex items-center gap-2">
             <Edit3 className="w-4 h-4 text-discord-blurple" />
-            Biographie & Réseaux
+            {t('profile.bio_socials')}
           </h3>
           <button 
             onClick={() => editing ? handleSave() : setEditing(true)}
@@ -296,17 +299,17 @@ export default function ProfilePage() {
               editing ? "bg-discord-success text-white" : "bg-white/5 text-discord-muted hover:text-white hover:bg-white/10"
             )}
           >
-            {editing ? (saving ? '...' : <><Save size={14} /> Enregistrer</>) : <><Edit3 size={14} /> Modifier</>}
+            {editing ? (saving ? t('profile.saving') : <><Save size={14} /> {t('profile.save')}</>) : <><Edit3 size={14} /> {t('profile.edit')}</>}
           </button>
         </div>
 
         {editing ? (
           <div className="space-y-6">
             <div>
-              <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-2 block">Bio</label>
+              <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-2 block">{t('profile.bio_label')}</label>
               <textarea 
                 className="glass-input min-h-[100px] py-4"
-                placeholder="Dites-en un peu plus sur vous..."
+                placeholder={t('profile.bio_placeholder')}
                 value={editBio}
                 onChange={e => setEditBio(e.target.value)}
               />
@@ -338,7 +341,7 @@ export default function ProfilePage() {
           <div className="flex flex-col md:flex-row gap-8">
             <div className="flex-1">
               <p className="text-sm text-white leading-relaxed whitespace-pre-wrap italic">
-                {(profile as any)?.bio || "Aucune biographie définie pour le moment."}
+                {(profile as any)?.bio || t('profile.no_bio')}
               </p>
             </div>
             <div className="w-full md:w-64 space-y-2">
@@ -361,7 +364,7 @@ export default function ProfilePage() {
                 </a>
               ))}
               {![(profile as any)?.twitter_url, (profile as any)?.instagram_url, (profile as any)?.github_url, (profile as any)?.website_url].some(u => u) && (
-                <p className="text-[10px] text-discord-muted italic">Aucun lien social.</p>
+                <p className="text-[10px] text-discord-muted italic">{t('profile.no_socials')}</p>
               )}
             </div>
           </div>
@@ -372,16 +375,16 @@ export default function ProfilePage() {
       <div className="glass-card animate-fadeIn">
         <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest mb-4 flex items-center gap-2">
           <User className="w-4 h-4 text-discord-blurple" />
-          Informations Discord
+          {t('profile.discord_info')}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            { label: "Nom d'utilisateur", value: profile?.username },
-            { label: 'Discord ID', value: profile?.discord_id },
+            { label: t('profile.username'), value: profile?.username },
+            { label: t('profile.discord_id'), value: profile?.discord_id },
             {
-              label: 'Dernière activité', value: (profile as any)?.updated_at
-                ? new Date((profile as any).updated_at).toLocaleString('fr-FR')
-                : "Aujourd'hui"
+              label: t('profile.last_activity'), value: (profile as any)?.updated_at
+                ? new Date((profile as any).updated_at).toLocaleString(dateLocale)
+                : t('profile.today')
             },
           ].map((info, i) => (
             <div key={i} className="p-3 rounded-2xl border" style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.06)' }}>

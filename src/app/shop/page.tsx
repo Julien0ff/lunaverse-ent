@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import {
   ShoppingCart, Search, Plus, Minus, Trash2,
   CheckCircle, AlertCircle, X, ShoppingBag, Tag, Lightbulb, Send, Check
@@ -58,6 +59,7 @@ function getEmoji(item: ShopItem) {
 
 export default function ShopPage() {
   const { profile, refreshProfile } = useAuth()
+  const { t } = useLanguage()
   const [items, setItems] = useState<ShopItem[]>([])
   const [loading, setLoading] = useState(true)
   const [cart, setCart] = useState<CartItem[]>([])
@@ -134,13 +136,13 @@ export default function ShopPage() {
 
       const errors = results.filter(r => r.error)
       if (errors.length === 0) {
-        showToast('success', `✓ ${cartCount} article(s) acheté(s) — ${cartTotal.toFixed(0)} € débités !`)
+        showToast('success', t('shop_page.purchased').replace('{count}', cartCount.toString()).replace('{total}', cartTotal.toFixed(0)))
         setCart([])
         await refreshProfile()
         // Refresh inventory
         fetch('/api/shop/inventory').then(r => r.json()).then(d => setInventory(d.items || []))
       } else {
-        showToast('error', errors[0].error || 'Erreur lors de l&apos;achat.')
+        showToast('error', errors[0].error || t('shop_page.purchase_error'))
       }
     } catch {
       showToast('error', 'Erreur de connexion.')
@@ -244,7 +246,7 @@ export default function ShopPage() {
                 <div className="flex items-center justify-between p-6 border-b border-white/8">
                   <div className="flex items-center gap-3">
                     <ShoppingCart className="w-6 h-6 text-discord-blurple" />
-                    <h2 className="text-xl font-black text-white">Panier</h2>
+                    <h2 className="text-xl font-black text-white">{t('shop_page.cart')}</h2>
                     {cartCount > 0 && (
                       <span className="px-2 py-0.5 bg-discord-blurple rounded-full text-xs font-black text-white">
                         {cartCount}
@@ -261,7 +263,7 @@ export default function ShopPage() {
                   {cartEmpty ? (
                     <div className="flex flex-col items-center justify-center h-full gap-4 py-16">
                       <span className="text-6xl">🛒</span>
-                      <p className="text-discord-muted font-bold text-center">Votre panier est vide.<br />Ajoutez des articles !</p>
+                      <p className="text-discord-muted font-bold text-center">{t('shop_page.cart_empty')}<br />{t('shop_page.cart_empty_sub')}</p>
                     </div>
                   ) : (
                     cart.map(item => (
@@ -305,18 +307,18 @@ export default function ShopPage() {
                   <div className="p-5 border-t border-white/8 space-y-4">
                     {/* Balance info */}
                     <div className="flex justify-between items-center text-xs font-bold text-discord-muted">
-                      <span>Votre solde</span>
+                      <span>{t('shop_page.your_balance')}</span>
                       <span className="text-white">{(profile?.balance ?? 0).toFixed(0)} €</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="font-black text-white">Total</span>
+                      <span className="font-black text-white">{t('shop_page.total')}</span>
                       <span className={clsx('text-2xl font-black', canAfford ? 'text-discord-success' : 'text-discord-error')}>
                         {cartTotal.toFixed(0)} €
                       </span>
                     </div>
                     {!canAfford && (
                       <p className="text-discord-error text-xs font-bold text-center bg-discord-error/8 py-2 rounded-xl border border-discord-error/15">
-                        ⚠️ Solde insuffisant — il vous manque {(cartTotal - (profile?.balance ?? 0)).toFixed(0)} €
+                         {t('shop_page.insufficient').replace('{amount}', (cartTotal - (profile?.balance ?? 0)).toFixed(0))}
                       </p>
                     )}
                     <div className="grid grid-cols-2 gap-3">
@@ -324,7 +326,7 @@ export default function ShopPage() {
                         onClick={() => { setCart([]); setCartOpen(false) }}
                         className="btn btn-ghost py-3 text-sm"
                       >
-                        Vider
+                        {t('shop_page.clear')}
                       </button>
                       <button
                         onClick={checkout}
@@ -333,7 +335,7 @@ export default function ShopPage() {
                       >
                         {purchasing
                           ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          : <><ShoppingBag className="w-4 h-4" /> Commander</>
+                          : <><ShoppingBag className="w-4 h-4" /> {t('shop_page.order')}</>
                         }
                       </button>
                     </div>
@@ -366,9 +368,9 @@ export default function ShopPage() {
           <div>
             <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-3">
               <ShoppingCart className="w-10 h-10 text-discord-blurple" />
-              Boutique
+              {t('shop_page.title')}
             </h1>
-            <p className="text-discord-muted mt-1 font-medium">Dépensez vos Euros LunaVerse ici !</p>
+            <p className="text-discord-muted mt-1 font-medium">{t('shop_page.subtitle')}</p>
           </div>
           {/* Solde + Cart button */}
           <div className="flex items-center gap-3">
@@ -381,7 +383,7 @@ export default function ShopPage() {
               className="relative flex items-center gap-2 px-4 py-2.5 bg-discord-blurple hover:bg-discord-blurple-dark rounded-xl font-bold text-white text-sm transition-all shadow-lg shadow-discord-blurple/25 hover:shadow-discord-blurple/40 hover:scale-105"
             >
               <ShoppingCart className="w-4 h-4" />
-              Panier
+              {t('shop_page.cart')}
               {cartCount > 0 && (
                 <span className="absolute -top-2 -right-2 w-5 h-5 bg-discord-error rounded-full text-[10px] font-black flex items-center justify-center">
                   {cartCount}
@@ -402,7 +404,7 @@ export default function ShopPage() {
               activeTab === 'shop' ? "bg-discord-blurple text-white shadow-lg" : "text-discord-muted hover:text-white hover:bg-white/5"
             )}
           >
-            🏪 Boutique
+            {t('shop_page.tab_shop')}
           </button>
           <button
             onClick={() => setActiveTab('inventory')}
@@ -411,7 +413,7 @@ export default function ShopPage() {
               activeTab === 'inventory' ? "bg-purple-500 text-white shadow-lg" : "text-discord-muted hover:text-white hover:bg-white/5"
             )}
           >
-            🎒 Mon Inventaire
+            {t('shop_page.tab_inventory')}
           </button>
         </div>
         <button
@@ -419,7 +421,7 @@ export default function ShopPage() {
           className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 hover:text-yellow-300 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm"
         >
           <Lightbulb className="w-4 h-4" />
-          Suggérer un article
+          {t('shop_page.suggest_item')}
         </button>
       </div>
 
@@ -430,7 +432,7 @@ export default function ShopPage() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-discord-muted" />
           <input
             type="text"
-            placeholder="Rechercher un article..."
+            placeholder={t('shop_page.search_item')}
             className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-11 pr-4 text-sm text-white focus:outline-none focus:border-discord-blurple/50 focus:bg-white/10 transition-all font-medium"
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -449,7 +451,7 @@ export default function ShopPage() {
                   : 'bg-transparent border-white/5 text-discord-muted hover:text-white hover:border-white/10'
               )}
             >
-              {cat === 'all' ? '🏪 Tout' : `${CATEGORY_ICONS[cat] || '📦'} ${CATEGORY_LABELS[cat] || cat}`}
+              {cat === 'all' ? t('shop_page.all') : `${CATEGORY_ICONS[cat] || '📦'} ${t('shop_page.categories.' + cat) || cat}`}
             </button>
           ))}
         </div>
@@ -463,7 +465,7 @@ export default function ShopPage() {
         >
           <div className="flex items-center gap-3">
             <ShoppingCart className="w-5 h-5 text-discord-blurple" />
-            <span className="font-black text-white">{cartCount} article(s) dans le panier</span>
+            <span className="font-black text-white">{t('shop_page.items_in_cart').replace('{count}', cartCount.toString())}</span>
           </div>
           <span className="font-black text-discord-success text-lg">{cartTotal.toFixed(0)} €</span>
         </button>
@@ -489,9 +491,9 @@ export default function ShopPage() {
       {!loading && activeTab === 'shop' && filtered.length === 0 && (
         <div className="text-center py-20 animate-fadeIn mt-8">
           <div className="text-6xl mb-4">🛒</div>
-          <h2 className="text-xl font-bold text-white mb-2">Aucun article trouvé</h2>
+          <h2 className="text-xl font-bold text-white mb-2">{t('shop_page.no_item_found')}</h2>
           <p className="text-discord-muted">
-            {items.length === 0 ? 'La boutique sera bientôt garnie !' : 'Aucun article ne correspond à votre recherche.'}
+            {items.length === 0 ? t('shop_page.shop_empty') : t('shop_page.no_match')}
           </p>
         </div>
       )}
@@ -544,8 +546,8 @@ export default function ShopPage() {
                       id={`add-${item.id}`}
                     >
                       {canAffordItem ? (
-                        <><Plus className="w-3.5 h-3.5" /> Ajouter</>
-                      ) : 'Trop cher'}
+                        <><Plus className="w-3.5 h-3.5" /> {t('shop_page.add')}</>
+                      ) : t('shop_page.too_expensive')}
                     </button>
                   </div>
                 </div>
@@ -563,7 +565,7 @@ export default function ShopPage() {
             <div className="p-4 border-b border-white/5 flex items-center justify-between">
               <h2 className="text-lg font-black text-white flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-discord-blurple" />
-                Votre Panier
+                {t('shop_page.your_cart')}
               </h2>
               <button onClick={() => setCartOpen(false)} className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 text-white">
                 <X className="w-5 h-5" />
@@ -574,7 +576,7 @@ export default function ShopPage() {
               {cartEmpty ? (
                 <div className="text-center py-20 text-discord-muted">
                   <ShoppingCart className="w-16 h-16 opacity-10 mx-auto mb-4" />
-                  <p className="font-bold">Panier vide</p>
+                  <p className="font-bold">{t('shop_page.cart_empty_short')}</p>
                 </div>
               ) : (
                 cart.map(c => (
@@ -592,7 +594,7 @@ export default function ShopPage() {
                            <span className="text-xs font-black text-white min-w-[20px] text-center">{c.quantity}</span>
                            <button onClick={() => updateQty(c.id, 1)} className="w-6 h-6 flex items-center justify-center bg-white/5 rounded-md"><Plus className="w-3 h-3" /></button>
                         </div>
-                        <button onClick={() => removeFromCart(c.id)} className="p-1 px-2 text-[10px] font-black text-discord-error uppercase">Supprimer</button>
+                        <button onClick={() => removeFromCart(c.id)} className="p-1 px-2 text-[10px] font-black text-discord-error uppercase">{t('shop_page.delete_label')}</button>
                       </div>
                   </div>
                 ))
@@ -610,7 +612,7 @@ export default function ShopPage() {
                   disabled={purchasing || !canAfford}
                   className="w-full btn btn-primary py-4 rounded-2xl flex items-center justify-center gap-2 text-sm font-black shadow-xl"
                 >
-                  {purchasing ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Check className="w-5 h-5" /> Payer maintenant</>}
+                  {purchasing ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Check className="w-5 h-5" /> {t('shop_page.pay_now')}</>}
                 </button>
               </div>
             )}
@@ -627,7 +629,7 @@ export default function ShopPage() {
               <div className="w-8 h-8 rounded-xl bg-discord-blurple/20 flex items-center justify-center">
                 <ShoppingCart className="w-4 h-4 text-discord-blurple" />
               </div>
-              <h2 className="text-lg font-black text-white tracking-tight">Votre Panier</h2>
+              <h2 className="text-lg font-black text-white tracking-tight">{t('shop_page.your_cart')}</h2>
             </div>
             {!cartEmpty && <span className="text-[10px] font-black bg-discord-blurple text-white px-2 py-0.5 rounded-full">{cartCount}</span>}
           </div>
@@ -636,7 +638,7 @@ export default function ShopPage() {
             {cartEmpty ? (
               <div className="text-center py-12">
                 <ShoppingCart className="w-12 h-12 text-white/5 mx-auto mb-3" />
-                <p className="text-sm text-discord-muted font-bold">Panier vide</p>
+                <p className="text-sm text-discord-muted font-bold">{t('shop_page.cart_empty_short')}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -663,7 +665,7 @@ export default function ShopPage() {
           {!cartEmpty && (
             <div className="mt-6 pt-6 border-t border-white/5 space-y-4">
               <div className="flex justify-between items-end">
-                <p className="text-xs font-black text-discord-muted uppercase tracking-widest">Total</p>
+                <p className="text-xs font-black text-discord-muted uppercase tracking-widest">{t('shop_page.total')}</p>
                 <p className="text-2xl font-black text-discord-success">{cartTotal.toFixed(0)} €</p>
               </div>
               <button
@@ -671,7 +673,7 @@ export default function ShopPage() {
                 disabled={purchasing || !canAfford}
                 className="w-full btn btn-primary py-4 rounded-2xl flex items-center justify-center gap-2 text-sm shadow-xl hover:scale-[1.02]"
               >
-                {purchasing ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Check className="w-4 h-4" /> Acheter</>}
+                {purchasing ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Check className="w-4 h-4" /> {t('shop_page.buy')}</>}
               </button>
             </div>
           )}
@@ -684,9 +686,9 @@ export default function ShopPage() {
           {inventory.length === 0 ? (
             <div className="text-center py-20 border border-dashed border-white/10 rounded-3xl bg-white/5">
               <div className="text-6xl mb-4">🎒</div>
-              <p className="text-white font-black text-xl mb-1">Votre inventaire est vide.</p>
-              <p className="text-discord-muted">Passez à la boutique pour rafler quelques articles !</p>
-              <button onClick={() => setActiveTab('shop')} className="btn btn-primary mt-6">Aller à la boutique</button>
+              <p className="text-white font-black text-xl mb-1">{t('shop_page.inventory_empty')}</p>
+              <p className="text-discord-muted">{t('shop_page.inventory_empty_sub')}</p>
+              <button onClick={() => setActiveTab('shop')} className="btn btn-primary mt-6">{t('shop_page.go_to_shop')}</button>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
@@ -734,23 +736,23 @@ export default function ShopPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Lightbulb className="w-6 h-6 text-yellow-400" />
-                <h2 className="text-xl font-black text-white">Suggerérer un article</h2>
+                <h2 className="text-xl font-black text-white">{t('shop_page.suggest_title')}</h2>
               </div>
               <button onClick={() => setSuggestOpen(false)} className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
                 <X className="w-4 h-4 text-discord-muted" />
               </button>
             </div>
-            <p className="text-sm text-discord-muted">Votre suggestion sera envoyée directement aux admins dans l&apos;onglet Boutique.</p>
+            <p className="text-sm text-discord-muted">{t('shop_page.suggest_desc')}</p>
             <div className="space-y-3">
               <input
                 className="glass-input"
-                placeholder="Nom de l&apos;article *"
+                placeholder={t('shop_page.item_name')}
                 value={suggestion.name}
                 onChange={e => setSuggestion(s => ({ ...s, name: e.target.value }))}
               />
               <textarea
                 className="glass-input resize-none"
-                placeholder="Description (optionnel)"
+                placeholder={t('shop_page.description')}
                 rows={3}
                 value={suggestion.description}
                 onChange={e => setSuggestion(s => ({ ...s, description: e.target.value }))}
@@ -761,26 +763,26 @@ export default function ShopPage() {
                   value={suggestion.category}
                   onChange={e => setSuggestion(s => ({ ...s, category: e.target.value }))}
                 >
-                  <option value="">Catégorie...</option>
-                  <option value="food">Nourriture</option>
-                  <option value="drink">Boissons</option>
-                  <option value="snack">Snacks</option>
-                  <option value="clothing">Vêtements</option>
-                  <option value="luxury">Luxe</option>
-                  <option value="special">Spéciaux</option>
-                  <option value="other">Divers</option>
+                  <option value="">{t('shop_page.category')}</option>
+                  <option value="food">{t('shop_page.categories.food')}</option>
+                  <option value="drink">{t('shop_page.categories.drink')}</option>
+                  <option value="snack">{t('shop_page.categories.snack')}</option>
+                  <option value="clothing">{t('shop_page.categories.clothing')}</option>
+                  <option value="luxury">{t('shop_page.categories.luxury')}</option>
+                  <option value="special">{t('shop_page.categories.special')}</option>
+                  <option value="other">{t('shop_page.categories.other')}</option>
                 </select>
                 <input
                   className="glass-input"
                   type="number"
-                  placeholder="Prix estimé (€)"
+                  placeholder={t('shop_page.estimated_price')}
                   value={suggestion.price}
                   onChange={e => setSuggestion(s => ({ ...s, price: e.target.value }))}
                 />
               </div>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setSuggestOpen(false)} className="btn btn-ghost flex-1">Annuler</button>
+              <button onClick={() => setSuggestOpen(false)} className="btn btn-ghost flex-1">{t('common.cancel')}</button>
               <button
                 onClick={submitSuggestion}
                 disabled={!suggestion.name.trim() || suggesting}
@@ -788,7 +790,7 @@ export default function ShopPage() {
               >
                 {suggesting
                   ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  : <><Send className="w-4 h-4" /> Envoyer 💎</>
+                  : <><Send className="w-4 h-4" /> {t('shop_page.send')}</>
                 }
               </button>
             </div>

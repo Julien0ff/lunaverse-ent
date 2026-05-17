@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { Wallet, ArrowUpRight, ArrowDownRight, Gift, Clock, Search, Send, Briefcase, FileText, CheckCircle2, AlertCircle, Euro, ChevronDown } from 'lucide-react'
 import Image from 'next/image'
 import clsx from 'clsx'
@@ -19,6 +20,7 @@ interface Transaction {
 
 export default function Bank() {
   const { profile, roles, user, refreshProfile } = useAuth()
+  const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState<'send' | 'history' | 'daily' | 'declarations'>('send')
   const [recipient, setRecipient] = useState('')
   const [recipientSearch, setRecipientSearch] = useState('')
@@ -133,12 +135,12 @@ export default function Bank() {
   }
 
   const getTimeUntilDaily = () => {
-    if (!profile?.last_daily) return 'Disponible'
+    if (!profile?.last_daily) return t('bank_page.available')
     const lastClaim = new Date(profile.last_daily)
     const nextClaim = new Date(lastClaim.getTime() + 24 * 60 * 60 * 1000)
     const now = new Date()
     const diff = nextClaim.getTime() - now.getTime()
-    if (diff <= 0) return 'Disponible'
+    if (diff <= 0) return t('bank_page.available')
     const hours = Math.floor(diff / (1000 * 60 * 60))
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
     return `${hours}h ${minutes}min`
@@ -146,7 +148,7 @@ export default function Bank() {
 
   const handleTransfer = async () => {
     if (!recipient || !amount || parseFloat(amount) <= 0) {
-      setMessage({ type: 'error', text: 'Veuillez entrer un montant valide' })
+      setMessage({ type: 'error', text: t('bank_page.invalid_amount') })
       return
     }
 
@@ -167,17 +169,17 @@ export default function Bank() {
       const data = await response.json()
 
       if (response.ok) {
-        setMessage({ type: 'success', text: `Virement de ${amount}€ effectué avec succès !` })
+        setMessage({ type: 'success', text: t('bank_page.transfer_success').replace('{amount}', amount) })
         setRecipient('')
         setRecipientSearch('')
         setAmount('')
         await refreshProfile()
         await loadTransactions()
       } else {
-        setMessage({ type: 'error', text: data.error || 'Une erreur est survenue' })
+        setMessage({ type: 'error', text: data.error || t('bank_page.error_occurred') })
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Erreur de connexion au serveur' })
+      setMessage({ type: 'error', text: t('bank_page.connection_error') })
     } finally {
       setLoading(false)
     }
@@ -194,14 +196,14 @@ export default function Bank() {
       })
       const data = await response.json()
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Récompense quotidienne récupérée (+50€) !' })
+        setMessage({ type: 'success', text: t('bank_page.daily_success') })
         await refreshProfile()
         await loadTransactions()
       } else {
-        setMessage({ type: 'error', text: data.error || 'Une erreur est survenue' })
+        setMessage({ type: 'error', text: data.error || t('bank_page.error_occurred') })
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Erreur de connexion au serveur' })
+      setMessage({ type: 'error', text: t('bank_page.connection_error') })
     } finally {
       setLoading(false)
     }
@@ -209,7 +211,7 @@ export default function Bank() {
 
   const handleDeclare = async () => {
     if (!selectedSourceId || !decReason) {
-      setMessage({ type: 'error', text: 'Veuillez sélectionner une source et ajouter une justification' })
+      setMessage({ type: 'error', text: t('bank_page.select_source_reason') })
       return
     }
     const source = dirtySources.find(s => s.id === selectedSourceId)
@@ -228,7 +230,7 @@ export default function Bank() {
       })
       const data = await res.json()
       if (res.ok) {
-        setMessage({ type: 'success', text: 'Déclaration envoyée ! En attente de validation.' })
+        setMessage({ type: 'success', text: t('bank_page.declaration_sent') })
         setSelectedSourceId('')
         setDecReason('')
         await refreshProfile()
@@ -255,7 +257,7 @@ export default function Bank() {
       })
       const data = await res.json()
       if (res.ok) {
-        setMessage({ type: 'success', text: 'Prime récupérée avec succès !' })
+        setMessage({ type: 'success', text: t('bank_page.bonus_success') })
         await refreshProfile()
         await loadTransactions()
         await loadPendingBonuses()
@@ -274,9 +276,9 @@ export default function Bank() {
       <div className="animate-slideIn">
         <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-3">
           <Wallet className="w-10 h-10 text-discord-blurple" />
-          Banque
+          {t('bank_page.title')}
         </h1>
-        <p className="text-discord-muted mt-1 font-medium">Gérez vos finances LunaVerse</p>
+        <p className="text-discord-muted mt-1 font-medium">{t('bank_page.subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -290,7 +292,7 @@ export default function Bank() {
               )}
             >
               <Send className="w-5 h-5" />
-              Virement
+              {t('bank_page.tab_send')}
             </button>
             <button
               onClick={() => setActiveTab('daily')}
@@ -300,7 +302,7 @@ export default function Bank() {
               )}
             >
               <Gift className="w-5 h-5" />
-              Récompenses
+              {t('bank_page.tab_rewards')}
             </button>
             <button
               onClick={() => setActiveTab('history')}
@@ -310,7 +312,7 @@ export default function Bank() {
               )}
             >
               <Clock className="w-5 h-5" />
-              Historique
+              {t('bank_page.tab_history')}
             </button>
             <button
               onClick={() => setActiveTab('declarations')}
@@ -320,7 +322,7 @@ export default function Bank() {
               )}
             >
               <FileText className="w-5 h-5" />
-              Déclarations
+              {t('bank_page.tab_declarations')}
             </button>
           </div>
 
@@ -330,14 +332,14 @@ export default function Bank() {
             <div className="relative z-10 flex flex-col h-full justify-between">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-[10px] uppercase tracking-widest text-white font-bold mb-0.5">Solde LunaVerse</p>
+                  <p className="text-[10px] uppercase tracking-widest text-white font-bold mb-0.5">{t('bank_page.balance_label')}</p>
                   <p className="text-3xl font-black text-white">{profile?.balance.toFixed(2)} €</p>
                 </div>
                 <div className="flex flex-col items-end">
-                   <div className="px-2 py-0.5 rounded-md bg-black/40 border border-white/10 text-[9px] font-black text-yellow-400 uppercase tracking-widest mb-2">PROFIL PREMIUM</div>
+                   <div className="px-2 py-0.5 rounded-md bg-black/40 border border-white/10 text-[9px] font-black text-yellow-400 uppercase tracking-widest mb-2">{t('bank_page.premium')}</div>
                    {(profile as any)?.dirty_balance > 0 && (
                      <div className="text-right">
-                       <p className="text-[9px] uppercase tracking-widest text-white font-bold">Argent Sale</p>
+                       <p className="text-[9px] uppercase tracking-widest text-white font-bold">{t('bank_page.dirty_money')}</p>
                        <p className="text-sm font-black text-red-400">{(profile as any).dirty_balance.toFixed(0)} €</p>
                      </div>
                    )}
@@ -346,7 +348,7 @@ export default function Bank() {
               <div>
                 <p className="font-mono text-lg tracking-[0.2em] text-white/90 mb-1">**** **** **** {(profile?.discord_id || '0000').slice(-4)}</p>
                 <div className="flex justify-between items-end">
-                  <p className="text-sm font-bold uppercase tracking-wider text-white">{profile?.username || 'Utilisateur'}</p>
+                  <p className="text-sm font-bold uppercase tracking-wider text-white">{profile?.username || t('bank_page.user')}</p>
                   <p className="text-xs font-black italic text-white">VISA</p>
                 </div>
               </div>
@@ -359,18 +361,18 @@ export default function Bank() {
             <div className="glass-card animate-fadeIn">
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-xl font-black text-white mb-1">Nouveau Virement</h3>
-                  <p className="text-sm text-discord-muted">Envoyez des fonds de manière sécurisée à un autre utilisateur.</p>
+                  <h3 className="text-xl font-black text-white mb-1">{t('bank_page.new_transfer')}</h3>
+                  <p className="text-sm text-discord-muted">{t('bank_page.transfer_desc')}</p>
                 </div>
                 <div className="space-y-4">
                   <div className="relative" data-recipient-picker>
-                    <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">Destinataire</label>
+                    <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">{t('bank_page.recipient')}</label>
                     <button
                       className="glass-input w-full flex items-center justify-between text-left focus:border-discord-blurple"
                       onClick={() => setRecipientPickerOpen(!recipientPickerOpen)}
                     >
                       <span className="truncate">
-                        {recipient ? recipient : 'Sélectionner un destinataire...'}
+                        {recipient ? recipient : t('bank_page.select_recipient')}
                       </span>
                       <ChevronDown className={clsx('w-4 h-4 transition-transform', recipientPickerOpen && 'rotate-180')} />
                     </button>
@@ -379,7 +381,7 @@ export default function Bank() {
                         <div className="sticky top-0 bg-discord-dark/95 p-2 border-b border-white/6 z-10">
                           <input
                             type="text"
-                            placeholder="Rechercher par pseudo..."
+                            placeholder={t('bank_page.search_by_name')}
                             className="glass-input w-full !py-1.5 !text-sm"
                             value={recipientSearch}
                             onChange={e => setRecipientSearch(e.target.value)}
@@ -389,7 +391,7 @@ export default function Bank() {
                         </div>
                         {recipientSuggestions.length === 0 ? (
                           <div className="p-4 text-center text-xs text-discord-muted italic">
-                            {recipientSearch.length < 2 ? 'Tapez au moins 2 caractères...' : 'Aucun utilisateur trouvé'}
+                            {recipientSearch.length < 2 ? t('bank_page.type_2_chars') : t('bank_page.no_user_found')}
                           </div>
                         ) : (
                           recipientSuggestions.map(u => (
@@ -412,7 +414,7 @@ export default function Bank() {
                     )}
                   </div>
                   <div>
-                    <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">Montant (€)</label>
+                    <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">{t('bank_page.amount')}</label>
                     <div className="relative">
                       <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-discord-muted" />
                       <input
@@ -439,7 +441,7 @@ export default function Bank() {
                     disabled={loading}
                     className="btn btn-primary w-full py-4 text-lg mt-4"
                   >
-                    {loading ? 'Traitement...' : 'Confirmer le virement'}
+                    {loading ? t('bank_page.processing') : t('bank_page.confirm_transfer')}
                   </button>
                 </div>
               </div>
@@ -448,7 +450,7 @@ export default function Bank() {
 
             {activeTab === 'history' && (
               <div className="glass-card animate-fadeIn">
-                <h3 className="text-xl font-black text-white mb-6">Historique des Transactions</h3>
+                <h3 className="text-xl font-black text-white mb-6">{t('bank_page.tx_history')}</h3>
                 <div className="space-y-3">
                   {transactions.length > 0 ? (
                     transactions.map((tx) => {
@@ -469,7 +471,7 @@ export default function Bank() {
                               <p className="text-white font-bold truncate">{displayDesc || tx.type}</p>
                               {isPending && (
                                 <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter bg-orange-500/20 text-orange-500 border border-orange-500/20">
-                                  ⏳ En attente
+                                  {t('bank_page.pending')}
                                 </span>
                               )}
                             </div>
@@ -491,7 +493,7 @@ export default function Bank() {
                   ) : (
                     <div className="p-12 text-center opacity-50">
                       <Clock className="w-12 h-12 mx-auto mb-4 text-discord-muted" />
-                      <p className="text-discord-muted font-bold text-sm">Aucune transaction trouvée.</p>
+                      <p className="text-discord-muted font-bold text-sm">{t('bank_page.no_tx')}</p>
                     </div>
                   )}
                 </div>
@@ -500,7 +502,7 @@ export default function Bank() {
 
           {activeTab === 'daily' && (
             <div className="glass-card animate-fadeIn">
-              <h3 className="text-xl font-black text-white mb-6">Récompenses disponibles</h3>
+              <h3 className="text-xl font-black text-white mb-6">{t('bank_page.rewards_title')}</h3>
               <div className="space-y-4">
                 {/* Admin/Manual Prizes */}
                 {pendingBonuses.map((bonus) => (
@@ -511,7 +513,7 @@ export default function Bank() {
                       </div>
                       <div>
                         <p className="text-white font-black">{bonus.reason}</p>
-                        <p className="text-xs text-discord-muted font-bold uppercase tracking-widest">Récompense exceptionnelle</p>
+                        <p className="text-xs text-discord-muted font-bold uppercase tracking-widest">{t('bank_page.exceptional_reward')}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -521,7 +523,7 @@ export default function Bank() {
                         disabled={loading}
                         className="btn btn-sm btn-primary"
                       >
-                        {loading ? '...' : 'Réclamer'}
+                        {loading ? '...' : t('bank_page.claim')}
                       </button>
                     </div>
                   </div>
@@ -534,9 +536,9 @@ export default function Bank() {
                       <Gift className="w-6 h-6 text-discord-success group-hover:text-discord-darker" />
                     </div>
                     <div>
-                      <p className="text-white font-black">Récompense Quotidienne</p>
+                      <p className="text-white font-black">{t('bank_page.daily_reward')}</p>
                       <p className="text-xs text-discord-muted font-bold uppercase tracking-widest">
-                        {canClaimDaily() ? 'Prêt à être récupéré' : `Prochain dans ${getTimeUntilDaily()}`}
+                        {canClaimDaily() ? t('bank_page.ready_to_claim') : t('bank_page.next_in').replace('{time}', getTimeUntilDaily())}
                       </p>
                     </div>
                   </div>
@@ -550,7 +552,7 @@ export default function Bank() {
                         canClaimDaily() ? "btn-success" : "btn-ghost opacity-50"
                       )}
                     >
-                      {canClaimDaily() ? 'Réclamer' : 'Attendre'}
+                      {canClaimDaily() ? t('bank_page.claim') : t('bank_page.wait')}
                     </button>
                   </div>
                 </div>
@@ -558,8 +560,8 @@ export default function Bank() {
                 {pendingBonuses.length === 0 && !canClaimDaily() && (
                    <div className="p-12 text-center opacity-50">
                      <Clock className="w-12 h-12 mx-auto mb-4 text-discord-muted" />
-                     <p className="text-white font-bold">Aucune autre récompense pour le moment</p>
-                     <p className="text-sm text-discord-muted">Revenez plus tard pour de nouveaux bonus !</p>
+                     <p className="text-white font-bold">{t('bank_page.no_more_rewards')}</p>
+                     <p className="text-sm text-discord-muted">{t('bank_page.come_back')}</p>
                    </div>
                 )}
               </div>
@@ -571,16 +573,16 @@ export default function Bank() {
           {activeTab === 'declarations' && (
             <div className="animate-fadeIn space-y-6">
               <div className="glass-card">
-                <h3 className="text-xl font-black text-white mb-2">Blanchiment & Déclarations</h3>
-                <p className="text-discord-muted text-sm mb-6">Sélectionnez une source de revenus non-déclarée pour la blanchir. Vous recevrez 100% de la somme après validation admin (sauf pénalité fiscale).</p>
+                <h3 className="text-xl font-black text-white mb-2">{t('bank_page.laundering_title')}</h3>
+                <p className="text-discord-muted text-sm mb-6">{t('bank_page.laundering_desc')}</p>
                 
                 <div className="space-y-6">
                   {/* Source Selection List */}
                   <div>
-                    <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-3 block">Winnings disponibles (Argent Sale)</label>
+                    <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-3 block">{t('bank_page.dirty_sources')}</label>
                     {dirtySources.length === 0 ? (
                       <div className="p-8 text-center rounded-2xl bg-white/3 border border-white/5 border-dashed">
-                        <p className="text-discord-muted text-sm font-bold">Aucun gain à blanchir pour le moment.</p>
+                        <p className="text-discord-muted text-sm font-bold">{t('bank_page.no_dirty')}</p>
                       </div>
                     ) : (
                       <div className="grid gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
@@ -620,9 +622,9 @@ export default function Bank() {
                   {selectedSourceId && (
                     <div className="space-y-4 animate-slideUp">
                       <div>
-                        <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">Justification (Storytelling RP)</label>
+                        <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">{t('bank_page.justification')}</label>
                         <textarea
-                          placeholder="Pourquoi avez-vous cet argent ? (Job d'appoint, don, vente d'objet...)"
+                          placeholder={t('bank_page.justification_placeholder')}
                           className="glass-input w-full min-h-[100px] py-4"
                           value={decReason}
                           onChange={(e) => setDecReason(e.target.value)}
@@ -643,7 +645,7 @@ export default function Bank() {
                         disabled={loading}
                         className="btn btn-warning w-full py-4 text-base shadow-xl shadow-discord-warning/10"
                       >
-                        {loading ? 'Soumission en cours...' : 'Soumettre le dossier aux autorités'}
+                        {loading ? t('bank_page.submitting') : t('bank_page.submit_case')}
                       </button>
                     </div>
                   )}
@@ -651,7 +653,7 @@ export default function Bank() {
               </div>
 
               <div className="glass-card p-2">
-                <h3 className="text-lg font-black text-white px-4 py-4">Demandes récentes</h3>
+                <h3 className="text-lg font-black text-white px-4 py-4">{t('bank_page.recent_requests')}</h3>
                 <div className="space-y-1">
                   {declarations.length > 0 ? (
                     declarations.map((dec) => (
@@ -680,16 +682,16 @@ export default function Bank() {
                             dec.status === 'refused' ? "text-discord-error" : 
                             "text-discord-warning"
                           )}>
-                            {dec.status === 'accepted' ? 'Validé' : 
-                             dec.status === 'refused' ? 'Refusé' : 
-                             'En attente'}
+                            {dec.status === 'accepted' ? t('bank_page.validated') : 
+                             dec.status === 'refused' ? t('bank_page.refused') : 
+                             t('bank_page.pending_status')}
                           </p>
                         </div>
                       </div>
                     ))
                   ) : (
                     <div className="p-12 text-center opacity-50">
-                      <p className="text-discord-muted font-bold text-sm">Aucune déclaration trouvée.</p>
+                      <p className="text-discord-muted font-bold text-sm">{t('bank_page.no_declarations')}</p>
                     </div>
                   )}
                 </div>

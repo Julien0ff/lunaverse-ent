@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import Image from 'next/image'
 import {
   Globe, Send, MessageSquare, Heart, Bold, Italic,
@@ -81,6 +82,7 @@ function ToolbarBtn({
 
 export default function SocialPage() {
   const { profile } = useAuth()
+  const { t } = useLanguage()
   const [posts, setPosts] = useState<Post[]>([])
   const [content, setContent] = useState('')
   const [commentingPostId, setCommentingPostId] = useState<string | null>(null)
@@ -200,7 +202,7 @@ export default function SocialPage() {
       }
     } catch (err) {
       console.error('Error post creation:', err)
-      alert('Erreur lors de la création du post.')
+      alert(t('social_page.post_error'))
     } finally {
       setPosting(false)
       setUploading(false)
@@ -306,10 +308,10 @@ export default function SocialPage() {
       <div className="animate-slideIn">
         <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-3">
           <Globe className="w-10 h-10 text-discord-blurple" />
-          Réseau Social
+          {t('social_page.title')}
         </h1>
         <p className="text-discord-muted mt-1 font-medium">
-          Exprimez-vous et connectez-vous avec la communauté.
+          {t('social_page.subtitle')}
         </p>
       </div>
 
@@ -326,7 +328,7 @@ export default function SocialPage() {
           </div>
           <div>
             <p className="text-sm font-bold text-white">{(profile as any)?.nickname_rp || profile?.username || 'Vous'}</p>
-            <p className="text-[11px] text-discord-muted">Partager quelque chose…</p>
+            <p className="text-[11px] text-discord-muted">{t('social_page.share')}</p>
           </div>
           {/* Preview toggle */}
           <button
@@ -336,7 +338,7 @@ export default function SocialPage() {
               preview ? 'bg-discord-blurple/20 text-discord-blurple' : 'bg-white/5 text-discord-muted hover:text-white'
             )}
           >
-            {preview ? 'Éditer' : 'Aperçu'}
+            {preview ? t('social_page.edit') : t('social_page.preview')}
           </button>
         </div>
 
@@ -381,7 +383,7 @@ export default function SocialPage() {
         {preview ? (
           <div
             className="min-h-[100px] p-3 rounded-xl bg-white/3 border border-white/6 text-white text-sm leading-relaxed discord-content"
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(content || '_Rien à prévisualiser_') }}
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(content || t('social_page.nothing_preview')) }}
           />
         ) : (
           <textarea
@@ -420,7 +422,7 @@ export default function SocialPage() {
             {charCount} / {maxChars}
           </span>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-discord-muted hidden sm:block">Ctrl+Enter pour publier</span>
+            <span className="text-xs text-discord-muted hidden sm:block">{t('social_page.ctrl_enter')}</span>
             <button
               onClick={handlePost}
               disabled={!content.trim() || posting}
@@ -430,7 +432,7 @@ export default function SocialPage() {
               {posting ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <><Send className="w-4 h-4" /> Publier</>
+                <><Send className="w-4 h-4" /> {t('social_page.publish')}</>
               )}
             </button>
           </div>
@@ -460,8 +462,8 @@ export default function SocialPage() {
         {!loading && posts.length === 0 && (
           <div className="text-center py-16 animate-fadeIn">
             <div className="text-5xl mb-4">💬</div>
-            <p className="text-white font-bold">Aucun post pour le moment</p>
-            <p className="text-discord-muted text-sm mt-1">Soyez le premier à publier !</p>
+            <p className="text-white font-bold">{t('social_page.no_posts')}</p>
+            <p className="text-discord-muted text-sm mt-1">{t('social_page.be_first')}</p>
           </div>
         )}
 
@@ -532,7 +534,7 @@ export default function SocialPage() {
               >
                 <MessageSquare className="w-4 h-4" />
                 {(post.comments_count ?? 0) > 0 && <span>{post.comments_count}</span>}
-                Commenter
+                {t('social_page.comment')}
               </button>
             </div>
 
@@ -562,7 +564,7 @@ export default function SocialPage() {
                     </div>
                   ))}
                   {(!comments[post.id] || comments[post.id].length === 0) && (
-                    <p className="text-center text-xs text-discord-muted py-2 italic">Aucun commentaire pour le moment.</p>
+                    <p className="text-center text-xs text-discord-muted py-2 italic">{t('social_page.no_comments')}</p>
                   )}
                 </div>
 
@@ -580,7 +582,7 @@ export default function SocialPage() {
                       type="text"
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
-                      placeholder="Ajouter un commentaire..."
+                      placeholder={t('social_page.add_comment')}
                       className="glass-input !py-2 !text-sm pr-10"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleComment(post.id)

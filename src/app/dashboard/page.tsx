@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { useState, useEffect } from 'react'
 import { Wallet, TrendingUp, Gift, ArrowUpRight, ArrowDownRight, History, Users, Trophy } from 'lucide-react'
 import Link from 'next/link'
@@ -17,6 +18,7 @@ interface Transaction {
 
 export default function Dashboard() {
   const { profile, roles, refreshProfile } = useAuth()
+  const { t } = useLanguage()
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [claiming, setClaiming] = useState(false)
@@ -72,7 +74,7 @@ export default function Dashboard() {
       const data = await response.json()
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Récompense récupérée ! (+50€)' })
+        setMessage({ type: 'success', text: t('dashboard.reward_success') })
         await refreshProfile()
         // Refresh transactions locally to show the new one
         const txResponse = await fetch('/api/bank/transactions')
@@ -98,9 +100,9 @@ export default function Dashboard() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="animate-slideIn">
           <h1 className="text-4xl font-black text-white tracking-tight leading-none">
-            Salut{profile?.username ? <>, <span className="text-discord-blurple">{profile.username}</span></> : ''} !
+            {t('dashboard.greeting')}{profile?.username ? <>, <span className="text-discord-blurple">{profile.username}</span></> : ''} !
           </h1>
-          <p className="text-discord-muted mt-2 font-medium">Bon retour sur l&apos;ENT LunaVerse.</p>
+          <p className="text-discord-muted mt-2 font-medium">{t('dashboard.welcome_back')}</p>
         </div>
       </div>
 
@@ -113,7 +115,7 @@ export default function Dashboard() {
           </div>
 
           <div className="relative z-10">
-            <p className="text-discord-muted text-xs font-black uppercase tracking-[0.2em] mb-2">Solde LunaVerse</p>
+            <p className="text-discord-muted text-xs font-black uppercase tracking-[0.2em] mb-2">{t('dashboard.balance_label')}</p>
             <h2 className="text-6xl font-black text-white tracking-tighter">
               {profile?.balance.toFixed(0)} <span className="text-2xl text-discord-blurple">€</span>
             </h2>
@@ -122,11 +124,11 @@ export default function Dashboard() {
           <div className="relative z-10 flex gap-4 mt-8">
             <Link href="/bank" className="btn btn-primary flex-1 py-4 text-lg">
               <ArrowUpRight className="w-5 h-5" />
-              Transférer
+              {t('dashboard.transfer')}
             </Link>
             <Link href="/bank" className="btn btn-ghost flex-1 py-4 text-lg">
               <History className="w-5 h-5" />
-              Historique
+              {t('dashboard.history')}
             </Link>
           </div>
         </div>
@@ -136,7 +138,7 @@ export default function Dashboard() {
           <div className="glass-card border-discord-blurple/20 flex-1">
             <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest mb-4 flex items-center gap-2">
               <Users className="w-4 h-4 text-discord-blurple" />
-              Sur le site ({socialData.onlineUsers.length})
+              {t('dashboard.online_users').replace('{count}', socialData.onlineUsers.length.toString())}
             </h3>
             <div className="flex flex-wrap gap-2">
               {socialData.onlineUsers.length > 0 ? socialData.onlineUsers.map(u => (
@@ -159,7 +161,7 @@ export default function Dashboard() {
                   </div>
                 </Link>
               )) : (
-                <p className="text-[10px] text-discord-muted italic">Seul au monde...</p>
+                <p className="text-[10px] text-discord-muted italic">{t('dashboard.alone')}</p>
               )}
             </div>
           </div>
@@ -172,7 +174,7 @@ export default function Dashboard() {
                     <Gift className="w-5 h-5 text-discord-success group-hover:text-discord-darker" />
                  </div>
                  <div>
-                    <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest">Daily</p>
+                    <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest">{t('dashboard.daily_reward')}</p>
                     <p className="text-sm font-black text-white">50 €</p>
                  </div>
                </div>
@@ -184,7 +186,7 @@ export default function Dashboard() {
                    canClaimDaily() ? "bg-discord-success text-discord-darker hover:scale-105 shadow-lg shadow-discord-success/20" : "bg-white/5 text-discord-muted opacity-50"
                  )}
                >
-                 {claiming ? "..." : canClaimDaily() ? "Réclamer" : "Pris"}
+                 {claiming ? "..." : canClaimDaily() ? t('dashboard.claim') : t('dashboard.claimed')}
                </button>
              </div>
           </div>
@@ -194,15 +196,15 @@ export default function Dashboard() {
       {/* Stats, Activity & Survival */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 space-y-4">
-          <h3 className="text-xs font-black text-discord-muted uppercase tracking-[0.2em] px-2">État Physique (Survie)</h3>
+          <h3 className="text-xs font-black text-discord-muted uppercase tracking-[0.2em] px-2">{t('dashboard.survival_state')}</h3>
           <div className="glass-card p-4 space-y-3">
             {[
-              { id: 'health',  icon: '❤️', label: 'Santé',       value: profile?.health  ?? 100, color: 'bg-discord-error' },
-              { id: 'hunger',  icon: '🍔', label: 'Faim',        value: profile?.hunger  ?? 100, color: 'bg-orange-500' },
-              { id: 'thirst',  icon: '💧', label: 'Soif',        value: profile?.thirst  ?? 100, color: 'bg-blue-400' },
-              { id: 'fatigue', icon: '😴', label: 'Fatigue',     value: profile?.fatigue ?? 100, color: 'bg-indigo-400' },
-              { id: 'hygiene', icon: '🧴', label: 'Hygiène',     value: profile?.hygiene ?? 100, color: 'bg-teal-400' },
-              { id: 'alcohol', icon: '🍺', label: 'Alcoolémie',  value: profile?.alcohol ?? 0,   color: 'bg-green-500', max: 100 }
+              { id: 'health',  icon: '❤️', label: t('dashboard.stats.health'),       value: profile?.health  ?? 100, color: 'bg-discord-error' },
+              { id: 'hunger',  icon: '🍔', label: t('dashboard.stats.hunger'),        value: profile?.hunger  ?? 100, color: 'bg-orange-500' },
+              { id: 'thirst',  icon: '💧', label: t('dashboard.stats.thirst'),        value: profile?.thirst  ?? 100, color: 'bg-blue-400' },
+              { id: 'fatigue', icon: '😴', label: t('dashboard.stats.fatigue'),     value: profile?.fatigue ?? 100, color: 'bg-indigo-400' },
+              { id: 'hygiene', icon: '🧴', label: t('dashboard.stats.hygiene'),     value: profile?.hygiene ?? 100, color: 'bg-teal-400' },
+              { id: 'alcohol', icon: '🍺', label: t('dashboard.stats.alcohol'),  value: profile?.alcohol ?? 0,   color: 'bg-green-500', max: 100 }
             ].map(stat => (
               <div key={stat.id} className="space-y-1">
                 <div className="flex justify-between items-end">
@@ -219,7 +221,7 @@ export default function Dashboard() {
             ))}
           </div>
 
-          <h3 className="text-xs font-black text-discord-muted uppercase tracking-[0.2em] px-2 mt-8">Classement (Top Fortune)</h3>
+          <h3 className="text-xs font-black text-discord-muted uppercase tracking-[0.2em] px-2 mt-8">{t('dashboard.leaderboard')}</h3>
           <div className="glass-card p-0 overflow-hidden border-[#FEE75C33]">
             {socialData.leaderboard.map((user, i) => (
               <div 
@@ -246,8 +248,8 @@ export default function Dashboard() {
 
         <div className="lg:col-span-2 space-y-4">
           <h3 className="text-xs font-black text-discord-muted uppercase tracking-[0.2em] px-2 flex items-center justify-between">
-            Activité récente
-            <Link href="/bank" className="text-discord-blurple hover:underline normal-case tracking-normal text-[11px]">Voir tout</Link>
+            {t('dashboard.recent_activity')}
+            <Link href="/bank" className="text-discord-blurple hover:underline normal-case tracking-normal text-[11px]">{t('dashboard.see_all')}</Link>
           </h3>
           <div className="glass-card p-2 space-y-1">
             {recentTransactions.length > 0 ? (
@@ -277,7 +279,7 @@ export default function Dashboard() {
               ))
             ) : (
               <div className="p-8 text-center">
-                <p className="text-discord-muted text-sm font-medium">Aucune activité récente.</p>
+                <p className="text-discord-muted text-sm font-medium">{t('dashboard.no_activity')}</p>
               </div>
             )}
           </div>

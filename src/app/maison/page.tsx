@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { Home, Plus, Users, ShieldAlert, CheckCircle2, Clock, Trash2, UserPlus, Settings2, Info } from 'lucide-react'
 import clsx from 'clsx'
 import Image from 'next/image'
 
 export default function MaisonPage() {
   const { profile } = useAuth()
+  const { t } = useLanguage()
   const [house, setHouse] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [requestName, setRequestName] = useState('')
@@ -43,7 +45,7 @@ export default function MaisonPage() {
       })
       const data = await res.json()
       if (res.ok) {
-        setMsg({ type: 'success', text: 'Demande envoyée avec succès !' })
+        setMsg({ type: 'success', text: t('maison_page.request_sent') })
         loadHouse()
       } else {
         setMsg({ type: 'error', text: data.error || 'Erreur' })
@@ -91,9 +93,9 @@ export default function MaisonPage() {
       <div className="animate-slideIn mb-8">
         <h1 className="text-4xl font-black text-white flex items-center gap-4 tracking-tighter">
           <Home className="text-discord-blurple w-10 h-10" />
-          Ma Maison
+          {t('maison_page.title')}
         </h1>
-        <p className="text-discord-muted mt-2">Gérez votre propriété privée et vos accès.</p>
+        <p className="text-discord-muted mt-2">{t('maison_page.subtitle')}</p>
       </div>
 
       {msg && (
@@ -173,7 +175,7 @@ export default function MaisonPage() {
                 )}
               >
                 <Info className="w-5 h-5" />
-                Informations
+                {t('maison_page.tab_info')}
               </button>
               <button 
                 onClick={() => setActiveTab('members')}
@@ -183,7 +185,7 @@ export default function MaisonPage() {
                 )}
               >
                 <Users className="w-5 h-5" />
-                Résidents & Accès
+                {t('maison_page.tab_members')}
               </button>
               <button 
                 onClick={() => setActiveTab('settings')}
@@ -193,7 +195,7 @@ export default function MaisonPage() {
                 )}
               >
                 <Settings2 className="w-5 h-5" />
-                Aménagements
+                {t('maison_page.tab_settings')}
               </button>
             </div>
 
@@ -204,7 +206,7 @@ export default function MaisonPage() {
                   <CheckCircle2 className="w-6 h-6 text-discord-success" />
                 </div>
                 <div>
-                  <p className="text-white font-black">Actif</p>
+                  <p className="text-white font-black">{t('maison_page.approved')}</p>
                   <p className="text-[10px] text-discord-muted">ID: {house.discord_channel_id || 'N/A'}</p>
                 </div>
               </div>
@@ -242,7 +244,7 @@ export default function MaisonPage() {
               <div className="space-y-6 animate-fadeIn">
                 <div className="glass-card p-8">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                    <h3 className="text-xl font-black text-white">Whitelist (Accès autorisés)</h3>
+                    <h3 className="text-xl font-black text-white">{t('maison_page.whitelist')}</h3>
                     <div className="flex gap-2">
                       <input 
                         type="text" 
@@ -254,7 +256,7 @@ export default function MaisonPage() {
                       <button 
                         onClick={() => updateList('whitelist', 'add', newWhitelistId)}
                         className="btn bg-discord-blurple hover:bg-discord-blurple-dark text-white px-4 py-2 text-xs flex items-center gap-2 shrink-0">
-                        <UserPlus className="w-4 h-4" /> Ajouter
+                        <UserPlus className="w-4 h-4" /> {t('maison_page.add')}
                       </button>
                     </div>
                   </div>
@@ -280,7 +282,7 @@ export default function MaisonPage() {
 
                 <div className="glass-card p-8 border-discord-error/20">
                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                     <h3 className="text-xl font-black text-discord-error">Blacklist (Interdits)</h3>
+                     <h3 className="text-xl font-black text-discord-error">{t('maison_page.blacklist')}</h3>
                      <div className="flex gap-2">
                       <input 
                         type="text" 
@@ -292,7 +294,7 @@ export default function MaisonPage() {
                       <button 
                         onClick={() => updateList('blacklist', 'add', newBlacklistId)}
                         className="btn bg-discord-error hover:bg-red-600 text-white px-4 py-2 text-xs flex items-center gap-2 shrink-0">
-                        <UserPlus className="w-4 h-4" /> Ajouter
+                        <UserPlus className="w-4 h-4" /> {t('maison_page.add')}
                       </button>
                     </div>
                    </div>

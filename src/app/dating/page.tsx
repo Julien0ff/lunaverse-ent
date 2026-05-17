@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import Image from 'next/image'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { Heart, X, Flame, Sparkles, MessageCircle, AlertCircle } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -19,6 +20,7 @@ interface DatingProfile {
 
 export default function Dating() {
   const { profile } = useAuth()
+  const { t } = useLanguage()
   const [profiles, setProfiles] = useState<DatingProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -44,7 +46,7 @@ export default function Dating() {
       }
     } catch (e) {
       console.error(e)
-      setErrorMsg('Erreur lors du chargement des profils')
+      setErrorMsg(t('dating_page.loading_error'))
     } finally {
       setLoading(false)
     }
@@ -67,7 +69,7 @@ export default function Dating() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dating_photo_url: datingPhotos[0] || null, dating_photos: datingPhotos, dating_bio: datingBio })
       })
-      setErrorMsg('Profil sauvegardé ! 🎉')
+      setErrorMsg(t('dating_page.profile_saved'))
       setTimeout(() => setErrorMsg(null), 3000)
     } finally {
       setSavingProfile(false)
@@ -83,7 +85,7 @@ export default function Dating() {
       const data = await res.json()
       if (res.ok) {
         setDatingPhotos(prev => [...prev, data.url])
-        setErrorMsg('Photo ajoutée ! 🎨')
+        setErrorMsg(t('dating_page.photo_added'))
         setTimeout(() => setErrorMsg(null), 3000)
       } else {
         setErrorMsg(data.error || 'Erreur upload')
@@ -150,14 +152,14 @@ export default function Dating() {
         <h1 className="text-3xl font-black text-rose-500 flex items-center justify-center gap-2 tracking-tight">
           <Flame className="w-8 h-8 fill-rose-500" /> Luna Match
         </h1>
-        <p className="text-discord-muted text-sm mt-1 uppercase tracking-widest font-bold">Trouvez votre moitié RP</p>
+        <p className="text-discord-muted text-sm mt-1 uppercase tracking-widest font-bold">{t('dating_page.subtitle')}</p>
         
         <div className="flex bg-white/5 rounded-xl p-1 mt-4">
            <button onClick={() => setTab('swipe')} className={clsx("px-4 py-1.5 rounded-lg text-sm font-bold transition-all", tab === 'swipe' ? "bg-rose-500 text-white" : "text-discord-muted hover:text-white")}>
-             Swiper
+             {t('dating_page.tab_swipe')}
            </button>
            <button onClick={() => setTab('profile')} className={clsx("px-4 py-1.5 rounded-lg text-sm font-bold transition-all", tab === 'profile' ? "bg-rose-500 text-white" : "text-discord-muted hover:text-white")}>
-             Mon Profil
+             {t('dating_page.tab_profile')}
            </button>
         </div>
       </div>
@@ -169,14 +171,14 @@ export default function Dating() {
               C&apos;EST UN MATCH !
             </h2>
             <p className="text-white/80 text-lg sm:text-xl font-medium mb-8">
-              Toi et <span className="font-bold text-white">{matchPopup.username}</span> avez liké vos profils respectifs.
+              {t('dating_page.match_desc').replace('{name}', matchPopup.username)}
             </p>
             <div className="flex flex-col gap-4">
               <button 
                 onClick={() => setMatchPopup(null)}
                 className="btn bg-rose-500 hover:bg-rose-600 text-white font-black py-4 px-8 rounded-full shadow-lg shadow-rose-500/50 flex items-center gap-3 mx-auto"
               >
-                <MessageCircle className="w-5 h-5" /> Parler dans l&apos;onglet Amis
+                <MessageCircle className="w-5 h-5" /> {t('dating_page.talk_friends')}
               </button>
             </div>
           </div>
@@ -186,13 +188,13 @@ export default function Dating() {
       {tab === 'profile' ? (
         <div className="flex-1 flex flex-col items-center max-w-sm mx-auto w-full animate-fadeIn">
            <div className="glass-card w-full space-y-5">
-             <h2 className="text-xl font-black text-white">Mon Profil Dating</h2>
-             <p className="text-sm text-discord-muted">Pour apparaître et trouver des profils, ajoutez au moins une photo et une bio pour Luna Match (opt-in).</p>
+             <h2 className="text-xl font-black text-white">{t('dating_page.my_dating_profile')}</h2>
+             <p className="text-sm text-discord-muted">{t('dating_page.dating_desc')}</p>
 
              {/* Photo upload */}
              <div>
                <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block flex justify-between">
-                 <span>Photos de profil</span>
+                 <span>{t('dating_page.profile_photos')}</span>
                  <span>{datingPhotos.length}/5</span>
                </label>
                
@@ -222,7 +224,7 @@ export default function Dating() {
                      : 'border-white/15 text-discord-muted hover:border-rose-500/50 hover:text-rose-400'
                  )}>
                    <span className="text-xl">📸</span>
-                   <span className="text-center">{uploadingPhoto ? 'Upload en cours...' : 'Ajouter une photo'}</span>
+                   <span className="text-center">{uploadingPhoto ? t('dating_page.uploading') : t('dating_page.add_photo')}</span>
                    <span className="text-[10px] opacity-60">JPG, PNG, WEBP max 5 Mo</span>
                    <input
                      type="file" className="hidden" accept="image/*"
@@ -238,23 +240,23 @@ export default function Dating() {
 
              {/* Bio */}
              <div>
-               <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-1 block">Bio Luna Match</label>
-               <textarea placeholder="Petite bio..." className="glass-input text-sm" rows={3} value={datingBio} onChange={e => setDatingBio(e.target.value)} />
+               <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-1 block">{t('dating_page.bio_label')}</label>
+               <textarea placeholder={t('dating_page.bio_placeholder')} className="glass-input text-sm" rows={3} value={datingBio} onChange={e => setDatingBio(e.target.value)} />
              </div>
 
              <button onClick={saveDatingProfile} disabled={savingProfile} className="btn bg-rose-500 hover:bg-rose-600 text-white w-full shadow-lg shadow-rose-500/20">
-               {savingProfile ? 'Chargement...' : 'Sauvegarder mon profil'}
+               {savingProfile ? t('dating_page.saving') : t('dating_page.save_profile')}
              </button>
 
              {/* Reset */}
              <div className="border-t border-white/8 pt-4">
-               <p className="text-xs text-discord-muted mb-2">Vous avez vu tous les profils ? Réinitialisez pour recommencer.</p>
+               <p className="text-xs text-discord-muted mb-2">{t('dating_page.reset_desc')}</p>
                <button
                  onClick={resetSeenProfiles}
                  disabled={resetting}
                  className="btn bg-white/5 hover:bg-white/10 text-discord-muted hover:text-white w-full text-sm"
                >
-                 {resetting ? 'Réinitialisation...' : '🔄 Réinitialiser les profils RENCONTRE'}
+                 {resetting ? t('dating_page.resetting') : t('dating_page.reset_btn')}
                </button>
              </div>
 
@@ -267,7 +269,7 @@ export default function Dating() {
             <Heart className="w-full h-full text-rose-500/20" />
             <Sparkles className="w-10 h-10 text-rose-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-bounce" />
           </div>
-          <p className="font-bold text-discord-muted uppercase tracking-widest animate-pulse">Recherche en cours...</p>
+          <p className="font-bold text-discord-muted uppercase tracking-widest animate-pulse">{t('dating_page.searching')}</p>
         </div>
       ) : currentProfile ? (
         <div className="flex-1 flex flex-col items-center max-w-sm mx-auto w-full relative h-[60vh] max-h-[600px] perspective-1000">
@@ -324,7 +326,7 @@ export default function Dating() {
                 <div className="mt-2 text-xs font-bold text-discord-error">{errorMsg}</div>
               )}
               <div className="flex items-center gap-2 mb-3 text-sm text-rose-200">
-                <AlertCircle className="w-4 h-4" /> RP Uniquement
+                <AlertCircle className="w-4 h-4" /> {t('dating_page.rp_only')}
               </div>
               {(currentProfile.dating_bio || currentProfile.bio) && (
                 <p className="text-white/80 font-medium leading-relaxed">{currentProfile.dating_bio || currentProfile.bio}</p>
@@ -353,8 +355,8 @@ export default function Dating() {
           <div className="w-32 h-32 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
             <Heart className="w-12 h-12 text-discord-muted" />
           </div>
-          <h2 className="text-xl font-black text-white mb-2">Plus de profils</h2>
-          <p className="text-discord-muted">Revenez plus tard pour découvrir d&apos;autres personnes.</p>
+          <h2 className="text-xl font-black text-white mb-2">{t('dating_page.no_more')}</h2>
+          <p className="text-discord-muted">{t('dating_page.no_more_desc')}</p>
         </div>
       )}
     </div>

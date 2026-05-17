@@ -1,12 +1,14 @@
 'use client'
 
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { Utensils, QrCode, CalendarClock, ChevronRight, CheckCircle2, Clock, AlertCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import clsx from 'clsx'
 
 export default function Cantine() {
   const { profile, roles, refreshProfile } = useAuth()
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(false)
   const [purchasing, setPurchasing] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -49,11 +51,11 @@ export default function Cantine() {
       if (response.ok) {
         await refreshProfile()
       } else {
-        setErrorMsg(data.error || 'Erreur lors de la souscription')
+        setErrorMsg(data.error || t('cantine_page.sub_error'))
         setTimeout(() => setErrorMsg(null), 4000)
       }
     } catch (e) {
-      setErrorMsg('Erreur de connexion')
+      setErrorMsg(t('cantine_page.connection_error'))
       setTimeout(() => setErrorMsg(null), 4000)
     } finally {
       setPurchasing(false)
@@ -92,11 +94,11 @@ export default function Cantine() {
       if (response.ok) {
         await refreshProfile()
       } else {
-        setErrorMsg(data.error || 'Erreur lors de la résiliation')
+        setErrorMsg(data.error || t('cantine_page.unsub_error'))
         setTimeout(() => setErrorMsg(null), 4000)
       }
     } catch (e) {
-      setErrorMsg('Erreur de connexion')
+      setErrorMsg(t('cantine_page.connection_error'))
       setTimeout(() => setErrorMsg(null), 4000)
     } finally {
       setPurchasing(false)
@@ -110,13 +112,13 @@ export default function Cantine() {
           <div>
             <h1 className="text-4xl sm:text-5xl font-black text-white flex items-center gap-4 tracking-tighter">
               <Utensils className="text-orange-500 w-10 h-10 sm:w-12 sm:h-12 drop-shadow-[0_0_15px_rgba(249,115,22,0.4)]" />
-              Cantine LunaVerse
+              {t('cantine_page.title')}
             </h1>
-            <p className="text-discord-muted mt-2 text-lg font-medium">Gérez vos repas et vos abonnements au réfectoire.</p>
+            <p className="text-discord-muted mt-2 text-lg font-medium">{t('cantine_page.subtitle')}</p>
           </div>
           {hasSubscription && (
             <div className="bg-discord-success/10 text-discord-success px-4 py-2 rounded-2xl border border-discord-success/20 flex items-center gap-2 font-black text-xs uppercase tracking-widest h-fit">
-              <CheckCircle2 className="w-4 h-4" /> Abonnement Actif
+              <CheckCircle2 className="w-4 h-4" /> {t('cantine_page.active_sub')}
             </div>
           )}
         </div>
@@ -137,14 +139,14 @@ export default function Cantine() {
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   {isCurrentlyServing() ? (
-                    <span className="text-[10px] font-black bg-orange-500 text-white px-3 py-1 rounded-full uppercase tracking-[0.2em] animate-pulse">Service en cours</span>
+                    <span className="text-[10px] font-black bg-orange-500 text-white px-3 py-1 rounded-full uppercase tracking-[0.2em] animate-pulse">{t('cantine_page.service_ongoing')}</span>
                   ) : (
-                    <span className="text-[10px] font-black bg-white/10 text-discord-muted px-3 py-1 rounded-full uppercase tracking-[0.2em]">Service terminé / À venir</span>
+                    <span className="text-[10px] font-black bg-white/10 text-discord-muted px-3 py-1 rounded-full uppercase tracking-[0.2em]">{t('cantine_page.service_ended')}</span>
                   )}
-                  <span className="text-[10px] font-black bg-white/10 text-white/60 px-3 py-1 rounded-full uppercase tracking-[0.2em]">Aujourd&apos;hui</span>
+                  <span className="text-[10px] font-black bg-white/10 text-white/60 px-3 py-1 rounded-full uppercase tracking-[0.2em]">{t('cantine_page.today')}</span>
                 </div>
                 <h2 className="text-4xl sm:text-6xl font-black text-white tracking-tighter">
-                  Menu du Jour
+                  {t('cantine_page.daily_menu')}
                 </h2>
               </div>
               <div className="flex items-center gap-4 bg-black/40 backdrop-blur-xl p-4 rounded-3xl border border-white/5 shadow-2xl">
@@ -152,7 +154,7 @@ export default function Cantine() {
                   <Clock className="w-6 h-6 text-orange-500" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest">Horaires du service</p>
+                  <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest">{t('cantine_page.service_hours')}</p>
                   <p className="text-xl font-bold text-white tracking-tight">{activeMenu.time_start.slice(0, 5)} — {activeMenu.time_end.slice(0, 5)}</p>
                 </div>
               </div>
@@ -162,7 +164,7 @@ export default function Cantine() {
                {activeMenu.starter && (
                  <div className="p-6 rounded-3xl bg-white/[0.03] border border-white/5">
                     <p className="text-[9px] font-black text-discord-muted uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
-                      <span className="w-1 h-1 rounded-full bg-discord-muted" /> Entrée
+                      <span className="w-1 h-1 rounded-full bg-discord-muted" /> {t('cantine_page.starter')}
                     </p>
                     <div className="text-lg font-bold text-white leading-tight space-y-1">
                       {activeMenu.starter.split('\n').map((line: string, i: number) => (
@@ -176,7 +178,7 @@ export default function Cantine() {
                )}
                <div className="p-6 rounded-3xl bg-orange-500/10 border border-orange-500/20">
                   <p className="text-[9px] font-black text-orange-500 uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
-                    <span className="w-1 h-1 rounded-full bg-orange-500" /> Plat Principal
+                    <span className="w-1 h-1 rounded-full bg-orange-500" /> {t('cantine_page.main_course')}
                   </p>
                   <div className="text-xl font-black text-white leading-tight space-y-1">
                     {activeMenu.main.split('\n').map((line: string, i: number) => (
@@ -190,7 +192,7 @@ export default function Cantine() {
                {activeMenu.side && (
                  <div className="p-6 rounded-3xl bg-white/[0.03] border border-white/5">
                     <p className="text-[9px] font-black text-orange-400 uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
-                      <span className="w-1 h-1 rounded-full bg-orange-400" /> Accompagnement
+                      <span className="w-1 h-1 rounded-full bg-orange-400" /> {t('cantine_page.side')}
                     </p>
                     <div className="text-lg font-bold text-white leading-tight space-y-1">
                       {activeMenu.side.split('\n').map((line: string, i: number) => (
@@ -251,25 +253,25 @@ export default function Cantine() {
             <QrCode className="w-full h-full text-black" />
           </div>
           
-          <h2 className="text-2xl font-black text-white mb-2">Carte {mainRoleName}</h2>
+          <h2 className="text-2xl font-black text-white mb-2">{t('cantine_page.card').replace('{role}', mainRoleName)}</h2>
           <p className="text-discord-muted font-mono tracking-[0.2em]">{profile?.discord_id || '0000000000'}</p>
           
           <div className="mt-6 w-full flex flex-col gap-2">
             {!hasSubscription ? (
               <div className="bg-discord-error/10 text-discord-error p-3 rounded-xl font-bold border border-discord-error/20 flex items-center justify-center gap-2">
-                Aucun abonnement actif
+                {t('cantine_page.no_sub')}
               </div>
             ) : (
                <>
                  <div className="bg-discord-success/10 text-discord-success p-3 rounded-xl font-bold border border-discord-success/20 flex items-center justify-center gap-2 text-lg">
-                   <CheckCircle2 className="w-5 h-5" /> PASS REPAS ACTIF
+                   <CheckCircle2 className="w-5 h-5" /> {t('cantine_page.meal_pass_active')}
                  </div>
                  <button 
                     onClick={handleUnsubscribe}
                     disabled={purchasing}
                     className="mt-2 text-sm text-discord-muted hover:text-discord-error transition-colors underline decoration-discord-error/50 underline-offset-4"
                   >
-                    Résilier l&apos;abonnement
+                    {t('cantine_page.cancel_sub')}
                  </button>
                </>
             )}
@@ -279,7 +281,7 @@ export default function Cantine() {
         {/* Abonnements */}
         <div className="space-y-4">
           <h3 className="text-lg font-black text-white flex items-center gap-2">
-            <CalendarClock className="w-5 h-5 text-orange-500" /> Options d&apos;Abonnement
+            <CalendarClock className="w-5 h-5 text-orange-500" /> {t('cantine_page.sub_options')}
           </h3>
           
           <div className={clsx(
@@ -290,11 +292,11 @@ export default function Cantine() {
           )}>
             {profile?.canteen_subscription === 'weekly' && (
               <div className="absolute top-2 right-2 bg-orange-500 text-white text-[10px] uppercase font-black tracking-widest px-2 py-0.5 rounded-full">
-                Actuel
+                {t('cantine_page.current')}
               </div>
             )}
-            <h4 className="text-xl font-black text-white mb-1">Pass Hebdomadaire</h4>
-            <p className="text-discord-muted text-sm mb-4">Accès illimité à la cantine pendant 7 jours.</p>
+            <h4 className="text-xl font-black text-white mb-1">{t('cantine_page.weekly_pass')}</h4>
+            <p className="text-discord-muted text-sm mb-4">{t('cantine_page.weekly_desc')}</p>
             <div className="flex justify-between items-end">
               <span className="text-3xl font-black text-orange-400">45€</span>
               {!hasSubscription ? (
@@ -303,7 +305,7 @@ export default function Cantine() {
                   disabled={purchasing}
                   className="btn btn-primary text-sm py-2 px-4 bg-orange-500 hover:bg-orange-400 shadow-lg shadow-orange-500/30"
                 >
-                  {purchasing ? 'Chargement...' : 'Souscrire →'}
+                  {purchasing ? t('cantine_page.loading') : t('cantine_page.subscribe')}
                 </button>
               ) : profile?.canteen_subscription !== 'weekly' ? (
                 <button
@@ -311,7 +313,7 @@ export default function Cantine() {
                   disabled={purchasing}
                   className="text-xs font-bold uppercase tracking-widest text-white px-4 py-2 rounded-lg transition-colors bg-white/10 hover:bg-orange-500"
                 >
-                  Changer
+                  {t('cantine_page.change')}
                 </button>
               ) : null}
             </div>
@@ -325,11 +327,11 @@ export default function Cantine() {
           )}>
             {profile?.canteen_subscription === 'monthly' && (
               <div className="absolute top-2 right-2 bg-orange-500 text-white text-[10px] uppercase font-black tracking-widest px-2 py-0.5 rounded-full">
-                Actuel
+                {t('cantine_page.current')}
               </div>
             )}
-            <h4 className="text-xl font-black text-white mb-1">Pass Mensuel</h4>
-            <p className="text-discord-muted text-sm mb-4">30 jours de tranquillité. Prélèvement direct.</p>
+            <h4 className="text-xl font-black text-white mb-1">{t('cantine_page.monthly_pass')}</h4>
+            <p className="text-discord-muted text-sm mb-4">{t('cantine_page.monthly_desc')}</p>
             <div className="flex justify-between items-end">
               <span className="text-3xl font-black text-orange-400">140€</span>
               {!hasSubscription ? (
@@ -338,7 +340,7 @@ export default function Cantine() {
                   disabled={purchasing}
                   className="btn btn-primary text-sm py-2 px-4 bg-orange-500 hover:bg-orange-400 shadow-lg shadow-orange-500/30"
                 >
-                  {purchasing ? 'Chargement...' : 'Souscrire →'}
+                  {purchasing ? t('cantine_page.loading') : t('cantine_page.subscribe')}
                 </button>
               ) : profile?.canteen_subscription !== 'monthly' ? (
                 <button
@@ -346,7 +348,7 @@ export default function Cantine() {
                   disabled={purchasing}
                   className="text-xs font-bold uppercase tracking-widest text-white px-4 py-2 rounded-lg transition-colors bg-white/10 hover:bg-orange-500"
                 >
-                  Changer
+                  {t('cantine_page.change')}
                 </button>
               ) : null}
             </div>
@@ -355,7 +357,7 @@ export default function Cantine() {
           <div className="mt-4 p-4 rounded-xl bg-discord-blurple/10 border border-discord-blurple/20">
             <p className="text-sm font-medium text-discord-blurple flex items-start gap-2">
               <span className="text-lg leading-none">💡</span>
-              Une fois souscrit, passez au self avec cette page pour que l&apos;agent scanne votre QR Code.
+              {t('cantine_page.qr_tip')}
             </p>
           </div>
         </div>
@@ -366,7 +368,7 @@ export default function Cantine() {
           <div className="flex items-center gap-4 px-2">
             <div className="h-10 w-1.5 bg-orange-500 rounded-full" />
             <h3 className="text-3xl font-black text-white flex items-center gap-3">
-              <CalendarClock className="w-8 h-8 text-orange-500" /> Prochains Menus
+              <CalendarClock className="w-8 h-8 text-orange-500" /> {t('cantine_page.upcoming_menus')}
             </h3>
           </div>
           <div className="space-y-10">

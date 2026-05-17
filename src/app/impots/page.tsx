@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { Landmark, AlertTriangle, FileText, CheckCircle2, ChevronRight } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import clsx from 'clsx'
@@ -14,6 +15,7 @@ interface TaxDebt {
 
 export default function Impots() {
   const { profile, refreshProfile } = useAuth()
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [paying, setPaying] = useState(false)
   const [debts, setDebts] = useState<TaxDebt[]>([])
@@ -54,10 +56,10 @@ export default function Impots() {
         setDebts([]) // clear debts
         await refreshProfile()
       } else {
-        setErrorMsg(data.error || 'Erreur lors du paiement')
+        setErrorMsg(data.error || t('impots_page.payment_error'))
       }
     } catch (e) {
-      setErrorMsg('Erreur de connexion')
+      setErrorMsg(t('bank_page.connection_error'))
     } finally {
       setPaying(false)
     }
@@ -69,12 +71,12 @@ export default function Impots() {
         <div>
           <h1 className="text-4xl font-black text-white flex items-center gap-3 tracking-tight">
             <Landmark className="text-blue-500 w-10 h-10" />
-            Finances Publiques
+            {t('impots_page.title')}
           </h1>
-          <p className="text-discord-muted mt-2 uppercase tracking-widest text-xs font-bold">Direction des Impôts de LunaVerse</p>
+          <p className="text-discord-muted mt-2 uppercase tracking-widest text-xs font-bold">{t('impots_page.subtitle')}</p>
         </div>
         <div className="glass-card px-6 py-3 border-blue-500/30">
-          <p className="text-[10px] font-black uppercase text-discord-muted tracking-widest mb-1">Numéro Fiscal</p>
+          <p className="text-[10px] font-black uppercase text-discord-muted tracking-widest mb-1">{t('impots_page.tax_id')}</p>
           <p className="font-mono text-white tracking-widest">{profile?.discord_id || '---'}</p>
         </div>
       </div>
@@ -89,10 +91,10 @@ export default function Impots() {
             <div className={`absolute top-0 left-0 w-1 h-full ${totalDebt > 0 ? 'bg-discord-error' : 'bg-discord-success'}`} />
             <h3 className="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2">
               <FileText className="w-5 h-5" /> 
-              Situation
+              {t('impots_page.situation')}
             </h3>
             
-            <p className="text-[10px] text-discord-muted uppercase tracking-[0.2em] mb-1">Montant à régler</p>
+            <p className="text-[10px] text-discord-muted uppercase tracking-[0.2em] mb-1">{t('impots_page.amount_due')}</p>
             <p className={`text-4xl font-black ${totalDebt > 0 ? 'text-discord-error' : 'text-discord-success'}`}>
               {totalDebt.toFixed(2)} €
             </p>
@@ -100,12 +102,12 @@ export default function Impots() {
             {totalDebt > 0 ? (
               <div className="mt-6 flex items-start gap-2 p-3 bg-discord-error/10 text-discord-error rounded-xl text-xs font-bold">
                 <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                Vous avez des impôts ou amendes impayés. Veuillez régulariser votre situation au plus vite.
+                {t('impots_page.unpaid_warning')}
               </div>
             ) : (
               <div className="mt-6 flex items-center gap-2 p-3 bg-discord-success/10 text-discord-success rounded-xl text-sm font-bold">
                 <CheckCircle2 className="w-5 h-5" />
-                Vous êtes à jour.
+                {t('impots_page.up_to_date')}
               </div>
             )}
             {errorMsg && (
@@ -123,13 +125,13 @@ export default function Impots() {
               totalDebt > 0 ? "btn-error" : "btn-ghost opacity-50"
             )}
           >
-            {paying ? "Paiement en cours..." : `Payer la totalité (${totalDebt.toFixed(2)} €)`}
+            {paying ? t('impots_page.paying') : t('impots_page.pay_all').replace('{amount}', totalDebt.toFixed(2))}
           </button>
         </div>
 
         {/* Liste des Créances */}
         <div className="md:col-span-2 space-y-4">
-          <h3 className="text-lg font-black text-white px-2">Avis d&apos;imposition détaillés</h3>
+          <h3 className="text-lg font-black text-white px-2">{t('impots_page.detailed_notices')}</h3>
           
           {debts.length > 0 ? (
             <div className="space-y-3">
@@ -140,7 +142,7 @@ export default function Impots() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="text-white font-bold truncate text-lg">{debt.reason}</h4>
-                    <p className="text-xs text-discord-muted uppercase tracking-widest font-medium">Émis le {new Date(debt.created_at).toLocaleDateString()}</p>
+                    <p className="text-xs text-discord-muted uppercase tracking-widest font-medium">{t('impots_page.issued_on').replace('{date}', new Date(debt.created_at).toLocaleDateString())}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-black text-discord-error">{debt.amount.toFixed(2)} €</p>
@@ -152,8 +154,8 @@ export default function Impots() {
           ) : (
             <div className="glass-card p-12 text-center flex flex-col items-center justify-center opacity-70">
               <CheckCircle2 className="w-16 h-16 text-discord-success mb-4" />
-              <p className="text-xl font-bold text-white mb-2">Aucun impôt dû</p>
-              <p className="text-sm text-discord-muted">Vous avez payé toutes vos taxes.</p>
+              <p className="text-xl font-bold text-white mb-2">{t('impots_page.no_tax')}</p>
+              <p className="text-sm text-discord-muted">{t('impots_page.all_paid')}</p>
             </div>
           )}
         </div>

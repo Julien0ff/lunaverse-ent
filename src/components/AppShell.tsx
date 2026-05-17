@@ -7,6 +7,7 @@ import NotificationCenter from '@/components/NotificationCenter'
 import LoadingScreen from '@/components/LoadingScreen'
 import Image from 'next/image'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { useEffect, useState, useCallback } from 'react'
 import NotificationToast from '@/components/NotificationToast'
 import OnboardingTutorial from '@/components/OnboardingTutorial'
@@ -19,6 +20,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const router = useRouter()
     const isPublic = PUBLIC_PATHS.includes(pathname)
     const { profile, roles, loading, ready } = useAuth()
+    const { t } = useLanguage()
     const [notif, setNotif] = useState<{ senderName: string; message: string; avatarUrl?: string } | null>(null)
     const [showOnboarding, setShowOnboarding] = useState(false)
 
@@ -126,12 +128,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 {/* Mobile Top Header */}
                 <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-discord-dark/90 backdrop-blur-md border-b border-white/5 z-[80] flex items-center justify-between px-5 shadow-lg">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 flex items-center justify-center flex-shrink-0 rounded-full overflow-hidden">
-                            <Image src="/logo.png" alt="Logo" width={40} height={40} className="w-full h-full object-cover rounded-full" />
+                        <div className="w-10 h-10 flex items-center justify-center flex-shrink-0 rounded-[14px] overflow-hidden">
+                            <Image src="/logo.png" alt="Logo" width={40} height={40} className="w-full h-full object-cover rounded-[14px]" />
                         </div>
                         <div className="flex flex-col">
                             <span className="font-black text-white text-sm tracking-tight leading-none">LunaVerse</span>
-                            <span className="text-[10px] font-bold text-discord-muted uppercase tracking-widest mt-0.5">ENT Scolaire</span>
+                            <span className="text-[10px] font-bold text-discord-muted uppercase tracking-widest mt-0.5">{t('appshell.school')}</span>
                         </div>
                     </div>
                     <NotificationCenter />

@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
@@ -13,16 +14,17 @@ const DiscordIcon = () => (
 )
 
 const features = [
-  { icon: Wallet, title: 'Banque RP', description: 'Gérez votre argent virtuel, faites des virements et touchez votre salaire chaque semaine.', color: '#5865F2', delay: '0ms' },
-  { icon: Globe, title: 'Réseau Social', description: 'Publiez, commentez et likez comme sur un vrai réseau social. Connectez-vous à la communauté.', color: '#57F287', delay: '100ms' },
-  { icon: Gamepad2, title: 'Casino', description: 'Machines à sous, dés, pièce… Tentez votre chance et multipliez vos gains.', color: '#FEE75C', delay: '200ms' },
-  { icon: ShoppingCart, title: 'Boutique', description: 'Achetez des snacks, boissons et objets exclusifs avec vos euros LunaVerse.', color: '#ED4245', delay: '300ms' },
-  { icon: User, title: 'Profil', description: 'Consultez vos statistiques, vos rôles RP et votre historique d\'activité.', color: '#EB459E', delay: '400ms' },
-  { icon: Shield, title: 'Administration', description: 'Panneau de gestion avancé réservé aux administrateurs du serveur.', color: '#99AAB5', delay: '500ms' },
+  { icon: Wallet, titleKey: 'login.features.bank.title', descKey: 'login.features.bank.desc', color: '#5865F2', delay: '0ms' },
+  { icon: Globe, titleKey: 'login.features.social.title', descKey: 'login.features.social.desc', color: '#57F287', delay: '100ms' },
+  { icon: Gamepad2, titleKey: 'login.features.casino.title', descKey: 'login.features.casino.desc', color: '#FEE75C', delay: '200ms' },
+  { icon: ShoppingCart, titleKey: 'login.features.shop.title', descKey: 'login.features.shop.desc', color: '#ED4245', delay: '300ms' },
+  { icon: User, titleKey: 'login.features.profile.title', descKey: 'login.features.profile.desc', color: '#EB459E', delay: '400ms' },
+  { icon: Shield, titleKey: 'login.features.admin.title', descKey: 'login.features.admin.desc', color: '#99AAB5', delay: '500ms' },
 ]
 
 export default function LoginPage() {
   const { user, loading, signIn } = useAuth()
+  const { t } = useLanguage()
   const router = useRouter()
   const [isSigningIn, setIsSigningIn] = useState(false)
 
@@ -68,18 +70,18 @@ export default function LoginPage() {
           {/* Badge */}
           <div className="login-badge animate-fadeIn">
             <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-            <span>ENT Officiel du Serveur LunaVerse</span>
+            <span>{t('login.badge')}</span>
           </div>
 
           {/* Logo */}
           <div className="login-logo animate-fadeIn" style={{ animationDelay: '100ms' }}>
-            <div className="login-logo-icon rounded-full overflow-hidden">
+            <div className="login-logo-icon rounded-3xl overflow-hidden">
               <Image
                 src="/logo.png"
                 alt="LunaVerse"
                 width={80}
                 height={80}
-                className="w-full h-full object-cover drop-shadow-2xl rounded-full"
+                className="w-full h-full object-cover drop-shadow-2xl rounded-3xl"
               />
               <Moon className="w-14 h-14 text-white hidden" />
             </div>
@@ -88,10 +90,10 @@ export default function LoginPage() {
 
           {/* Title */}
           <h1 className="login-title animate-fadeIn" style={{ animationDelay: '200ms' }}>
-            ENT <span className="login-title-accent">LunaVerse</span>
+            {t('login.title_prefix')}<span className="login-title-accent">{t('login.title_accent')}</span>
           </h1>
           <p className="login-subtitle animate-fadeIn" style={{ animationDelay: '300ms' }}>
-            L&apos;espace numérique du serveur RP Discord LunaVerse. Banque, casino, boutique et réseau social — tout en un seul endroit.
+            {t('login.subtitle')}
           </p>
 
           {/* CTA */}
@@ -105,19 +107,19 @@ export default function LoginPage() {
               {isSigningIn ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Connexion en cours...
+                  {t('login.connecting')}
                 </>
               ) : (
                 <>
                   <DiscordIcon />
-                  Se connecter avec Discord
+                  {t('login.connect_discord')}
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                 </>
               )}
             </button>
             <p className="text-discord-muted text-sm flex items-center gap-2">
               <Shield className="w-4 h-4" />
-              Réservé aux membres avec un rôle RP autorisé
+              {t('login.restricted')}
             </p>
           </div>
 
@@ -125,17 +127,17 @@ export default function LoginPage() {
           <div className="login-stats animate-fadeIn" style={{ animationDelay: '500ms' }}>
             <div className="login-stat">
               <Zap className="w-4 h-4 text-yellow-400" />
-              <span>Instantané</span>
+              <span>{t('login.stat_instant')}</span>
             </div>
             <div className="login-stat-divider" />
             <div className="login-stat">
               <Shield className="w-4 h-4 text-discord-success" />
-              <span>100% Sécurisé</span>
+              <span>{t('login.stat_secure')}</span>
             </div>
             <div className="login-stat-divider" />
             <div className="login-stat">
               <Globe className="w-4 h-4 text-discord-blurple" />
-              <span>Serveur LunaVerse</span>
+              <span>{t('login.stat_server')}</span>
             </div>
           </div>
         </div>
@@ -143,7 +145,7 @@ export default function LoginPage() {
         {/* Features section */}
         <div className="px-6 pb-20 max-w-6xl mx-auto w-full">
           <h2 className="text-center text-xs font-black text-discord-muted uppercase tracking-[0.3em] mb-10 animate-fadeIn">
-            Toutes les fonctionnalités
+            {t('login.features_title')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {features.map((feature, i) => {
@@ -160,8 +162,8 @@ export default function LoginPage() {
                   >
                     <Icon className="w-6 h-6" style={{ color: feature.color }} />
                   </div>
-                  <h3 className="text-white font-bold text-base mb-1">{feature.title}</h3>
-                  <p className="text-discord-muted text-sm leading-relaxed">{feature.description}</p>
+                  <h3 className="text-white font-bold text-base mb-1">{t(feature.titleKey)}</h3>
+                  <p className="text-discord-muted text-sm leading-relaxed">{t(feature.descKey)}</p>
                 </div>
               )
             })}
@@ -170,7 +172,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <footer className="border-t border-white/5 py-6 text-center text-discord-muted text-sm">
-          <p>© {new Date().getFullYear()} LunaVerse ENT — Serveur RP Discord</p>
+          <p>{t('login.footer').replace('{year}', new Date().getFullYear().toString())}</p>
         </footer>
       </div>
     </div>

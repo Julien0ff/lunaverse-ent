@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import Image from 'next/image'
 import {
   MessageCircle, Users, Search, Send,
@@ -35,6 +36,7 @@ interface Message {
 
 export default function MessagesPage() {
   const { profile, supabase, refreshProfile } = useAuth()
+  const { t } = useLanguage()
   const searchParams = useSearchParams()
   const chatWith = searchParams.get('chat')
   
@@ -254,20 +256,20 @@ export default function MessagesPage() {
             <div className="p-4 border-b border-white/5 bg-black/10">
               <h2 className="text-xl font-black text-white flex items-center gap-2 mb-4">
                 <MessageCircle className="w-6 h-6 text-discord-blurple" />
-                Messagerie
+                {t('messages_page.title')}
               </h2>
               <div className="flex gap-1 p-1 bg-white/5 rounded-xl">
                 <button
                   onClick={() => setActiveTab('chat')}
                   className={clsx('flex-1 py-1.5 text-xs font-bold rounded-lg transition-all', activeTab === 'chat' ? 'bg-discord-blurple text-white shadow-md' : 'text-discord-muted hover:text-white')}
                 >
-                  Discussions
+                  {t('messages_page.tab_chat')}
                 </button>
                 <button
                   onClick={() => setActiveTab('friends')}
                   className={clsx('flex-1 py-1.5 text-xs font-bold rounded-lg transition-all relative', activeTab === 'friends' ? 'bg-discord-blurple text-white shadow-md' : 'text-discord-muted hover:text-white')}
                 >
-                  Amis
+                  {t('messages_page.tab_friends')}
                   {pendingRequests.length > 0 && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-discord-error rounded-full ring-2 ring-black" />}
                 </button>
               </div>
@@ -279,7 +281,7 @@ export default function MessagesPage() {
                 {acceptedFriends.length === 0 && (
                   <div className="text-center p-6 text-discord-muted">
                     <MessageCircle className="w-8 h-8 opacity-20 mx-auto mb-2" />
-                    <p className="text-sm">Ajoutez des amis pour commencer à discuter.</p>
+                    <p className="text-sm">{t('messages_page.no_friends_desc')}</p>
                   </div>
                 )}
                 {acceptedFriends.map(f => (
@@ -307,7 +309,7 @@ export default function MessagesPage() {
             {activeTab === 'friends' && (
               <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
                 <div className="relative" data-friend-search>
-                  <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 px-1">Ajouter un ami</h3>
+                  <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 px-1">{t('messages_page.add_friend')}</h3>
                   <div className="flex bg-white/5 rounded-xl border border-white/10 p-1">
                     <input
                       type="text"
@@ -345,7 +347,7 @@ export default function MessagesPage() {
                 {pendingRequests.length > 0 && (
                   <div className="animate-scaleIn">
                     <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 px-1 flex items-center gap-1.5">
-                      <AlertCircle className="w-3.5 h-3.5 text-discord-warning" /> En attente ({pendingRequests.length})
+                      <AlertCircle className="w-3.5 h-3.5 text-discord-warning" /> {t('messages_page.pending_requests')} ({pendingRequests.length})
                     </h3>
                     <div className="space-y-2">
                       {pendingRequests.map(r => (
@@ -366,7 +368,7 @@ export default function MessagesPage() {
 
                 <div>
                   <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 px-1 flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5" /> Mes Amis ({acceptedFriends.length})
+                    <Users className="w-3.5 h-3.5" /> {t('messages_page.accepted')} ({acceptedFriends.length})
                   </h3>
                   <div className="space-y-1 mt-2">
                     {acceptedFriends.map(f => (
@@ -392,8 +394,8 @@ export default function MessagesPage() {
             {activeTab !== 'chat' || !selectedFriend ? (
               <div className="flex-1 flex flex-col items-center justify-center text-discord-muted animate-fadeIn p-6 text-center">
                 <MessageCircle className="w-16 h-16 opacity-10 mb-4" />
-                <p className="font-bold text-lg text-white">Vos messages</p>
-                <p className="text-sm">Sélectionnez un ami pour commencer à parler.</p>
+                <p className="font-bold text-lg text-white">{t('messages_page.select_conversation')}</p>
+                <p className="text-sm">{t('messages_page.select_desc')}</p>
               </div>
             ) : (
               <>
@@ -411,7 +413,7 @@ export default function MessagesPage() {
                     <h3 className="font-black text-white tracking-tight truncate leading-none mb-1">{selectedFriend.username}</h3>
                     <div className="flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-discord-success shadow-[0_0_8px_rgba(87,242,135,0.5)]" />
-                      <span className="text-[10px] font-bold text-discord-muted uppercase tracking-widest">En ligne</span>
+                      <span className="text-[10px] font-bold text-discord-muted uppercase tracking-widest">{t('messages_page.online')}</span>
                     </div>
                   </div>
                 </div>
@@ -487,7 +489,7 @@ export default function MessagesPage() {
                       type="text"
                       value={msgInput}
                       onChange={e => setMsgInput(e.target.value)}
-                      placeholder="Message..."
+                      placeholder={t('messages_page.write_message')}
                       className="flex-1 bg-transparent border-none outline-none text-white placeholder:text-discord-muted text-sm px-1 py-1 min-w-0"
                     />
                     <button

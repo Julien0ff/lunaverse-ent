@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { Calendar, Clock, FileText, Send, AlertCircle, CheckCircle2, XCircle, Plus, Paperclip, Shield } from 'lucide-react'
 import Image from 'next/image'
 import clsx from 'clsx'
 
 export default function AbsencesPage() {
   const { profile, roles } = useAuth()
+  const { t } = useLanguage()
   const isAdmin = roles.some(r => r.name === 'admin')
   const [activeTab, setActiveTab] = useState<'declare' | 'history' | 'admin'>('declare')
   const [reason, setReason] = useState('')
@@ -46,17 +48,17 @@ export default function AbsencesPage() {
       })
       const data = await res.json()
       if (res.ok) {
-        setMessage({ type: 'success', text: 'Demande d\'absence envoyée avec succès.' })
+        setMessage({ type: 'success', text: t('absences_page.success') })
         setReason('')
         setDuration('')
         setAttachments('')
         loadAbsences()
         setActiveTab('history')
       } else {
-        setMessage({ type: 'error', text: data.error || 'Une erreur est survenue' })
+        setMessage({ type: 'error', text: data.error || t('bank_page.error_occurred') })
       }
     } catch (e) {
-      setMessage({ type: 'error', text: 'Erreur de connexion' })
+      setMessage({ type: 'error', text: t('bank_page.connection_error') })
     }
     setSubmitting(false)
   }
@@ -71,9 +73,9 @@ export default function AbsencesPage() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'accepted': return 'Validée'
-      case 'refused': return 'Refusée'
-      default: return 'En attente'
+      case 'accepted': return t('absences_page.validated')
+      case 'refused': return t('absences_page.refused')
+      default: return t('absences_page.pending')
     }
   }
 
@@ -82,9 +84,9 @@ export default function AbsencesPage() {
       <div className="animate-slideIn mb-8">
         <h1 className="text-4xl font-black text-white flex items-center gap-4 tracking-tighter">
           <Calendar className="text-discord-blurple w-10 h-10" />
-          Absences
+          {t('absences_page.title')}
         </h1>
-        <p className="text-discord-muted mt-2">Déclarez vos absences et suivez leur statut.</p>
+        <p className="text-discord-muted mt-2">{t('absences_page.subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -99,7 +101,7 @@ export default function AbsencesPage() {
               )}
             >
               <Plus className="w-5 h-5" />
-              Déclarer une absence
+              {t('absences_page.tab_declare')}
             </button>
             <button
               onClick={() => setActiveTab('history')}
@@ -109,7 +111,7 @@ export default function AbsencesPage() {
               )}
             >
               <Clock className="w-5 h-5" />
-              Mes Absences ({absences.filter(a => a.user_id === profile?.id).length})
+              {t('absences_page.tab_history').replace('{count}', absences.filter(a => a.user_id === profile?.id).length.toString())}
             </button>
 
             {isAdmin && (
@@ -121,7 +123,7 @@ export default function AbsencesPage() {
                 )}
               >
                 <Shield className="w-5 h-5 text-discord-error" />
-                Dossiers ENT ({absences.length})
+                {t('absences_page.tab_admin').replace('{count}', absences.length.toString())}
               </button>
             )}
           </div>
@@ -129,10 +131,10 @@ export default function AbsencesPage() {
           <div className="glass-card p-6 bg-discord-blurple/5 border-discord-blurple/20">
             <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-discord-blurple" />
-              Rappel Important
+              {t('absences_page.reminder_title')}
             </h3>
             <p className="text-xs text-discord-muted leading-relaxed">
-              Toute absence doit être justifiée dans les 48h. Les pièces jointes (certificats médicaux, etc.) peuvent être ajoutées via un lien URL ou une description.
+              {t('absences_page.reminder_text')}
             </p>
           </div>
         </div>
@@ -143,15 +145,15 @@ export default function AbsencesPage() {
             <div className="glass-card animate-fadeIn">
               <h2 className="text-xl font-black text-white mb-6 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-discord-blurple" />
-                Nouveau dossier d&apos;absence
+                {t('absences_page.new_case')}
               </h2>
               
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="text-[10px] font-black text-discord-muted uppercase tracking-[0.2em] mb-2 block">Motif de l&apos;absence *</label>
+                    <label className="text-[10px] font-black text-discord-muted uppercase tracking-[0.2em] mb-2 block">{t('absences_page.reason')}</label>
                     <textarea
-                      placeholder="Ex: Rendez-vous médical, raison familiale, maladie..."
+                      placeholder={t('absences_page.reason_placeholder')}
                       className="glass-input w-full min-h-[100px] py-4"
                       required
                       value={reason}
@@ -160,10 +162,10 @@ export default function AbsencesPage() {
                   </div>
                   
                   <div>
-                    <label className="text-[10px] font-black text-discord-muted uppercase tracking-[0.2em] mb-2 block">Durée prévue *</label>
+                    <label className="text-[10px] font-black text-discord-muted uppercase tracking-[0.2em] mb-2 block">{t('absences_page.duration')}</label>
                     <input
                       type="text"
-                      placeholder="Ex: 1 jour, Matinée, du 12 au 14 oct..."
+                      placeholder={t('absences_page.duration_placeholder')}
                       className="glass-input"
                       required
                       value={duration}
@@ -172,12 +174,12 @@ export default function AbsencesPage() {
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-black text-discord-muted uppercase tracking-[0.2em] mb-2 block">Pièces jointes / Justificatif (Optionnel)</label>
+                    <label className="text-[10px] font-black text-discord-muted uppercase tracking-[0.2em] mb-2 block">{t('absences_page.attachments')}</label>
                     <div className="relative">
                       <Paperclip className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-discord-muted" />
                       <input
                         type="text"
-                        placeholder="Lien vers le document ou description..."
+                        placeholder={t('absences_page.attachments_placeholder')}
                         className="glass-input !pl-10"
                         value={attachments}
                         onChange={e => setAttachments(e.target.value)}
@@ -202,7 +204,7 @@ export default function AbsencesPage() {
                   className="btn btn-primary w-full py-4 text-lg shadow-xl shadow-discord-blurple/20 group"
                 >
                   <Send className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                  {submitting ? 'Envoi...' : 'Soumettre la demande'}
+                  {submitting ? t('absences_page.sending') : t('absences_page.submit')}
                 </button>
               </form>
             </div>
@@ -213,7 +215,7 @@ export default function AbsencesPage() {
               ) : absences.length === 0 ? (
                 <div className="glass-card text-center p-12 opacity-50">
                   <Calendar className="w-12 h-12 mx-auto mb-4 text-discord-muted" />
-                  <p className="font-bold text-discord-muted">Aucune absence enregistrée.</p>
+                  <p className="font-bold text-discord-muted">{t('absences_page.no_absences')}</p>
                 </div>
               ) : (
                 absences
@@ -260,7 +262,7 @@ export default function AbsencesPage() {
                     {abs.attachments && (
                       <div className="mt-4 p-3 bg-white/5 rounded-xl border border-white/5 flex items-center gap-3">
                         <Paperclip className="w-4 h-4 text-discord-muted" />
-                        <p className="text-xs text-discord-muted truncate">PJ : {abs.attachments}</p>
+                        <p className="text-xs text-discord-muted truncate">{t('absences_page.attachment_label')} : {abs.attachments}</p>
                       </div>
                     )}
                   </div>
