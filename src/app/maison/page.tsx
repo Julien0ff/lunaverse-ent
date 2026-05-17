@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
-import { Home, Plus, Users, ShieldAlert, CheckCircle2, Clock, Trash2, UserPlus, Settings2, Info, ShoppingCart, Loader2, Search } from 'lucide-react'
+import { Home, Plus, Users, ShieldAlert, CheckCircle2, Clock, Trash2, UserPlus, Settings2, Info, ShoppingCart, Loader2, Search, Building2, Castle, TreePine, Warehouse } from 'lucide-react'
 import clsx from 'clsx'
 import Image from 'next/image'
 
@@ -14,6 +14,15 @@ const DLC_ITEMS = [
   { id: 'safe', icon: '🔒', price: 1000, command: null },
 ]
 
+const HOUSE_TYPES = [
+  { id: 'appartement', label: 'Appartement', icon: Building2, basePrice: 2000, color: 'from-blue-500/20 to-blue-600/5', border: 'border-blue-500/30', text: 'text-blue-400', desc: 'Un logement urbain confortable' },
+  { id: 'maison', label: 'Maison', icon: Home, basePrice: 5000, color: 'from-emerald-500/20 to-emerald-600/5', border: 'border-emerald-500/30', text: 'text-emerald-400', desc: 'Une maison classique avec jardin' },
+  { id: 'villa', label: 'Villa', icon: TreePine, basePrice: 12000, color: 'from-amber-500/20 to-amber-600/5', border: 'border-amber-500/30', text: 'text-amber-400', desc: 'Une villa luxueuse avec piscine' },
+  { id: 'manoir', label: 'Manoir', icon: Castle, basePrice: 25000, color: 'from-purple-500/20 to-purple-600/5', border: 'border-purple-500/30', text: 'text-purple-400', desc: 'Un manoir prestigieux et immense' },
+]
+
+const PRICE_PER_SQM = 50
+
 export default function MaisonPage() {
   const { profile, refreshProfile } = useAuth()
   const { t } = useLanguage()
@@ -22,6 +31,10 @@ export default function MaisonPage() {
   const [requestName, setRequestName] = useState('')
   const [msg, setMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  // House request options
+  const [selectedType, setSelectedType] = useState<string | null>(null)
+  const [squareMeters, setSquareMeters] = useState(50)
 
   const [activeTab, setActiveTab] = useState<'info' | 'members' | 'settings'>('info')
   const [newWhitelistId, setNewWhitelistId] = useState('')
@@ -104,16 +117,18 @@ export default function MaisonPage() {
 
   const handleRequest = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!selectedType) { setMsg({ type: 'error', text: 'Veuillez sélectionner un type de maison.' }); return }
     setSubmitting(true)
     try {
       const res = await fetch('/api/houses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: requestName })
+        body: JSON.stringify({ name: requestName, house_type: selectedType, square_meters: squareMeters })
       })
       const data = await res.json()
       if (res.ok) {
-        setMsg({ type: 'success', text: t('maison_page.request_sent') })
+        setMsg({ type: 'success', text: t('maison_page.request_sent') || 'Demande envoyée ! Le montant a été prélevé.' })
+        refreshProfile()
         loadHouse()
       } else {
         setMsg({ type: 'error', text: data.error || 'Erreur' })
@@ -279,37 +294,138 @@ export default function MaisonPage() {
         </div>
       )}
 
-      {!house ? (
-        <div className="glass-card p-12 text-center animate-scaleIn">
-          <div className="w-24 h-24 bg-discord-blurple/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Plus className="w-12 h-12 text-discord-blurple" />
+      {!house ? (() => {
+        const selectedTypeData = HOUSE_TYPES.find(t => t.id === selectedType)
+        const basePrice = selectedTypeData?.basePrice || 0
+        const sqmPrice = squareMeters * PRICE_PER_SQM
+        const totalPrice = selectedType ? basePrice + sqmPrice : 0
+        const userBalance = Number(profile?.balance || 0)
+        const canAfford = userBalance >= totalPrice && totalPrice > 0
+
+        return (
+        <div className="animate-scaleIn space-y-8">
+          {/* Header */}
+          <div className="glass-card p-8 text-center bg-gradient-to-br from-discord-blurple/10 to-transparent">
+            <div className="w-20 h-20 bg-discord-blurple/10 rounded-full flex items-center justify-center mx-auto mb-5">
+              <Plus className="w-10 h-10 text-discord-blurple" />
+            </div>
+            <h2 className="text-3xl font-black text-white mb-2">{t('maison_page.become_owner') || 'Devenez Propriétaire'}</h2>
+            <p className="text-discord-muted max-w-lg mx-auto text-sm">{t('maison_page.become_desc') || 'Configurez et achetez votre propre maison privée sur LunaVerse. Le prix varie selon le type et la surface.'}</p>
           </div>
-          <h2 className="text-3xl font-black text-white mb-4">{t('maison_page.become_owner') || 'Devenez Propriétaire'}</h2>
-          <p className="text-discord-muted max-w-md mx-auto mb-10">{t('maison_page.become_desc') || 'Faites une demande pour obtenir votre propre maison privée sur LunaVerse. Une fois validée, un salon Discord vous sera dédié.'}</p>
-          
-          <form onSubmit={handleRequest} className="max-w-md mx-auto">
-            <div className="space-y-6">
-              <div>
-                <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-2 block text-left">{t('maison_page.house_name') || 'Nom de votre Maison'}</label>
-                <input 
-                  type="text" 
-                  className="glass-input text-center text-xl font-bold" 
-                  placeholder={t('maison_page.house_placeholder') || 'Ex: Villa de Julien...'}
-                  required
-                  value={requestName}
-                  onChange={e => setRequestName(e.target.value)}
-                />
+
+          <form onSubmit={handleRequest} className="space-y-8">
+            {/* Step 1: House Name */}
+            <div className="glass-card p-6">
+              <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-4">① Nom de votre propriété</p>
+              <input 
+                type="text" 
+                className="glass-input text-center text-xl font-bold" 
+                placeholder={t('maison_page.house_placeholder') || 'Ex: Villa de Julien...'}
+                required
+                value={requestName}
+                onChange={e => setRequestName(e.target.value)}
+              />
+            </div>
+
+            {/* Step 2: House Type */}
+            <div className="glass-card p-6">
+              <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-4">② Type de propriété</p>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {HOUSE_TYPES.map(ht => {
+                  const Icon = ht.icon
+                  const isSelected = selectedType === ht.id
+                  return (
+                    <button
+                      type="button"
+                      key={ht.id}
+                      onClick={() => setSelectedType(ht.id)}
+                      className={clsx(
+                        "relative p-5 rounded-2xl border-2 transition-all duration-300 text-left group overflow-hidden",
+                        isSelected
+                          ? `bg-gradient-to-br ${ht.color} ${ht.border} scale-[1.02] shadow-lg`
+                          : "bg-white/5 border-white/10 hover:border-white/20 hover:bg-white/8"
+                      )}
+                    >
+                      {isSelected && <div className="absolute top-2 right-2"><CheckCircle2 className={clsx("w-5 h-5", ht.text)} /></div>}
+                      <Icon className={clsx("w-8 h-8 mb-3 transition-colors", isSelected ? ht.text : "text-discord-muted")} />
+                      <p className={clsx("font-black text-sm mb-1", isSelected ? "text-white" : "text-white/70")}>{ht.label}</p>
+                      <p className="text-[10px] text-discord-muted leading-tight mb-3">{ht.desc}</p>
+                      <p className={clsx("text-lg font-black", isSelected ? ht.text : "text-white/50")}>{ht.basePrice.toLocaleString()}€</p>
+                    </button>
+                  )
+                })}
               </div>
+            </div>
+
+            {/* Step 3: Square Meters */}
+            <div className="glass-card p-6">
+              <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-4">③ Surface (m²)</p>
+              <div className="flex items-center gap-6 mb-4">
+                <div className="flex-1">
+                  <input
+                    type="range"
+                    min={20}
+                    max={500}
+                    step={10}
+                    value={squareMeters}
+                    onChange={e => setSquareMeters(Number(e.target.value))}
+                    className="w-full accent-discord-blurple h-2 rounded-full appearance-none bg-white/10 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-discord-muted mt-1">
+                    <span>20 m²</span>
+                    <span>500 m²</span>
+                  </div>
+                </div>
+                <div className="text-center min-w-[90px]">
+                  <p className="text-3xl font-black text-white">{squareMeters}</p>
+                  <p className="text-[10px] text-discord-muted">m²</p>
+                </div>
+              </div>
+              <p className="text-xs text-discord-muted">Coût surface : <span className="text-white font-bold">{sqmPrice.toLocaleString()}€</span> ({PRICE_PER_SQM}€/m²)</p>
+            </div>
+
+            {/* Price Summary */}
+            <div className={clsx(
+              "glass-card p-6 transition-all duration-500",
+              selectedType ? "opacity-100" : "opacity-40 pointer-events-none"
+            )}>
+              <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-4">💰 Récapitulatif</p>
+              <div className="space-y-3 mb-5">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-discord-muted">Type : {selectedTypeData?.label || '—'}</span>
+                  <span className="text-white font-bold">{basePrice.toLocaleString()}€</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-discord-muted">Surface : {squareMeters} m²</span>
+                  <span className="text-white font-bold">{sqmPrice.toLocaleString()}€</span>
+                </div>
+                <div className="border-t border-white/10 pt-3 flex justify-between items-center">
+                  <span className="text-white font-black text-lg">Total</span>
+                  <span className={clsx("text-2xl font-black", canAfford ? "text-discord-success" : "text-discord-error")}>{totalPrice.toLocaleString()}€</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 mb-5">
+                <span className="text-xs text-discord-muted">Votre solde</span>
+                <span className={clsx("font-black", canAfford ? "text-white" : "text-discord-error")}>{userBalance.toFixed(2)}€</span>
+              </div>
+
+              {!canAfford && totalPrice > 0 && (
+                <p className="text-xs text-discord-error font-bold text-center mb-4">⚠️ Solde insuffisant — il vous manque {(totalPrice - userBalance).toLocaleString()}€</p>
+              )}
+
               <button 
                 type="submit" 
-                disabled={submitting}
-                className="btn btn-primary w-full py-4 text-lg shadow-xl shadow-discord-blurple/30 group"
+                disabled={submitting || !canAfford || !selectedType}
+                className="btn btn-primary w-full py-4 text-lg shadow-xl shadow-discord-blurple/30 group disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (t('maison_page.submit_request') || 'Soumettre ma demande')}
+                {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : `Acheter pour ${totalPrice.toLocaleString()}€`}
               </button>
             </div>
           </form>
         </div>
+        )
+      })()
       ) : house.status === 'pending' ? (
         <div className="glass-card p-12 text-center border-discord-warning/20 animate-scaleIn">
           <div className="w-24 h-24 bg-discord-warning/10 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -403,18 +519,22 @@ export default function MaisonPage() {
                    <h2 className="text-4xl font-black text-white mb-2">{house.name}</h2>
                    <p className="text-discord-muted font-medium mb-8">{t('maison_page.your_sanctuary') || 'Votre sanctuaire privé sur LunaVerse.'}</p>
                    
-                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="p-6 rounded-2xl bg-white/5 border border-white/5">
-                        <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">{t('maison_page.category') || 'Catégorie'}</p>
-                        <p className="text-xl font-bold text-white">{t('maison_page.residential') || 'Résidentiel'}</p>
+                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="p-5 rounded-2xl bg-white/5 border border-white/5">
+                        <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">Type</p>
+                        <p className="text-lg font-bold text-white capitalize">{house.house_type || 'Résidentiel'}</p>
                       </div>
-                      <div className="p-6 rounded-2xl bg-white/5 border border-white/5">
-                        <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">{t('maison_page.furnishings_count') || 'Meubles installés'}</p>
-                        <p className="text-xl font-bold text-white">{Object.values(house.furnishings || {}).filter(Boolean).length} / {DLC_ITEMS.length}</p>
+                      <div className="p-5 rounded-2xl bg-white/5 border border-white/5">
+                        <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">Surface</p>
+                        <p className="text-lg font-bold text-white">{house.square_meters || '—'} m²</p>
                       </div>
-                      <div className="p-6 rounded-2xl bg-white/5 border border-white/5">
-                        <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">{t('maison_page.access_count') || 'Accès autorisés'}</p>
-                        <p className="text-xl font-bold text-white">{(house.whitelist || []).length} {t('maison_page.members_label') || 'membre(s)'}</p>
+                      <div className="p-5 rounded-2xl bg-white/5 border border-white/5">
+                        <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">{t('maison_page.furnishings_count') || 'Meubles'}</p>
+                        <p className="text-lg font-bold text-white">{Object.values(house.furnishings || {}).filter(Boolean).length} / {DLC_ITEMS.length}</p>
+                      </div>
+                      <div className="p-5 rounded-2xl bg-white/5 border border-white/5">
+                        <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">{t('maison_page.access_count') || 'Accès'}</p>
+                        <p className="text-lg font-bold text-white">{(house.whitelist || []).length} {t('maison_page.members_label') || 'membre(s)'}</p>
                       </div>
                    </div>
                 </div>

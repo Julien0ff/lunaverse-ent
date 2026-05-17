@@ -1764,29 +1764,34 @@ export default function AdminPage() {
         <div className="space-y-6 animate-fadeIn">
           <div className="grid grid-cols-1 gap-4">
             {houses.filter(h => h.status === 'pending').map(house => (
-              <div key={house.id} className="glass-card p-6 flex flex-col md:flex-row items-center justify-between gap-4 border-l-4 border-l-discord-blurple shadow-xl">
-                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full overflow-hidden relative shadow-lg">
-                      <Image src={house.profiles?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} fill alt="" />
+              <div key={house.id} className="glass-card p-6 flex flex-col md:flex-row items-center justify-between gap-6 border-l-4 border-l-discord-blurple shadow-xl">
+                 <div className="flex items-center gap-4 flex-1">
+                    <div className="w-12 h-12 rounded-full overflow-hidden relative shadow-lg flex-shrink-0">
+                      <Image src={house.profiles?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} fill className="object-cover" alt="" />
                     </div>
-                    <div>
-                      <h4 className="text-xl font-black text-white">{house.name}</h4>
-                      <p className="text-sm text-discord-muted flex items-center gap-2">
+                    <div className="min-w-0">
+                      <h4 className="text-xl font-black text-white truncate">{house.name}</h4>
+                      <p className="text-sm text-discord-muted flex items-center gap-2 mb-2">
                         Demandé par <span className="text-discord-blurple font-bold">@{house.profiles?.username}</span>
                       </p>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] font-black uppercase text-discord-blurple">{house.house_type || 'Maison'}</span>
+                        <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] font-bold text-white">{house.square_meters || '—'} m²</span>
+                        <span className="px-2 py-0.5 rounded bg-discord-success/15 border border-discord-success/20 text-[10px] font-black text-discord-success">{house.purchase_price ? `${house.purchase_price.toLocaleString()}€` : 'Gratuit'}</span>
+                      </div>
                     </div>
                  </div>
 
-                 <div className="flex items-center gap-3 w-full md:w-auto">
+                 <div className="flex items-center gap-3 w-full md:w-auto flex-shrink-0">
                     <button 
                       onClick={() => processHouse(house.id, 'active')}
-                      className="flex-1 md:flex-initial btn btn-success py-2 text-xs flex items-center gap-2"
+                      className="flex-1 md:flex-initial btn btn-success py-2 px-6 text-xs flex items-center gap-2"
                     >
                       <CheckCircle2 size={14} /> Accepter
                     </button>
                     <button 
                       onClick={() => processHouse(house.id, 'rejected')}
-                      className="flex-1 md:flex-initial btn btn-error py-2 text-xs flex items-center gap-2"
+                      className="flex-1 md:flex-initial btn btn-error py-2 px-6 text-xs flex items-center gap-2"
                     >
                       <X size={14} /> Refuser
                     </button>
@@ -1812,6 +1817,8 @@ export default function AdminPage() {
                     <tr>
                       <th className="p-4">Maison</th>
                       <th className="p-4">Propriétaire</th>
+                      <th className="p-4 text-center">Type / Taille</th>
+                      <th className="p-4 text-right">Prix</th>
                       <th className="p-4 text-center">Statut</th>
                       <th className="p-4 text-right">Date</th>
                     </tr>
@@ -1820,9 +1827,18 @@ export default function AdminPage() {
                     {houses.filter(h => h.status !== 'pending').slice(0, 10).map(h => (
                       <tr key={h.id} className="hover:bg-white/2 transition-colors">
                         <td className="p-4 font-bold text-white">{h.name}</td>
-                        <td className="p-4 flex items-center gap-2">
-                           <div className="w-6 h-6 rounded-full overflow-hidden relative"><Image src={h.profiles?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} fill alt="" /></div>
-                           <span className="text-discord-muted">{h.profiles?.username}</span>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full overflow-hidden relative flex-shrink-0"><Image src={h.profiles?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} fill className="object-cover" alt="" /></div>
+                            <span className="text-discord-muted">@{h.profiles?.username}</span>
+                          </div>
+                        </td>
+                        <td className="p-4 text-center">
+                          <span className="text-xs font-bold text-white uppercase">{h.house_type || '—'}</span>
+                          <span className="text-xs text-discord-muted ml-2">({h.square_meters || '—'} m²)</span>
+                        </td>
+                        <td className="p-4 text-right font-bold text-discord-success">
+                          {h.purchase_price ? `${Number(h.purchase_price).toLocaleString()}€` : '0€'}
                         </td>
                         <td className="p-4 text-center">
                           <span className={clsx(
@@ -2214,9 +2230,14 @@ export default function AdminPage() {
                         alt="" fill className="object-cover"
                       />
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-white font-black text-lg truncate">&quot;{h.name}&quot;</p>
-                      <p className="text-xs text-discord-muted truncate">par {h.profiles?.nickname_rp || h.profiles?.username || 'Inconnu'}</p>
+                      <p className="text-xs text-discord-muted truncate mb-2">par {h.profiles?.nickname_rp || h.profiles?.username || 'Inconnu'}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] font-black uppercase text-discord-blurple">{h.house_type || 'Maison'}</span>
+                        <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] font-bold text-white">{h.square_meters || '—'} m²</span>
+                        <span className="px-2 py-0.5 rounded bg-discord-success/15 border border-discord-success/20 text-[9px] font-black text-discord-success">{h.purchase_price ? `${h.purchase_price.toLocaleString()}€` : 'Gratuit'}</span>
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-2 sm:ml-auto flex-shrink-0">
@@ -2269,10 +2290,19 @@ export default function AdminPage() {
                               alt="" fill className="object-cover"
                             />
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-white font-black truncate">{h.name}</p>
-                            <p className="text-xs text-discord-muted truncate">{h.profiles?.nickname_rp || h.profiles?.username || '—'}</p>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <p className="text-white font-black truncate">{h.name}</p>
+                              <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] font-black uppercase text-discord-blurple">{h.house_type || 'Maison'}</span>
+                              <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] font-bold text-white">{h.square_meters || '—'} m²</span>
+                            </div>
+                            <p className="text-xs text-discord-muted truncate">@{h.profiles?.nickname_rp || h.profiles?.username || '—'}</p>
                           </div>
+                        </div>
+
+                        {/* Price Paid */}
+                        <div className="text-sm font-black text-discord-success mr-4">
+                          {h.purchase_price ? `${Number(h.purchase_price).toLocaleString()}€` : '0€'}
                         </div>
 
                         {/* Status badge */}
