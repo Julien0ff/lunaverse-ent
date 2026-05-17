@@ -2840,34 +2840,9 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
       case 'set_channel_house': {
         if (!await isAdmin(user.id, interaction)) return interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
         const salon = interaction.options.getChannel('salon')
-        await setServerSetting('house_request_channel', salon?.id)
-        await interaction.reply({ content: `✅ Salon des demandes configuré sur <#${salon?.id}>.`, ephemeral: true })
-        break
-      }
-
-      case 'set_house_category': {
-        if (!await isAdmin(user.id, interaction)) return interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
-        const cat = interaction.options.getChannel('categorie')
-        await setServerSetting('house_category_id', cat?.id)
-        await interaction.reply({ content: `✅ Catégorie des maisons configurée sur **${cat?.name}**.`, ephemeral: true })
-        break
-      }
-
-      case 'set_channel_house': {
-        if (!await isAdmin(user.id, interaction)) return interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
-        const salon = interaction.options.getChannel('salon')
         if (!salon) return
         await setServerSetting('house_request_channel', salon.id)
-        await interaction.reply({ content: `✅ Salon des demandes configuré sur <#${salon.id}>`, ephemeral: true })
-        break
-      }
-
-      case 'set_house_category': {
-        if (!await isAdmin(user.id, interaction)) return interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
-        const cat = interaction.options.getChannel('categorie')
-        if (!cat) return
-        await setServerSetting('house_category', cat.id)
-        await interaction.reply({ content: `✅ Catégorie des maisons configurée sur **${cat.name}**`, ephemeral: true })
+        await interaction.reply({ content: `✅ Salon des demandes configuré sur <#${salon.id}>.`, ephemeral: true })
         break
       }
 
@@ -2917,8 +2892,8 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         const { data: house } = await supabase.from('houses').select('*').eq('discord_channel_id', interaction.channelId).maybeSingle()
         if (!house) return interaction.reply({ content: '❌ Cette commande n\'est utilisable que dans votre salon de maison privé.', ephemeral: true })
 
-        // Check if has fridge furnishings
-        if (!house.furnishings?.fridge) return interaction.reply({ content: '❌ Vous n\'avez pas encore de **Réfrigérateur** ! Achetez-le sur l\'ENT.', ephemeral: true })
+        // Check if has fridge furnishings (key is 'frigo' in the ENT DLC system)
+        if (!house.furnishings?.frigo) return interaction.reply({ content: '❌ Vous n\'avez pas encore de **Réfrigérateur** ! Achetez-le sur l\'ENT.', ephemeral: true })
 
         await supabase.from('profiles').update({ hunger: 100, thirst: 100 }).eq('id', profile.id)
         await interaction.reply({ content: `❄️ <@${user.id}> ouvre son frigo et prend un bon repas frais. Faim et Soif restaurées !` })

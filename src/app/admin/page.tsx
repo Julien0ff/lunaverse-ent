@@ -2187,6 +2187,152 @@ export default function AdminPage() {
 
         </div>
       )}
+
+      {/* ── Maisons Tab ──────────────────────────────────────── */}
+      {tab === 'maisons' && (
+        <div className="space-y-6 animate-fadeIn">
+          <div className="glass-card p-6 bg-gradient-to-r from-discord-blurple/10 to-transparent">
+            <h2 className="text-xl font-black text-white mb-1 flex items-center gap-3">
+              <Home className="w-6 h-6 text-discord-blurple" />
+              Gestion des Maisons
+            </h2>
+            <p className="text-sm text-discord-muted">Approuvez ou refusez les demandes. L&apos;approbation crée automatiquement un salon Discord privé.</p>
+          </div>
+
+          {/* Pending Requests */}
+          {houses.filter(h => h.status === 'pending').length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-black text-discord-warning uppercase tracking-widest px-1 flex items-center gap-2">
+                <Clock className="w-4 h-4" /> Demandes en attente ({houses.filter(h => h.status === 'pending').length})
+              </h3>
+              {houses.filter(h => h.status === 'pending').map(h => (
+                <div key={h.id} className="glass-card p-5 border-discord-warning/20 flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-discord-warning/30 flex-shrink-0 relative">
+                      <Image
+                        src={h.profiles?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}
+                        alt="" fill className="object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-white font-black text-lg truncate">&quot;{h.name}&quot;</p>
+                      <p className="text-xs text-discord-muted truncate">par {h.profiles?.nickname_rp || h.profiles?.username || 'Inconnu'}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 sm:ml-auto flex-shrink-0">
+                    <button
+                      onClick={() => processHouse(h.id, 'active')}
+                      className="btn bg-discord-success hover:bg-discord-success/80 text-white py-2 px-6 text-sm font-bold flex items-center gap-2"
+                    >
+                      <CheckCircle2 className="w-4 h-4" /> Approuver
+                    </button>
+                    <button
+                      onClick={() => processHouse(h.id, 'rejected')}
+                      className="btn bg-discord-error hover:bg-discord-error/80 text-white py-2 px-6 text-sm font-bold flex items-center gap-2"
+                    >
+                      <X className="w-4 h-4" /> Refuser
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* All Houses Table */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-black text-discord-muted uppercase tracking-widest px-1">
+              Toutes les propriétés ({houses.length})
+            </h3>
+            {houses.length === 0 ? (
+              <div className="glass-card p-12 text-center">
+                <Home className="w-12 h-12 text-discord-muted mx-auto mb-3 opacity-20" />
+                <p className="text-discord-muted">Aucune demande de maison pour le moment.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {houses.map(h => {
+                  const statusConfig: Record<string, { label: string; color: string; border: string }> = {
+                    pending: { label: 'En attente', color: 'bg-discord-warning/10 text-discord-warning border-discord-warning/20', border: 'border-discord-warning/20' },
+                    active: { label: 'Active', color: 'bg-discord-success/10 text-discord-success border-discord-success/20', border: 'border-discord-success/20' },
+                    rejected: { label: 'Refusée', color: 'bg-discord-error/10 text-discord-error border-discord-error/20', border: 'border-discord-error/20' },
+                  }
+                  const sc = statusConfig[h.status] || statusConfig.pending
+
+                  return (
+                    <div key={h.id} className={clsx("glass-card p-5", sc.border)}>
+                      <div className="flex flex-col md:flex-row md:items-center gap-4">
+                        {/* Owner info */}
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-white/10 flex-shrink-0 relative">
+                            <Image
+                              src={h.profiles?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}
+                              alt="" fill className="object-cover"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-white font-black truncate">{h.name}</p>
+                            <p className="text-xs text-discord-muted truncate">{h.profiles?.nickname_rp || h.profiles?.username || '—'}</p>
+                          </div>
+                        </div>
+
+                        {/* Status badge */}
+                        <span className={clsx("text-[10px] px-3 py-1 rounded-full uppercase font-black border whitespace-nowrap", sc.color)}>
+                          {sc.label}
+                        </span>
+
+                        {/* Channel ID */}
+                        <div className="text-xs text-discord-muted font-mono hidden lg:block">
+                          {h.discord_channel_id ? `#${h.discord_channel_id}` : '—'}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-2 flex-shrink-0">
+                          {h.status === 'pending' && (
+                            <>
+                              <button onClick={() => processHouse(h.id, 'active')} className="btn btn-success py-1.5 px-3 text-xs">Approuver</button>
+                              <button onClick={() => processHouse(h.id, 'rejected')} className="btn btn-error py-1.5 px-3 text-xs">Refuser</button>
+                            </>
+                          )}
+                          {h.status === 'rejected' && (
+                            <button onClick={() => processHouse(h.id, 'active')} className="btn btn-success py-1.5 px-3 text-xs">Réactiver</button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* DLC Management (only for active houses) */}
+                      {h.status === 'active' && (
+                        <div className="mt-4 pt-4 border-t border-white/5">
+                          <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-3">Aménagements (DLCs)</p>
+                          <div className="flex flex-wrap gap-2">
+                            {['frigo', 'bed', 'tv', 'safe'].map(dlc => {
+                              const isOwned = h.furnishings?.[dlc] === true
+                              const labels: Record<string, string> = { frigo: '❄️ Frigo', bed: '🛏️ Lit', tv: '📺 TV', safe: '🔒 Coffre' }
+                              return (
+                                <button
+                                  key={dlc}
+                                  onClick={() => updateHouseFurnishing(h.id, dlc, !isOwned)}
+                                  className={clsx(
+                                    "text-xs px-3 py-1.5 rounded-lg font-bold transition-all border",
+                                    isOwned
+                                      ? "bg-discord-success/10 text-discord-success border-discord-success/20"
+                                      : "bg-white/5 text-discord-muted border-white/10 hover:text-white hover:border-white/20"
+                                  )}
+                                >
+                                  {labels[dlc]} {isOwned ? '✓' : '✗'}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
