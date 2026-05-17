@@ -50,6 +50,14 @@ export default function MaisonPage() {
   // Resolved profiles for list entries
   const [resolvedProfiles, setResolvedProfiles] = useState<Record<string, any>>({})
 
+  // Config calculations
+  const selectedTypeData = HOUSE_TYPES.find(t => t.id === selectedType)
+  const basePrice = selectedTypeData?.basePrice || 0
+  const sqmPrice = squareMeters * PRICE_PER_SQM
+  const totalPrice = selectedType ? basePrice + sqmPrice : 0
+  const userBalance = Number(profile?.balance || 0)
+  const canAfford = userBalance >= totalPrice && totalPrice > 0
+
   useEffect(() => {
     loadHouse()
   }, [])
@@ -294,15 +302,7 @@ export default function MaisonPage() {
         </div>
       )}
 
-      {!house ? (() => {
-        const selectedTypeData = HOUSE_TYPES.find(t => t.id === selectedType)
-        const basePrice = selectedTypeData?.basePrice || 0
-        const sqmPrice = squareMeters * PRICE_PER_SQM
-        const totalPrice = selectedType ? basePrice + sqmPrice : 0
-        const userBalance = Number(profile?.balance || 0)
-        const canAfford = userBalance >= totalPrice && totalPrice > 0
-
-        return (
+      {!house ? (
         <div className="animate-scaleIn space-y-8">
           {/* Header */}
           <div className="glass-card p-8 text-center bg-gradient-to-br from-discord-blurple/10 to-transparent">
@@ -424,8 +424,6 @@ export default function MaisonPage() {
             </div>
           </form>
         </div>
-        )
-      })()
       ) : house.status === 'pending' ? (
         <div className="glass-card p-12 text-center border-discord-warning/20 animate-scaleIn">
           <div className="w-24 h-24 bg-discord-warning/10 rounded-full flex items-center justify-center mx-auto mb-6">
