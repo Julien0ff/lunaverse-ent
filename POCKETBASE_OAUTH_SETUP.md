@@ -17,15 +17,17 @@
 2. Connectez-vous avec votre admin
 3. Allez dans **Paramètres** > **OAuth2**
 4. Ajoutez Discord avec:
-   - Client ID: `1478886237942321223`
-   - Client Secret: `YDGMTzfUX9hN-tkJy54mVXhf1xx0QQvH`
+   - Client ID: `<VOTRE_CLIENT_ID>`
+   - Client Secret: `<VOTRE_CLIENT_SECRET>`
 
 ## Étape 3: Mettre à jour .env.local
 
 ```
-DISCORD_CLIENT_ID=1478886237942321223
-DISCORD_CLIENT_SECRET=YDGMTzfUX9hN-tkJy54mVXhf1xx0QQvH
+DISCORD_CLIENT_ID=<VOTRE_CLIENT_ID>
+DISCORD_CLIENT_SECRET=<VOTRE_CLIENT_SECRET>
 DISCORD_REDIRECT_URI=http://localhost:3000/api/auth/discord
 ```
+
+> ⚠️ **NE JAMAIS** commiter les secrets dans le code source. Utilisez `.env.local` (inclus dans `.gitignore`).
 
 Redémarrez le serveur Next.js après modification.

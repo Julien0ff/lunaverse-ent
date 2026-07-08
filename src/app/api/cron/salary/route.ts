@@ -11,11 +11,11 @@ import { NextRequest, NextResponse } from 'next/server'
  * - External cron service
  */
 export async function POST(request: NextRequest) {
-    // Security check — only allow if secret header matches
+    // Security check — require CRON_SECRET header to match
     const cronSecret = process.env.CRON_SECRET
     const authHeader = request.headers.get('x-cron-secret')
 
-    if (cronSecret && authHeader !== cronSecret) {
+    if (!cronSecret || authHeader !== cronSecret) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

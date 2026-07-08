@@ -1,17 +1,62 @@
 import '../global.css';
 import { Tabs } from 'expo-router';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions } from 'react-native';
-import { LayoutDashboard, Wallet, Globe, ShoppingCart, Shield, Radio, Play, Pause, X, Volume2, VolumeX } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions, ActivityIndicator } from 'react-native';
+import { LayoutDashboard, Wallet, Globe, ShoppingCart, Shield, Radio, Play, Pause, X, Volume2, VolumeX, LogIn } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Audio } from 'expo-av';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
+import { AuthProvider, useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
 export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
+  );
+}
+
+function AuthGate() {
+  const { user, loading, signIn } = useAuth();
   const insets = useSafeAreaInsets();
 
+  if (loading) {
+    return (
+      <View className="flex-1 bg-[#0F1013] items-center justify-center">
+        <ActivityIndicator size="large" color="#5865F2" />
+        <Text className="text-white/50 mt-4 text-sm font-bold">Chargement...</Text>
+      </View>
+    );
+  }
+
+  if (!user) {
+    return (
+      <View className="flex-1 bg-[#0F1013] items-center justify-center px-8" style={{ paddingTop: insets.top }}>
+        <View className="w-24 h-24 bg-[#5865F2]/20 rounded-3xl items-center justify-center mb-8 border border-[#5865F2]/30">
+          <Shield size={48} color="#5865F2" />
+        </View>
+        <Text className="text-3xl font-black text-white text-center mb-2">ENT LunaVerse</Text>
+        <Text className="text-white/50 text-center mb-10 font-medium">
+          Connectez-vous avec Discord pour accéder à l'ENT.
+        </Text>
+        <TouchableOpacity
+          onPress={signIn}
+          className="w-full bg-[#5865F2] rounded-2xl py-4 flex-row items-center justify-center"
+          style={{ shadowColor: '#5865F2', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16 }}
+        >
+          <LogIn size={22} color="white" />
+          <Text className="text-white font-bold text-base ml-3">Se connecter avec Discord</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return <AuthenticatedLayout insets={insets} />;
+}
+
+function AuthenticatedLayout({ insets }: { insets: any }) {
   return (
     <View className="flex-1 bg-[#0F1013]">
       <Tabs

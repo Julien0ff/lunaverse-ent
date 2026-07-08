@@ -4,6 +4,11 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   try {
     const supabase = createSupabaseServer()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
     
     const { data: topUsers, error } = await supabase
       .from('profiles')

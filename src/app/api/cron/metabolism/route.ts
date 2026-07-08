@@ -22,7 +22,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET
   const authHeader = request.headers.get('x-cron-secret')
-  if (cronSecret && authHeader !== cronSecret) {
+  if (!cronSecret || authHeader !== cronSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

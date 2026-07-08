@@ -6,6 +6,9 @@ import { createClient } from '@supabase/supabase-js'
 // Memory fallback for settings if table doesn't exist yet
 const memorySettings = new Map<string, any>()
 
+// In-memory store for pending multi-step RP registrations
+const pendingRegistrations = new Map<string, any>()
+
 export async function getServerSetting(key: string, defaultValue: any = null) {
   try {
     const { data, error } = await supabase
@@ -175,6 +178,24 @@ const commands = [
     .addChannelOption(o => o.setName('salon_inscription').setDescription('Où envoyer le bouton').setRequired(true))
     .addChannelOption(o => o.setName('salon_admin').setDescription('Où recevoir les candidatures').setRequired(true))
     .addChannelOption(o => o.setName('salon_reponses').setDescription('Où ping les joueurs acceptés').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('options')
+    .setDescription('[ADMIN] Gérer les options/clubs pour l\'inscription RP')
+    .addSubcommand(sub => sub
+      .setName('ajouter')
+      .setDescription('Ajouter une nouvelle option')
+      .addStringOption(o => o.setName('nom').setDescription('Nom de l\'option').setRequired(true))
+    )
+    .addSubcommand(sub => sub
+      .setName('supprimer')
+      .setDescription('Supprimer une option')
+      .addStringOption(o => o.setName('nom').setDescription('Nom de l\'option').setRequired(true))
+    )
+    .addSubcommand(sub => sub
+      .setName('liste')
+      .setDescription('Voir la liste des options')
+    ),
 
   new SlashCommandBuilder()
     .setName('couple')
@@ -1341,34 +1362,30 @@ client.on('interactionCreate', async (interaction) => {
       const prenom = interaction.fields.getTextInputValue('prenom')
       const nom = interaction.fields.getTextInputValue('nom')
       const dob = interaction.fields.getTextInputValue('age')
-      const optionClub = interaction.fields.getTextInputValue('option_club') || 'Aucune'
       const desc = interaction.fields.getTextInputValue('desc') || 'Aucune'
 
-      const embed = new EmbedBuilder()
-        .setTitle('Nouvelle Inscription RP')
-        .setColor(WARNING)
-        .addFields(
-          { name: 'Utilisateur', value: `<@${interaction.user.id}>` },
-          { name: 'ID Discord', value: interaction.user.id },
-          { name: 'Prénom RP', value: prenom, inline: true },
-          { name: 'Nom RP', value: nom, inline: true },
-          { name: 'Classe souhaitée', value: '_Non assignée_', inline: true },
-          { name: 'Date de Naissance RP', value: dob, inline: true },
-          { name: 'Option / Club', value: optionClub, inline: true },
-          { name: 'Description', value: desc }
+      pendingRegistrations.set(interaction.user.id, {
+        adminId,
+        responsesId,
+        prenom,
+        nom,
+        dob,
+        desc,
+        classe: null,
+        langue: null,
+        options: []
+      })
+
+      const sel = new StringSelectMenuBuilder()
+        .setCustomId('rp_reg_class')
+        .setPlaceholder('Choisissez votre classe (Obligatoire)')
+        .addOptions(
+          new StringSelectMenuOptionBuilder().setLabel('Nova').setValue('NOV').setEmoji('🌟'),
+          new StringSelectMenuOptionBuilder().setLabel('Nébuleuse').setValue('NÉB').setEmoji('🌌')
         )
 
-      const btnAcc = new ButtonBuilder().setCustomId(`rp_accept|${interaction.user.id}|${responsesId}`).setLabel('Accepter').setStyle(ButtonStyle.Success).setEmoji('1217171776220561409')
-      const btnRef = new ButtonBuilder().setCustomId(`rp_refuse|${interaction.user.id}`).setLabel('Refuser').setStyle(ButtonStyle.Danger).setEmoji('1262454063912452207')
-      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(btnAcc, btnRef)
-
-      const adminChannel = await client.channels.fetch(adminId).catch(() => null)
-      if (adminChannel && adminChannel.isTextBased()) {
-        await (adminChannel as any).send({ embeds: [embed], components: [row] })
-        await interaction.reply({ content: '✅ Votre demande a été envoyée au staff !', ephemeral: true })
-      } else {
-        await interaction.reply({ content: '❌ Erreur de configuration: salon admin introuvable.', ephemeral: true })
-      }
+      const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(sel)
+      await interaction.reply({ content: 'Page 1/3 - Choisissez votre classe :', components: [row], ephemeral: true })
       return
     }
 
@@ -1481,6 +1498,45 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
   }
 
   if (interaction.isButton()) {
+    if (interaction.customId === 'rp_reg_submit') {
+      const reg = pendingRegistrations.get(interaction.user.id)
+      if (!reg) return interaction.reply({ content: '❌ Session expirée.', ephemeral: true })
+      
+      if (reg.classe === 'NOV' && !reg.options.includes('Cybersécurité')) {
+         reg.options.push('Cybersécurité')
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle('Nouvelle Inscription RP')
+        .setColor(WARNING)
+        .addFields(
+          { name: 'Utilisateur', value: `<@${interaction.user.id}>` },
+          { name: 'ID Discord', value: interaction.user.id },
+          { name: 'Prénom RP', value: reg.prenom, inline: true },
+          { name: 'Nom RP', value: reg.nom, inline: true },
+          { name: 'Classe choisie', value: reg.classe === 'NOV' ? 'Nova' : 'Nébuleuse', inline: true },
+          { name: 'Date de Naissance RP', value: reg.dob, inline: true },
+          { name: 'Langue LV2', value: reg.langue || 'Aucune', inline: true },
+          { name: 'Options / Clubs', value: reg.options.length > 0 ? reg.options.join(', ') : 'Aucun', inline: true },
+          { name: 'Description', value: reg.desc }
+        )
+
+      const btnAcc = new ButtonBuilder().setCustomId(`rp_accept|${interaction.user.id}|${reg.responsesId}|${reg.classe}`).setLabel('Accepter').setStyle(ButtonStyle.Success).setEmoji('1217171776220561409')
+      const btnChangeClass = new ButtonBuilder().setCustomId(`rp_change_class|${interaction.user.id}|${reg.responsesId}`).setLabel('Modifier Classe').setStyle(ButtonStyle.Secondary)
+      const btnRef = new ButtonBuilder().setCustomId(`rp_refuse|${interaction.user.id}`).setLabel('Refuser').setStyle(ButtonStyle.Danger).setEmoji('1262454063912452207')
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(btnAcc, btnChangeClass, btnRef)
+
+      const adminChannel = await client.channels.fetch(reg.adminId).catch(() => null)
+      if (adminChannel && adminChannel.isTextBased()) {
+        await (adminChannel as any).send({ embeds: [embed], components: [row] })
+        await interaction.update({ content: '✅ Votre demande a été envoyée au staff !', components: [] })
+        pendingRegistrations.delete(interaction.user.id)
+      } else {
+        await interaction.reply({ content: '❌ Erreur de configuration: salon admin introuvable.', ephemeral: true })
+      }
+      return
+    }
+
     // ── Friendship & Daily Reward DM Buttons ──
     if (interaction.customId.startsWith('friend_accept|')) {
       const parts = interaction.customId.split('|')
@@ -1608,14 +1664,12 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
       const tPrenom = new TextInputBuilder().setCustomId('prenom').setLabel('Prénom RP').setStyle(TextInputStyle.Short).setRequired(true)
       const tNom = new TextInputBuilder().setCustomId('nom').setLabel('Nom RP').setStyle(TextInputStyle.Short).setRequired(true)
       const tAge = new TextInputBuilder().setCustomId('age').setLabel('Date de naissance RP').setStyle(TextInputStyle.Short).setRequired(true)
-      const tOptionClub = new TextInputBuilder().setCustomId('option_club').setLabel('Option / Club').setPlaceholder('ex: Allemand, Cybersécurité...').setStyle(TextInputStyle.Short).setRequired(false)
       const tDesc = new TextInputBuilder().setCustomId('desc').setLabel('Description du personnage').setPlaceholder('Décris ton personnage RP, son histoire, sa personnalité, etc.').setStyle(TextInputStyle.Paragraph).setRequired(false)
 
       modal.addComponents(
         new ActionRowBuilder<TextInputBuilder>().addComponents(tPrenom),
         new ActionRowBuilder<TextInputBuilder>().addComponents(tNom),
         new ActionRowBuilder<TextInputBuilder>().addComponents(tAge),
-        new ActionRowBuilder<TextInputBuilder>().addComponents(tOptionClub),
         new ActionRowBuilder<TextInputBuilder>().addComponents(tDesc)
       )
 
@@ -1629,6 +1683,34 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         return
       }
       const parts = interaction.customId.split('|')
+      if (parts.length < 4) return
+      const targetId = parts[1]
+      const responsesId = parts[2]
+      const predefClasse = parts[3]
+      const messageId = interaction.message.id
+
+      const modal = new ModalBuilder()
+        .setCustomId(`rp_accept_modal|${targetId}|${responsesId}|${messageId}|${predefClasse}`)
+        .setTitle(`Fiche ENT (${predefClasse === 'NOV' ? 'Nova' : 'Nébuleuse'})`)
+
+      const tId = new TextInputBuilder().setCustomId('pronote_id').setLabel('Identifiant').setStyle(TextInputStyle.Short).setRequired(true)
+      const tPass = new TextInputBuilder().setCustomId('pronote_pass').setLabel('Mot de passe').setStyle(TextInputStyle.Short).setRequired(true)
+
+      modal.addComponents(
+        new ActionRowBuilder<TextInputBuilder>().addComponents(tId),
+        new ActionRowBuilder<TextInputBuilder>().addComponents(tPass)
+      )
+
+      await interaction.showModal(modal)
+      return
+    }
+
+    if (interaction.customId.startsWith('rp_change_class|')) {
+      if (!await isAdmin(interaction.user.id, interaction)) {
+        await interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
+        return
+      }
+      const parts = interaction.customId.split('|')
       if (parts.length < 3) return
       const targetId = parts[1]
       const responsesId = parts[2]
@@ -1636,14 +1718,14 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
 
       const sel = new StringSelectMenuBuilder()
         .setCustomId(`rp_class_sel|${targetId}|${responsesId}|${messageId}`)
-        .setPlaceholder('Choisissez la classe de l\'élève')
+        .setPlaceholder('Choisissez la nouvelle classe')
         .addOptions(
           new StringSelectMenuOptionBuilder().setLabel('Nova').setValue('NOV').setEmoji('🌟'),
           new StringSelectMenuOptionBuilder().setLabel('Nébuleuse').setValue('NÉB').setEmoji('🌌')
         )
 
       const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(sel)
-      await interaction.reply({ content: 'Avant de créer les accès, sélectionnez la classe de l\'élève :', components: [row], ephemeral: true })
+      await interaction.reply({ content: 'Modifiez la classe de l\'élève :', components: [row], ephemeral: true })
       return
     }
 
@@ -1873,6 +1955,55 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
   }
 
   if (interaction.isStringSelectMenu()) {
+    if (interaction.customId === 'rp_reg_class') {
+      const reg = pendingRegistrations.get(interaction.user.id)
+      if (!reg) return interaction.reply({ content: '❌ Session expirée, veuillez recommencer.', ephemeral: true })
+      reg.classe = interaction.values[0]
+
+      const sel = new StringSelectMenuBuilder()
+        .setCustomId('rp_reg_lang')
+        .setPlaceholder('Choisissez votre Langue LV2 (Obligatoire)')
+        .addOptions(
+          new StringSelectMenuOptionBuilder().setLabel('Allemand LV2').setValue('Allemand LV2').setEmoji('🇩🇪'),
+          new StringSelectMenuOptionBuilder().setLabel('Espagnol LV2').setValue('Espagnol LV2').setEmoji('🇪🇸')
+        )
+
+      const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(sel)
+      await interaction.update({ content: 'Page 2/3 - Choisissez votre Langue LV2 :', components: [row] })
+      return
+    }
+
+    if (interaction.customId === 'rp_reg_lang') {
+      const reg = pendingRegistrations.get(interaction.user.id)
+      if (!reg) return interaction.reply({ content: '❌ Session expirée, veuillez recommencer.', ephemeral: true })
+      reg.langue = interaction.values[0]
+
+      let opts: any[] = await getServerSetting('rp_options', ['Cybersécurité'])
+      if (!Array.isArray(opts) || opts.length === 0) opts = ['Cybersécurité']
+
+      const sel = new StringSelectMenuBuilder()
+        .setCustomId('rp_reg_opt')
+        .setPlaceholder('Choisissez une ou plusieurs options (Facultatif)')
+        .setMinValues(0)
+        .setMaxValues(opts.length)
+        .addOptions(opts.map((o: string) => new StringSelectMenuOptionBuilder().setLabel(o).setValue(o)))
+
+      const row1 = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(sel)
+      const btn = new ButtonBuilder().setCustomId('rp_reg_submit').setLabel('Envoyer').setStyle(ButtonStyle.Success)
+      const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(btn)
+
+      await interaction.update({ content: `Page 3/3 - Choisissez vos options/clubs (Facultatif).\n*Note: Si vous avez choisi Nova, la Cybersécurité vous sera ajoutée obligatoirement.*`, components: [row1, row2] })
+      return
+    }
+
+    if (interaction.customId === 'rp_reg_opt') {
+      const reg = pendingRegistrations.get(interaction.user.id)
+      if (!reg) return interaction.reply({ content: '❌ Session expirée.', ephemeral: true })
+      reg.options = interaction.values
+      await interaction.deferUpdate()
+      return
+    }
+
     if (interaction.customId.startsWith('rp_class_sel|')) {
       const parts = interaction.customId.split('|')
       if (parts.length < 4) return
@@ -1957,7 +2088,7 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
             name: interaction.guild?.name || 'Serveur',
             iconURL: interaction.guild?.iconURL() || undefined
           })
-          .setDescription(`> ⬇️  **Cliquez sur le bouton** ci-dessous pour remplir votre** formulaire d'inscription RP** 🔥 pour __obtenir vos accès PRONOTE  <:pronote:1317623827630653573> .__\n\n> <:warningyellow:1375475607822930062>  Passez le **test d'entrée pour devenir élève** et être affecté(e) à une classe ! C'est obligatoire 😉\n*10 questions avec des questions assez simples ! La __possibilité de tricher RP__ (70% de réussir à tricher sans qu'on vous voit)*`)
+          .setDescription(`> ⬇️  **Cliquez sur le bouton** ci-dessous pour remplir votre** formulaire d'inscription RP** 🔥 pour __obtenir vos accès PRONOTE  <:pronote:1317623827630653573> .__`)
           .setColor(0x000049)
           .setImage('https://i.ibb.co/cXRfH1ST/Luna-Verse-RP-1.png')
 
@@ -1967,13 +2098,7 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
           .setEmoji('1259611750966366239')
           .setStyle(ButtonStyle.Primary)
 
-        const btn2 = new ButtonBuilder()
-          .setLabel('Test d\'entrée')
-          .setEmoji('1329902269428142130')
-          .setStyle(ButtonStyle.Link)
-          .setURL('https://test-eleve-inscription.netlify.app/quiz.html')
-
-        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(btn, btn2)
+        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(btn)
 
         try {
           await (sInscription as any).send({ embeds: [embed], components: [row] })
@@ -1981,6 +2106,30 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         } catch (error) {
           console.error('Error sending enrollment panel:', error)
           await interaction.reply({ content: '❌ Erreur lors de l\'envoi du panel. Vérifiez les permissions du bot dans ce salon.', ephemeral: true })
+        }
+        break
+      }
+
+      case 'options': {
+        if (!await isAdmin(user.id, interaction)) return interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
+        const sub = interaction.options.getSubcommand()
+        let currentOptions: string[] = await getServerSetting('rp_options', ['Cybersécurité'])
+        if (!Array.isArray(currentOptions)) currentOptions = ['Cybersécurité']
+
+        if (sub === 'ajouter') {
+          const nom = interaction.options.getString('nom')!
+          if (currentOptions.includes(nom)) return interaction.reply({ content: '❌ Cette option existe déjà.', ephemeral: true })
+          currentOptions.push(nom)
+          await setServerSetting('rp_options', currentOptions)
+          return interaction.reply({ content: `✅ Option **${nom}** ajoutée !`, ephemeral: true })
+        } else if (sub === 'supprimer') {
+          const nom = interaction.options.getString('nom')!
+          if (!currentOptions.includes(nom)) return interaction.reply({ content: '❌ Cette option n\'existe pas.', ephemeral: true })
+          currentOptions = currentOptions.filter((o: string) => o !== nom)
+          await setServerSetting('rp_options', currentOptions)
+          return interaction.reply({ content: `✅ Option **${nom}** supprimée !`, ephemeral: true })
+        } else if (sub === 'liste') {
+          return interaction.reply({ content: `**Options disponibles :**\n${currentOptions.length ? currentOptions.map((o: string) => `- ${o}`).join('\n') : 'Aucune option'}`, ephemeral: true })
         }
         break
       }
