@@ -5,17 +5,18 @@ import type { NextRequest } from 'next/server'
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const next = requestUrl.searchParams.get('next') ?? '/dashboard'
 
   if (code) {
     const supabase = createSupabaseServer()
-    try {
-      await supabase.auth.exchangeCodeForSession(code)
-    } catch (error) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (error) {
       console.error('Error exchanging code for session:', error)
       return NextResponse.redirect(new URL('/?error=auth_failed', request.url))
     }
   }
 
   // URL to redirect to after sign in process completes
-  return NextResponse.redirect(new URL('/dashboard', request.url))
+  return NextResponse.redirect(new URL(next, request.url))
 }
+

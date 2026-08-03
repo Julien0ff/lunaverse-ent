@@ -44,6 +44,16 @@ export async function middleware(request: NextRequest) {
 
     const pathname = request.nextUrl.pathname
 
+    // ── OAuth Callback Forwarding: if ?code=... is present anywhere else ─
+    const code = request.nextUrl.searchParams.get('code')
+    if (code && !pathname.startsWith('/api/auth/callback')) {
+        const callbackUrl = new URL('/api/auth/callback', request.url)
+        callbackUrl.searchParams.set('code', code)
+        const nextParam = request.nextUrl.searchParams.get('next')
+        if (nextParam) callbackUrl.searchParams.set('next', nextParam)
+        return NextResponse.redirect(callbackUrl)
+    }
+
     // ── Public routes: allow without authentication ──────────────────────
     if (isPublicRoute(pathname)) {
         return supabaseResponse

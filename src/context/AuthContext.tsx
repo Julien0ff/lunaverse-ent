@@ -179,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'discord',
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: { redirectTo: `${window.location.origin}/api/auth/callback` },
     })
   }
 

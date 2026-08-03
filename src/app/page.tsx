@@ -5,7 +5,7 @@ import { useLanguage } from '@/context/LanguageContext'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
-import { Moon, ArrowRight, Shield, Wallet, Globe, Gamepad2, ShoppingCart, User, Star, Zap } from 'lucide-react'
+import { Moon, ArrowRight, Shield, Wallet, Globe, Gamepad2, ShoppingCart, User, Star, Zap, AlertTriangle } from 'lucide-react'
 
 const DiscordIcon = () => (
   <svg viewBox="0 0 127.14 96.36" fill="currentColor" className="w-6 h-6">
@@ -27,6 +27,21 @@ export default function LoginPage() {
   const { t } = useLanguage()
   const router = useRouter()
   const [isSigningIn, setIsSigningIn] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const err = params.get('error')
+      if (err === 'unauthenticated') {
+        setErrorMessage('Vous devez être connecté pour accéder à cette page.')
+      } else if (err === 'auth_failed') {
+        setErrorMessage('Échec de la connexion. Veuillez réessayer.')
+      } else if (err) {
+        setErrorMessage('Une erreur est survenue lors de la connexion.')
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (!loading && user) {
@@ -98,6 +113,12 @@ export default function LoginPage() {
 
           {/* CTA */}
           <div className="flex flex-col items-center gap-4 animate-fadeIn" style={{ animationDelay: '400ms' }}>
+            {errorMessage && (
+              <div className="px-4 py-2.5 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm font-semibold flex items-center gap-2 max-w-md text-center shadow-lg shadow-red-500/5 animate-shake">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
             <button
               onClick={handleSignIn}
               disabled={isSigningIn}
