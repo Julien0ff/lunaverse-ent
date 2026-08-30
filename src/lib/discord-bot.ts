@@ -1028,76 +1028,16 @@ export async function updateCanteenMenuMessage() {
     const channel = await client.channels.fetch(channelId).catch(() => null)
     if (!channel || !channel.isTextBased()) return
 
-    // Calculate dates for this weekend (Saturday and Sunday)
-    const now = new Date()
-    const day = now.getDay()
-    const diffToSaturday = 6 - day
-    const saturday = new Date(now)
-    saturday.setDate(now.getDate() + diffToSaturday)
-    const sunday = new Date(saturday)
-    sunday.setDate(saturday.getDate() + 1)
-
-    const satStr = saturday.toISOString().split('T')[0]
-    const sunStr = sunday.toISOString().split('T')[0]
-
-    // Fetch menus for >= today
-    const today = new Date()
-    today.setHours(0,0,0,0)
-    const todayStr = today.toISOString().split('T')[0]
-
-    const { data: menus } = await supabase
-      .from('canteen_menus')
-      .select('*')
-      .gte('menu_date', todayStr)
-      .order('menu_date', { ascending: true })
-      .order('time_start', { ascending: true })
-
-    if (!menus) return
-
-    // Filter weekend menus
-    const weekendMenus = menus.filter((m: any) => m.menu_date === satStr || m.menu_date === sunStr)
-    // Find future menus (after this weekend)
-    const futureMenus = menus.filter((m: any) => m.menu_date > sunStr)
+    const menuText = await getServerSetting('canteen_menu_text', '_Aucun menu défini._')
 
     const embed = new EmbedBuilder()
-      .setTitle('🍽️ Menu de la Cantine (Week-end)')
+      .setTitle('🍽️ Menu de la Cantine')
       .setColor(0xF97316)
+      .setDescription(menuText || '_Aucun menu défini._')
       .setTimestamp()
-
-    if (weekendMenus.length === 0) {
-      embed.setDescription('_Aucun menu prévu pour ce week-end._')
-    } else {
-      for (const m of weekendMenus) {
-        // Parse date manually to avoid timezone shifts (YYYY-MM-DD)
-        const [y, mon, d] = m.menu_date.split('-').map(Number)
-        const dateObj = new Date(y, mon - 1, d)
-        const dateStr = dateObj.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
-        const title = `Menu du ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)}`
-        
-        let desc = `**Horaire :** ${m.time_start.slice(0, 5)} - ${m.time_end.slice(0, 5)}\n\n`
-        if (m.starter) desc += `🥗 **Entrée :** ${m.starter}\n`
-        desc += `🍗 **Plat :** ${m.main}\n`
-        if (m.side) desc += `🍟 **Accompagnement :** ${m.side}\n`
-        if (m.dessert) desc += `🍰 **Dessert :** ${m.dessert}\n`
-        if (m.drink) desc += `🥤 **Boisson :** ${m.drink}\n`
-        if (m.note) desc += `\n*💡 ${m.note}*`
-        
-        embed.addFields({ name: title, value: desc, inline: false })
-      }
-    }
 
     const components = []
     const row = new ActionRowBuilder<ButtonBuilder>()
-
-    if (futureMenus.length > 0) {
-      row.addComponents(
-        new ButtonBuilder()
-          .setCustomId('cantine_show_more')
-          .setLabel('Menus suivants')
-          .setStyle(ButtonStyle.Secondary)
-          .setEmoji('📅')
-      )
-    }
 
     row.addComponents(
       new ButtonBuilder()
@@ -1135,6 +1075,14 @@ client.on('messageCreate', async (message) => {
     const cantineId = await getServerSetting('cantine_channel_id')
     if (cantineId && message.channel.id === cantineId) {
       if (await isAdmin(message.author.id)) return // Admin can always write
+
+      const isAbonne = message.member?.roles.cache.some(r => r.name.toLowerCase().includes('abonné') || r.name.toLowerCase().includes('abonne'))
+      if (!isAbonne) {
+        await message.delete().catch(() => null)
+        const m = await message.channel.send(`<@${message.author.id}>, tu n'as pas l'abonnement à la cantine (rôle "Abonné").`)
+        setTimeout(() => m.delete().catch(() => null), 5000)
+        return
+      }
 
       const startStr = await getServerSetting('cantine_start_time', '15:30')
       const endStr = await getServerSetting('cantine_end_time', '16:00')

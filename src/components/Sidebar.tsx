@@ -9,7 +9,8 @@ import { useAuth } from '@/context/AuthContext'
 import {
   LayoutDashboard, Wallet, Globe, Dices,
   ShoppingCart, Shield, LogOut, Moon, Settings,
-  ChevronRight, User, BookOpen, ExternalLink, MessageCircle, Heart, Utensils, Landmark, Menu, X, ShoppingBag, Calendar, Home
+  ChevronRight, User, BookOpen, ExternalLink, MessageCircle, Heart, Utensils, Landmark, Menu, X, ShoppingBag, Calendar, Home,
+  Users, UserPlus, GraduationCap, Award, Megaphone, Bell
 } from 'lucide-react'
 import clsx from 'clsx'
 import SettingsModal from './SettingsModal'
@@ -32,7 +33,17 @@ const NAV = [
 ]
 
 const ADMIN_NAV = [
-  { href: '/admin', icon: Shield, labelKey: 'nav.admin', emoji: '⚙️' },
+  { href: '/admin/users', icon: Users, label: 'Utilisateurs' },
+  { href: '/admin/inscriptions', icon: UserPlus, label: 'Inscriptions' },
+  { href: '/admin/classes', icon: GraduationCap, label: 'Classes & Spécialités' },
+  { href: '/admin/cantine', icon: Utensils, label: 'Cantine' },
+  { href: '/admin/finances', icon: Wallet, label: 'Finances' },
+  { href: '/admin/primes', icon: Award, label: 'Primes & Aides' },
+  { href: '/admin/shop', icon: ShoppingCart, label: 'Boutique' },
+  { href: '/admin/roles', icon: Shield, label: 'Rôles & Salaires' },
+  { href: '/admin/declarations', icon: Megaphone, label: 'Déclarations' },
+  { href: '/admin/pronote', icon: BookOpen, label: 'Demandes Pronote' },
+  { href: '/admin/annonces', icon: Bell, label: 'Annonces' }
 ]
 
 // Status dot color from discord_status
@@ -239,7 +250,7 @@ export default function Sidebar() {
                   )}>
                     <Icon className="w-4 h-4" style={{ color: active ? '#ED4245' : 'inherit' }} />
                   </div>
-                  <span>{t(item.labelKey)}</span>
+                  <span>{(item as any).label || t((item as any).labelKey)}</span>
                 </Link>
               )
             })}

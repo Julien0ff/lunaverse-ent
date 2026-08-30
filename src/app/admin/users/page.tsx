@@ -12,6 +12,7 @@ interface AdminUser {
   pronote_id: string | null; nickname_rp?: string
   health: number; hunger: number; thirst: number; fatigue: number; hygiene: number; alcohol: number
   first_connection?: boolean
+  roles?: { id: string; name: string }[]
 }
 
 export default function AdminUsersPage() {
@@ -36,6 +37,21 @@ export default function AdminUsersPage() {
       console.error(e)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const toggleFirstConnection = async (userId: string, current: boolean) => {
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, first_connection: !current })
+      })
+      if (res.ok) {
+        setUsers(users.map(u => u.id === userId ? { ...u, first_connection: !current } : u))
+      }
+    } catch (e) {
+      console.error(e)
     }
   }
 
@@ -114,13 +130,33 @@ export default function AdminUsersPage() {
                       </span>
                     </td>
                     <td className="p-4 text-center">
-                      {u.pronote_id ? (
-                        <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-discord-success/20 text-discord-success">Inscrit</span>
-                      ) : (
-                        <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-discord-warning/20 text-discord-warning flex items-center justify-center gap-1 w-max mx-auto">
-                          <AlertCircle className="w-3 h-3" /> En attente
-                        </span>
-                      )}
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="flex flex-wrap gap-1 justify-center">
+                          {u.roles && u.roles.length > 0 ? (
+                            u.roles.map(r => (
+                              <span key={r.id} className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-discord-blurple/20 text-discord-blurple border border-discord-blurple/30">
+                                {r.name}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-discord-warning/20 text-discord-warning flex items-center justify-center gap-1 w-max mx-auto">
+                              <AlertCircle className="w-3 h-3" /> En attente (Aucun Rôle)
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => toggleFirstConnection(u.id, !!u.first_connection)}
+                          className={clsx(
+                            "text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full transition-colors",
+                            u.first_connection 
+                              ? "bg-discord-success/20 text-discord-success hover:bg-discord-success/30" 
+                              : "bg-discord-error/20 text-discord-error hover:bg-discord-error/30"
+                          )}
+                          title={u.first_connection ? 'Cliquer pour désactiver le tutoriel' : 'Cliquer pour réactiver le tutoriel'}
+                        >
+                          {u.first_connection ? 'Tutoriel Terminé' : 'Tutoriel Actif'}
+                        </button>
+                      </div>
                     </td>
                     <td className="p-4">
                       <div className="flex items-center justify-center gap-3 text-[10px] font-bold text-discord-muted">

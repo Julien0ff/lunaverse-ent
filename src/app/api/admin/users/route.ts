@@ -10,8 +10,29 @@ export async function GET() {
         const user = await requireAdmin(supabase, admin)
         if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-        const { data: users } = await admin.from('profiles').select('*').order('created_at', { ascending: false })
-        return NextResponse.json({ users: users || [] })
+        const { data: users, error } = await admin
+          .from('profiles')
+          .select(`
+            *,
+            user_roles (
+              roles (
+                id,
+                name
+              )
+            )
+          `)
+          .order('created_at', { ascending: false })
+          
+        if (error) throw error
+
+        const formattedUsers = (users || []).map(u => {
+          const roles = u.user_roles?.map((ur: any) => ur.roles).filter(Boolean) || []
+          // Remove user_roles from the object to avoid cluttering, attach roles instead
+          delete u.user_roles
+          return { ...u, roles }
+        })
+
+        return NextResponse.json({ users: formattedUsers })
     } catch (err: any) {
         return NextResponse.json({ error: err.message }, { status: 500 })
     }
