@@ -1069,9 +1069,9 @@ export async function updateCanteenMenuMessage() {
     if (!menus) return
 
     // Filter weekend menus
-    const weekendMenus = menus.filter(m => m.menu_date === satStr || m.menu_date === sunStr)
+    const weekendMenus = menus.filter((m: any) => m.menu_date === satStr || m.menu_date === sunStr)
     // Find future menus (after this weekend)
-    const futureMenus = menus.filter(m => m.menu_date > sunStr)
+    const futureMenus = menus.filter((m: any) => m.menu_date > sunStr)
 
     const embed = new EmbedBuilder()
       .setTitle('🍽️ Menu de la Cantine (Week-end)')
@@ -1257,7 +1257,7 @@ client.on('interactionCreate', async (interaction) => {
             .filter((item: any) => item && item.name && item.name.toLowerCase().includes(f))
 
           // Remove duplicates
-          const uniqueNames = Array.from(new Set(matched.map(i => i.name)))
+          const uniqueNames = Array.from(new Set(matched.map((i: any) => i.name)))
           await interaction.respond(
             uniqueNames.slice(0, 25).map((name: any) => ({ name, value: name }))
           )
@@ -1268,7 +1268,7 @@ client.on('interactionCreate', async (interaction) => {
             .eq('is_available', true)
             .ilike('name', `%${focusedValue}%`)
             .limit(25)
-          if (items) await interaction.respond(items.map(item => ({ name: `${item.name} (${item.price}€)`, value: item.id })))
+          if (items) await interaction.respond(items.map((item: any) => ({ name: `${item.name} (${item.price}€)`, value: item.id })))
         }
       } catch (error) { console.error('Autocomplete error:', error) }
     }
@@ -1882,7 +1882,7 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
 
     if (interaction.customId === 'cantine_show_more') {
       const menus = await supabase.from('canteen_menus').select('*').gte('menu_date', new Date().toISOString().split('T')[0]).order('menu_date', { ascending: true })
-      const upcoming = (menus.data || []).filter(m => {
+      const upcoming = (menus.data || []).filter((m: any) => {
         const sat = new Date(); sat.setDate(sat.getDate() + (6 - sat.getDay()))
         const sun = new Date(); sun.setDate(sun.getDate() + (7 - sun.getDay()))
         const d = m.menu_date
@@ -1894,7 +1894,7 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         return
       }
 
-      const embeds = upcoming.slice(0, 5).map(m => {
+      const embeds = upcoming.slice(0, 5).map((m: any) => {
         const [y, mon, d] = m.menu_date.split('-').map(Number)
         const dateStr = new Date(y, mon - 1, d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
         return new EmbedBuilder()
@@ -2371,7 +2371,7 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
           }
 
           const txList = transactions
-            .map(tx => {
+            .map((tx: any) => {
               const amount = tx.from_user_id === profile.id ? `-${tx.amount}€` : `+${tx.amount}€`
               const date = new Date(tx.created_at).toLocaleDateString('fr-FR')
               return `[${date}] ${tx.description}: **${amount}**`
@@ -2528,7 +2528,7 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
           return
         }
 
-        const groupedByCategory = items.reduce((acc: any, item) => {
+        const groupedByCategory = items.reduce((acc: any, item: any) => {
           if (!acc[item.category]) acc[item.category] = []
           acc[item.category].push(item)
           return acc
@@ -2545,7 +2545,7 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
 
         for (const [cat, catItems] of Object.entries(groupedByCategory)) {
           const emoji = categoryEmojis[cat] || '📦'
-          const list = (catItems as any[]).map(item => `**${item.name}** — ${Number(item.price).toFixed(2)}€`).join('\n')
+          const list = (catItems as any[]).map((item: any) => `**${item.name}** — ${Number(item.price).toFixed(2)}€`).join('\n')
           embed.addFields({ name: `${emoji} ${cat.charAt(0).toUpperCase() + cat.slice(1)}`, value: list })
         }
 
@@ -2628,7 +2628,7 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
           .setTimestamp()
 
         if (topUsers && topUsers.length > 0) {
-          const list = topUsers.map((u, i) => {
+          const list = topUsers.map((u: any, i: any) => {
             const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`
             return `${medal} **${u.nickname_rp || u.username}** — ${u.balance.toLocaleString()}€`
           }).join('\n')
