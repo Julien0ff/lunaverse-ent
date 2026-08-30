@@ -97,36 +97,45 @@ export default function Dashboard() {
   return (
     <div className="page-container">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 relative z-10">
         <div className="animate-slideIn">
-          <h1 className="text-4xl font-black text-white tracking-tight leading-none">
-            {t('dashboard.greeting')}{profile?.username ? <>, <span className="text-discord-blurple">{profile.username}</span></> : ''} !
+          <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 tracking-tight leading-none drop-shadow-sm">
+            {t('dashboard.greeting')}{profile?.username ? <>, <span className="text-transparent bg-clip-text bg-gradient-to-r from-discord-blurple to-fuchsia-500 drop-shadow-[0_0_10px_rgba(88,101,242,0.5)]">{profile.username}</span></> : ''} !
           </h1>
-          <p className="text-discord-muted mt-2 font-medium">{t('dashboard.welcome_back')}</p>
+          <p className="text-discord-muted mt-2 font-medium text-lg tracking-wide uppercase">{t('dashboard.welcome_back')}</p>
         </div>
       </div>
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Balance Card */}
-        <div className="lg:col-span-2 glass-card overflow-hidden relative group min-h-[250px] flex flex-col justify-between border-discord-blurple/20">
-          <div className="absolute top-0 right-0 p-12 opacity-5 group-hover:opacity-10 transition-opacity rotate-12">
-            <Wallet className="w-48 h-48" />
+        {/* Balance Card - Premium Credit Card Style */}
+        <div className="lg:col-span-2 relative overflow-hidden rounded-[2.5rem] shadow-[0_20px_50px_rgba(88,101,242,0.15)] group min-h-[280px] flex flex-col justify-between border border-white/10 p-8 transition-transform hover:scale-[1.01] duration-500">
+          {/* Card Gradients */}
+          <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-[#1a1c23] to-[#2a2d3a] -z-10" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-discord-blurple/20 via-transparent to-fuchsia-500/10 opacity-50 -z-10" />
+          {/* Glossy reflection */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-30 pointer-events-none -z-10" />
+          
+          <div className="absolute top-0 right-0 p-12 opacity-5 group-hover:opacity-10 transition-opacity rotate-12 group-hover:rotate-[15deg] group-hover:scale-110 duration-700">
+            <Wallet className="w-64 h-64 text-white" />
           </div>
 
           <div className="relative z-10">
-            <p className="text-discord-muted text-xs font-black uppercase tracking-[0.2em] mb-2">{t('dashboard.balance_label')}</p>
-            <h2 className="text-6xl font-black text-white tracking-tighter">
-              {profile?.balance.toFixed(0)} <span className="text-2xl text-discord-blurple">€</span>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-5 rounded bg-gradient-to-br from-yellow-200 to-yellow-500 shadow-sm" />
+              <p className="text-gray-400 text-xs font-black uppercase tracking-[0.3em]">{t('dashboard.balance_label')}</p>
+            </div>
+            <h2 className="text-6xl md:text-7xl font-black text-white tracking-tighter drop-shadow-md flex items-baseline gap-2">
+              {profile?.balance.toLocaleString()} <span className="text-3xl text-discord-blurple">€</span>
             </h2>
           </div>
 
           <div className="relative z-10 flex gap-4 mt-8">
-            <Link href="/bank" className="btn btn-primary flex-1 py-4 text-lg">
+            <Link href="/bank" className="btn bg-discord-blurple hover:bg-[#4752C4] text-white flex-1 py-4 text-lg rounded-2xl shadow-[0_0_20px_rgba(88,101,242,0.3)] hover:shadow-[0_0_30px_rgba(88,101,242,0.5)] transition-all">
               <ArrowUpRight className="w-5 h-5" />
               {t('dashboard.transfer')}
             </Link>
-            <Link href="/bank" className="btn btn-ghost flex-1 py-4 text-lg">
+            <Link href="/bank" className="btn bg-white/5 hover:bg-white/10 text-white flex-1 py-4 text-lg rounded-2xl border border-white/10 backdrop-blur-md transition-all">
               <History className="w-5 h-5" />
               {t('dashboard.history')}
             </Link>
@@ -135,55 +144,56 @@ export default function Dashboard() {
 
         {/* Online Users */}
         <div className="flex flex-col gap-4">
-          <div className="glass-card border-discord-blurple/20 flex-1">
-            <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest mb-4 flex items-center gap-2">
-              <Users className="w-4 h-4 text-discord-blurple" />
+          <div className="bg-black/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-6 flex-1 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+            <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest mb-5 flex items-center gap-2">
+              <Users className="w-4 h-4 text-discord-blurple drop-shadow-[0_0_5px_rgba(88,101,242,0.8)]" />
               {t('dashboard.online_users').replace('{count}', socialData.onlineUsers.length.toString())}
             </h3>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               {socialData.onlineUsers.length > 0 ? socialData.onlineUsers.map(u => (
                 <Link 
                   key={u.id} 
                   href={`/messages?chat=${u.username}`}
                   className="group relative"
                 >
-                  <div className="w-9 h-9 rounded-xl overflow-hidden ring-2 ring-discord-blurple/20 group-hover:ring-discord-blurple transition-all">
+                  <div className="w-10 h-10 rounded-[14px] overflow-hidden ring-2 ring-white/5 group-hover:ring-discord-blurple/80 group-hover:shadow-[0_0_15px_rgba(88,101,242,0.5)] transition-all duration-300">
                     <Image 
                       src={u.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} 
-                      alt={u.username} width={36} height={36} className="object-cover w-full h-full"
+                      alt={u.username} width={40} height={40} className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
                     />
                   </div>
-                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-discord-success rounded-full border-2 border-[#121316] shadow-sm" />
+                  <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-discord-success rounded-full border-[3px] border-[#121316] shadow-[0_0_8px_rgba(87,242,135,0.6)]" />
                   
                   {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-[10px] font-black rounded pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-1.5 bg-white/10 backdrop-blur-md border border-white/10 text-white text-xs font-black rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-all shadow-xl whitespace-nowrap z-50">
                     {u.nickname_rp || u.username}
                   </div>
                 </Link>
               )) : (
-                <p className="text-[10px] text-discord-muted italic">{t('dashboard.alone')}</p>
+                <p className="text-xs text-discord-muted italic bg-white/5 px-4 py-2 rounded-xl border border-white/5">{t('dashboard.alone')}</p>
               )}
             </div>
           </div>
           
           {/* Daily Reward Small */}
-          <div className="glass-card border-discord-success/10 py-4">
-             <div className="flex items-center justify-between gap-3">
-               <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 bg-discord-success/20 rounded-xl flex items-center justify-center group-hover:bg-discord-success transition-colors">
-                    <Gift className="w-5 h-5 text-discord-success group-hover:text-discord-darker" />
+          <div className="bg-gradient-to-r from-discord-success/5 to-transparent backdrop-blur-xl border border-discord-success/20 rounded-[2rem] p-5 shadow-[0_10px_30px_rgba(87,242,135,0.05)] relative overflow-hidden group">
+             <div className="absolute inset-0 bg-discord-success/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+             <div className="relative flex items-center justify-between gap-3 z-10">
+               <div className="flex items-center gap-4">
+                 <div className="w-12 h-12 bg-discord-success/10 border border-discord-success/30 rounded-[14px] flex items-center justify-center group-hover:bg-discord-success transition-colors duration-500 shadow-[0_0_15px_rgba(87,242,135,0.2)]">
+                    <Gift className="w-6 h-6 text-discord-success group-hover:text-black transition-colors" />
                  </div>
                  <div>
-                    <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest">{t('dashboard.daily_reward')}</p>
-                    <p className="text-sm font-black text-white">50 €</p>
+                    <p className="text-[11px] font-black text-discord-success/70 uppercase tracking-widest">{t('dashboard.daily_reward')}</p>
+                    <p className="text-base font-black text-white">50 €</p>
                  </div>
                </div>
                <button 
                  onClick={handleClaimDaily}
                  disabled={!canClaimDaily() || claiming}
                  className={clsx(
-                   "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                   canClaimDaily() ? "bg-discord-success text-discord-darker hover:scale-105 shadow-lg shadow-discord-success/20" : "bg-white/5 text-discord-muted opacity-50"
+                   "px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300",
+                   canClaimDaily() ? "bg-discord-success text-black hover:scale-105 shadow-[0_0_20px_rgba(87,242,135,0.4)]" : "bg-white/5 text-discord-muted opacity-50 border border-white/5"
                  )}
                >
                  {claiming ? "..." : canClaimDaily() ? t('dashboard.claim') : t('dashboard.claimed')}
@@ -221,25 +231,28 @@ export default function Dashboard() {
             ))}
           </div>
 
-          <h3 className="text-xs font-black text-discord-muted uppercase tracking-[0.2em] px-2 mt-8">{t('dashboard.leaderboard')}</h3>
-          <div className="glass-card p-0 overflow-hidden border-[#FEE75C33]">
+          <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] px-2 mt-8 mb-2 flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-[#FEE75C] drop-shadow-[0_0_5px_rgba(254,231,92,0.8)]" />
+            {t('dashboard.leaderboard')}
+          </h3>
+          <div className="bg-black/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-0 overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
             {socialData.leaderboard.map((user, i) => (
               <div 
                 key={user.id} 
-                className="flex items-center gap-3 p-3 border-b border-white/5 last:border-0 hover:bg-white/2 transition-colors"
+                className="flex items-center gap-4 p-4 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors group"
               >
-                <div className="w-6 text-[10px] font-black text-discord-muted">{i + 1}.</div>
-                <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
+                <div className="w-6 text-sm font-black text-gray-500 group-hover:text-white transition-colors">{i + 1}.</div>
+                <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 ring-2 ring-white/5 group-hover:ring-[#FEE75C]/50 transition-all">
                   <Image 
                     src={user.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} 
-                    alt={user.username} width={32} height={32} className="object-cover w-full h-full"
+                    alt={user.username} width={40} height={40} className="object-cover w-full h-full group-hover:scale-110 transition-transform"
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-white truncate">{user.nickname_rp || user.username}</p>
+                  <p className="text-sm font-bold text-white truncate">{user.nickname_rp || user.username}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-black text-[#FEE75C]">{user.balance.toLocaleString()} €</p>
+                  <p className="text-sm font-black text-[#FEE75C] drop-shadow-[0_0_8px_rgba(254,231,92,0.3)]">{user.balance.toLocaleString()} €</p>
                 </div>
               </div>
             ))}
@@ -247,39 +260,42 @@ export default function Dashboard() {
         </div>
 
         <div className="lg:col-span-2 space-y-4">
-          <h3 className="text-xs font-black text-discord-muted uppercase tracking-[0.2em] px-2 flex items-center justify-between">
+          <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] px-2 flex items-center justify-between">
             {t('dashboard.recent_activity')}
-            <Link href="/bank" className="text-discord-blurple hover:underline normal-case tracking-normal text-[11px]">{t('dashboard.see_all')}</Link>
+            <Link href="/bank" className="text-discord-blurple hover:text-[#5865F2] hover:underline normal-case tracking-normal text-[11px] font-bold transition-colors">{t('dashboard.see_all')}</Link>
           </h3>
-          <div className="glass-card p-2 space-y-1">
+          <div className="bg-black/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-3 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
             {recentTransactions.length > 0 ? (
               recentTransactions.map((tx) => (
-                <div key={tx.id} className="flex items-center gap-4 p-3 hover:bg-white/5 rounded-xl transition-colors group">
+                <div key={tx.id} className="flex items-center gap-4 p-4 hover:bg-white/5 rounded-[1.25rem] transition-colors group">
                   <div className={clsx(
-                    "w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
-                    tx.amount > 0 ? "bg-discord-success/20 text-discord-success" : "bg-discord-error/20 text-discord-error"
+                    "w-12 h-12 rounded-[14px] flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-sm",
+                    tx.amount > 0 ? "bg-discord-success/10 text-discord-success border border-discord-success/20 group-hover:bg-discord-success/20" : "bg-discord-error/10 text-discord-error border border-discord-error/20 group-hover:bg-discord-error/20"
                   )}>
-                    {tx.amount > 0 ? <ArrowDownRight className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
+                    {tx.amount > 0 ? <ArrowDownRight className="w-6 h-6" /> : <ArrowUpRight className="w-6 h-6" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-white truncate">{tx.description}</p>
-                    <p className="text-[10px] font-bold text-discord-muted uppercase tracking-widest">
+                    <p className="text-sm font-bold text-white truncate group-hover:text-discord-blurple transition-colors">{tx.description}</p>
+                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">
                       {new Date(tx.created).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className={clsx(
-                      "text-sm font-black",
+                      "text-base font-black drop-shadow-sm",
                       tx.amount > 0 ? "text-discord-success" : "text-discord-error"
                     )}>
-                      {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(0)} €
+                      {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()} €
                     </p>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="p-8 text-center">
-                <p className="text-discord-muted text-sm font-medium">{t('dashboard.no_activity')}</p>
+              <div className="p-12 text-center">
+                <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4">
+                  <History className="w-8 h-8 text-discord-muted" />
+                </div>
+                <p className="text-gray-400 text-sm font-medium">{t('dashboard.no_activity')}</p>
               </div>
             )}
           </div>

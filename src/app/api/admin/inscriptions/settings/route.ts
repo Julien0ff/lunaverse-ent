@@ -13,7 +13,7 @@ export async function GET() {
         const { data } = await admin
           .from('server_settings')
           .select('key, value')
-          .in('key', ['cantine_start_time', 'cantine_end_time', 'canteen_menu_text', 'discord_canteen_menu_channel_id', 'cantine_channel_id'])
+          .in('key', ['salon_admin', 'salon_reponses'])
 
         const settings: Record<string, string> = {}
         if (data) {
@@ -36,7 +36,7 @@ export async function PATCH(request: NextRequest) {
         if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
         const body = await request.json()
-        const allowedKeys = ['cantine_start_time', 'cantine_end_time', 'canteen_menu_text', 'discord_canteen_menu_channel_id', 'cantine_channel_id']
+        const allowedKeys = ['salon_admin', 'salon_reponses']
         
         for (const [key, value] of Object.entries(body)) {
           if (allowedKeys.includes(key) && typeof value === 'string') {

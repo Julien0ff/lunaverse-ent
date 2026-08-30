@@ -23,6 +23,10 @@ export default function AdminInscriptionsPage() {
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [filter, setFilter] = useState<'pending' | 'accepted' | 'refused' | 'all'>('pending')
   
+  const [salonAdmin, setSalonAdmin] = useState('')
+  const [salonReponses, setSalonReponses] = useState('')
+  const [savingSettings, setSavingSettings] = useState(false)
+  
   // Modal state
   const [acceptModalOpen, setAcceptModalOpen] = useState(false)
   const [selectedInscriptionId, setSelectedInscriptionId] = useState<string | null>(null)
@@ -35,9 +39,10 @@ export default function AdminInscriptionsPage() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [rIns, rClass] = await Promise.all([
+      const [rIns, rClass, rSettings] = await Promise.all([
         fetch('/api/admin/inscriptions'),
-        fetch('/api/admin/classes')
+        fetch('/api/admin/classes'),
+        fetch('/api/admin/inscriptions/settings')
       ])
       if (rIns.ok) {
         const data = await rIns.json()
@@ -46,6 +51,11 @@ export default function AdminInscriptionsPage() {
       if (rClass.ok) {
         const data = await rClass.json()
         setClasses(data.classes || [])
+      }
+      if (rSettings.ok) {
+        const data = await rSettings.json()
+        setSalonAdmin(data.salon_admin || '')
+        setSalonReponses(data.salon_reponses || '')
       }
     } catch (e) {
       console.error(e)
@@ -57,6 +67,26 @@ export default function AdminInscriptionsPage() {
   const showMsg = (type: 'success'|'error', text: string) => {
     setMsg({ type, text })
     setTimeout(() => setMsg(null), 3000)
+  }
+
+  const saveSettings = async () => {
+    setSavingSettings(true)
+    try {
+      const res = await fetch('/api/admin/inscriptions/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ salon_admin: salonAdmin, salon_reponses: salonReponses })
+      })
+      if (res.ok) {
+        showMsg('success', 'Paramètres Discord sauvegardés.')
+      } else {
+        showMsg('error', 'Erreur lors de la sauvegarde des paramètres.')
+      }
+    } catch (e) {
+      showMsg('error', 'Erreur de connexion.')
+    } finally {
+      setSavingSettings(false)
+    }
   }
 
   const handleAction = async (id: string, status: 'accepted' | 'refused', classe?: string) => {
@@ -105,6 +135,44 @@ export default function AdminInscriptionsPage() {
           <AlertCircle className="w-5 h-5" /> {msg.text}
         </div>
       )}
+
+      {/* Settings Section */}
+      <div className="glass-card p-6 mb-6">
+        <h3 className="text-lg font-bold text-white mb-4">Paramètres Discord</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Salon Candidatures</label>
+            <input
+              type="text"
+              value={salonAdmin}
+              onChange={e => setSalonAdmin(e.target.value)}
+              placeholder="ID du salon Discord"
+              className="glass-input w-full bg-white/5 border-white/10 text-white focus:border-discord-blurple"
+            />
+            <p className="text-[10px] text-discord-muted">Où s'envoie l'embed pour s'inscrire.</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Salon Réponses</label>
+            <input
+              type="text"
+              value={salonReponses}
+              onChange={e => setSalonReponses(e.target.value)}
+              placeholder="ID du salon Discord"
+              className="glass-input w-full bg-white/5 border-white/10 text-white focus:border-discord-blurple"
+            />
+            <p className="text-[10px] text-discord-muted">Où arrivent les demandes remplies par les joueurs.</p>
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={saveSettings}
+            disabled={savingSettings}
+            className="btn bg-discord-blurple hover:bg-discord-blurple/80 text-white px-6 py-2 font-bold rounded-xl transition-all"
+          >
+            {savingSettings ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Sauvegarder les salons'}
+          </button>
+        </div>
+      </div>
 
       <div className="flex gap-2">
         {(['pending', 'accepted', 'refused', 'all'] as const).map(f => (

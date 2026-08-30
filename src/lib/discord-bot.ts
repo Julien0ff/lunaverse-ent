@@ -528,14 +528,14 @@ client.on('ready', async () => {
 
           // 1. Periodic Loss (Toutes les 6 heures)
           if (hour % 6 === 0) {
-            h = Math.max(0, h - 10);
-            t = Math.max(0, t - 15);
+            h = Math.max(0, h - 2);
+            t = Math.max(0, t - 3);
           }
 
           // 2. Daily Penalties (Minuit)
           if (hour === 0) {
-            t = Math.max(0, t - 20);
-            y = Math.max(0, y - 25);
+            t = Math.max(0, t - 5);
+            y = Math.max(0, y - 5);
           }
 
           // 3. Morning Reset (Fatigue = 100 à 08:00)
@@ -543,9 +543,9 @@ client.on('ready', async () => {
             f = 100;
           }
 
-          // 4. Critical Condition (Si faim ou soif < 50, Santé -10 toutes les 3 heures)
-          if (hour % 3 === 0 && (h < 50 || t < 50)) {
-            s = Math.max(0, s - 10);
+          // 4. Critical Condition (Si faim ou soif < 20, Santé -2 toutes les 3 heures)
+          if (hour % 3 === 0 && (h < 20 || t < 20)) {
+            s = Math.max(0, s - 2);
           }
 
           // Apply updates

@@ -34,8 +34,8 @@ export async function POST(request: NextRequest) {
     let isWin = false
     let result = ''
 
-    // House edge: 30% base win rate as requested
-    const luckyRoll = Math.random() < 0.30
+    // House edge: increased to 65% base win rate for a more generous casino
+    const luckyRoll = Math.random() < 0.65
 
     if (luckyRoll) {
       if (game_type === 'slots') {

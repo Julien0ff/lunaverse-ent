@@ -12,6 +12,8 @@ export default function AdminCantinePage() {
   const [startTime, setStartTime] = useState('11:30')
   const [endTime, setEndTime] = useState('13:30')
   const [menuText, setMenuText] = useState('')
+  const [menuChannelId, setMenuChannelId] = useState('')
+  const [rpChannelId, setRpChannelId] = useState('')
   const [feedback, setFeedback] = useState('')
 
   useEffect(() => {
@@ -26,6 +28,8 @@ export default function AdminCantinePage() {
         setStartTime(data.cantine_start_time || '11:30')
         setEndTime(data.cantine_end_time || '13:30')
         setMenuText(data.canteen_menu_text || '')
+        setMenuChannelId(data.discord_canteen_menu_channel_id || '')
+        setRpChannelId(data.cantine_channel_id || '')
       }
     } catch (e) {
       console.error(e)
@@ -41,7 +45,13 @@ export default function AdminCantinePage() {
       const res = await fetch('/api/admin/cantine', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cantine_start_time: startTime, cantine_end_time: endTime, canteen_menu_text: menuText })
+        body: JSON.stringify({ 
+          cantine_start_time: startTime, 
+          cantine_end_time: endTime, 
+          canteen_menu_text: menuText,
+          discord_canteen_menu_channel_id: menuChannelId,
+          cantine_channel_id: rpChannelId
+        })
       })
       if (res.ok) {
         setFeedback('✅ Paramètres sauvegardés avec succès !')
@@ -160,6 +170,37 @@ export default function AdminCantinePage() {
             placeholder="Ex: Lundi: Pâtes carbo..."
             className="glass-input w-full bg-white/5 border-white/10 text-white focus:border-discord-blurple resize-none"
           />
+
+          <div className="pt-4 mt-2 border-t border-white/5 space-y-4">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Utensils className="w-5 h-5 text-discord-blurple" /> Paramètres Discord
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Salon de la Cantine (RP)</label>
+                <input
+                  type="text"
+                  value={rpChannelId}
+                  onChange={e => setRpChannelId(e.target.value)}
+                  placeholder="ID du salon Discord"
+                  className="glass-input w-full bg-white/5 border-white/10 text-white focus:border-discord-blurple"
+                />
+                <p className="text-[10px] text-discord-muted">Salon restreint pendant les horaires.</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Salon Menu Cantine</label>
+                <input
+                  type="text"
+                  value={menuChannelId}
+                  onChange={e => setMenuChannelId(e.target.value)}
+                  placeholder="ID du salon Discord"
+                  className="glass-input w-full bg-white/5 border-white/10 text-white focus:border-discord-blurple"
+                />
+                <p className="text-[10px] text-discord-muted">Lieu de publication de l'embed du menu.</p>
+              </div>
+            </div>
+          </div>
 
           <div className="flex gap-4">
             <button

@@ -44,16 +44,16 @@ export async function POST(request: NextRequest) {
     const updated: string[] = []
 
     for (const p of (profiles || [])) {
-      const hunger  = clamp((p.hunger  ?? 100) - 5)
-      const thirst  = clamp((p.thirst  ?? 100) - 8)
-      const fatigue = clamp((p.fatigue ?? 100) - 3)
-      const hygiene = clamp((p.hygiene ?? 100) - 2)
-      const alcohol = clamp((p.alcohol ?? 0)   - 8)
+      const hunger  = clamp((p.hunger  ?? 100) - 1) // Was -5
+      const thirst  = clamp((p.thirst  ?? 100) - 2) // Was -8
+      const fatigue = clamp((p.fatigue ?? 100) - 1) // Was -3
+      const hygiene = clamp((p.hygiene ?? 100) - 1) // Was -2
+      const alcohol = clamp((p.alcohol ?? 0)   - 8) // Sobering up can stay fast
 
       // Health consequences
       let healthDelta = 1
-      if ((p.hunger  ?? 100) < 20) healthDelta -= 3
-      if ((p.thirst  ?? 100) < 20) healthDelta -= 5
+      if ((p.hunger  ?? 100) < 20) healthDelta -= 1
+      if ((p.thirst  ?? 100) < 20) healthDelta -= 2
       if ((p.alcohol ?? 0)   > 80) healthDelta -= 2
       const health = clamp((p.health ?? 100) + healthDelta)
 
