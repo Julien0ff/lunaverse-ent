@@ -1,27 +1,27 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, X, Loader2, AlertCircle, Trash2 } from 'lucide-react'
+import { Plus, Loader2, AlertCircle, Trash2 } from 'lucide-react'
 import clsx from 'clsx'
 
-export default function AdminOptionsPage() {
-  const [options, setOptions] = useState<string[]>([])
+export default function AdminClassesPage() {
+  const [classes, setClasses] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
-  const [newOption, setNewOption] = useState('')
+  const [newClass, setNewClass] = useState('')
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    loadOptions()
+    loadClasses()
   }, [])
 
-  const loadOptions = async () => {
+  const loadClasses = async () => {
     setLoading(true)
     try {
-      const r = await fetch('/api/admin/options')
+      const r = await fetch('/api/admin/classes')
       if (r.ok) {
         const data = await r.json()
-        setOptions(data.options || [])
+        setClasses(data.classes || [])
       }
     } catch (e) {
       console.error(e)
@@ -35,18 +35,18 @@ export default function AdminOptionsPage() {
     setTimeout(() => setMsg(null), 3000)
   }
 
-  const saveOptions = async (newOptionsList: string[]) => {
+  const saveClasses = async (newClassesList: string[]) => {
     setSaving(true)
     try {
-      const r = await fetch('/api/admin/options', {
+      const r = await fetch('/api/admin/classes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ options: newOptionsList })
+        body: JSON.stringify({ classes: newClassesList })
       })
       if (r.ok) {
-        setOptions(newOptionsList)
-        setNewOption('')
-        showMsg('success', 'Options mises à jour avec succès.')
+        setClasses(newClassesList)
+        setNewClass('')
+        showMsg('success', 'Classes mises à jour avec succès.')
       } else {
         const err = await r.json()
         showMsg('error', err.error || 'Erreur lors de la sauvegarde.')
@@ -58,27 +58,27 @@ export default function AdminOptionsPage() {
     }
   }
 
-  const addOption = () => {
-    const trimmed = newOption.trim()
+  const addClass = () => {
+    const trimmed = newClass.trim()
     if (!trimmed) return
-    if (options.includes(trimmed)) {
-      showMsg('error', 'Cette option existe déjà.')
+    if (classes.includes(trimmed)) {
+      showMsg('error', 'Cette classe existe déjà.')
       return
     }
-    saveOptions([...options, trimmed])
+    saveClasses([...classes, trimmed])
   }
 
-  const removeOption = (optToRemove: string) => {
-    saveOptions(options.filter(o => o !== optToRemove))
+  const removeClass = (classToRemove: string) => {
+    saveClasses(classes.filter(c => c !== classToRemove))
   }
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-10 h-10 animate-spin text-discord-blurple" /></div>
 
   return (
-    <div className="space-y-6 animate-fadeIn max-w-4xl">
+    <div className="space-y-6 animate-fadeIn max-w-4xl mx-auto p-4 md:p-8">
       <div>
-        <h2 className="text-3xl font-black text-white">Spécialités & Clubs</h2>
-        <p className="text-discord-muted">Gérez les options disponibles lors de l'inscription RP.</p>
+        <h2 className="text-3xl font-black text-white">Gestion des Classes</h2>
+        <p className="text-discord-muted">Gérez les classes disponibles pour les inscriptions des élèves.</p>
       </div>
 
       {msg && (
@@ -88,19 +88,19 @@ export default function AdminOptionsPage() {
       )}
 
       <div className="p-6 rounded-[32px] bg-white/[0.02] border border-white/5 border-dashed">
-        <h3 className="text-lg font-black text-white mb-4">Ajouter une spécialité</h3>
+        <h3 className="text-lg font-black text-white mb-4">Ajouter une classe</h3>
         <div className="flex gap-2">
           <input 
             type="text" 
-            placeholder="Nom de l'option (ex: Physique Chimie)" 
+            placeholder="Nom de la classe (ex: 3ème A)" 
             className="glass-input flex-1 bg-white/5 border-white/10 text-white"
-            value={newOption}
-            onChange={e => setNewOption(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addOption()}
+            value={newClass}
+            onChange={e => setNewClass(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addClass()}
           />
           <button 
-            onClick={addOption} 
-            disabled={saving || !newOption.trim()} 
+            onClick={addClass} 
+            disabled={saving || !newClass.trim()} 
             className="btn bg-discord-blurple hover:bg-discord-blurple/80 text-white flex items-center gap-2 px-6 font-bold"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -110,17 +110,17 @@ export default function AdminOptionsPage() {
       </div>
 
       <div className="p-6 rounded-[32px] bg-white/[0.02] border border-white/5">
-        <h3 className="text-lg font-black text-white mb-4">Options existantes ({options.length})</h3>
+        <h3 className="text-lg font-black text-white mb-4">Classes existantes ({classes.length})</h3>
         
-        {options.length === 0 ? (
-          <p className="text-discord-muted text-center p-4">Aucune option configurée.</p>
+        {classes.length === 0 ? (
+          <p className="text-discord-muted text-center p-4">Aucune classe configurée.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {options.map(opt => (
-              <div key={opt} className="flex items-center justify-between p-4 bg-white/5 border border-white/5 hover:border-white/10 rounded-2xl transition-all">
-                <span className="font-bold text-white text-sm">{opt}</span>
+            {classes.map(c => (
+              <div key={c} className="flex items-center justify-between p-4 bg-white/5 border border-white/5 hover:border-white/10 rounded-2xl transition-all">
+                <span className="font-bold text-white text-sm">{c}</span>
                 <button 
-                  onClick={() => removeOption(opt)}
+                  onClick={() => removeClass(c)}
                   disabled={saving}
                   className="p-2 text-discord-error hover:bg-discord-error/20 rounded-xl transition-colors disabled:opacity-50"
                 >

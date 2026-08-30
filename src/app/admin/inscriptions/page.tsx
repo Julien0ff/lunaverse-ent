@@ -10,9 +10,6 @@ interface Inscription {
   prenom: string
   nom: string
   dob: string
-  description: string
-  classe: string
-  langue: string
   options: string[]
   status: 'pending' | 'accepted' | 'refused'
   created_at: string
@@ -20,22 +17,35 @@ interface Inscription {
 
 export default function AdminInscriptionsPage() {
   const [inscriptions, setInscriptions] = useState<Inscription[]>([])
+  const [classes, setClasses] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [filter, setFilter] = useState<'pending' | 'accepted' | 'refused' | 'all'>('pending')
+  
+  // Modal state
+  const [acceptModalOpen, setAcceptModalOpen] = useState(false)
+  const [selectedInscriptionId, setSelectedInscriptionId] = useState<string | null>(null)
+  const [selectedClass, setSelectedClass] = useState('')
 
   useEffect(() => {
-    loadInscriptions()
+    loadData()
   }, [])
 
-  const loadInscriptions = async () => {
+  const loadData = async () => {
     setLoading(true)
     try {
-      const r = await fetch('/api/admin/inscriptions')
-      if (r.ok) {
-        const data = await r.json()
+      const [rIns, rClass] = await Promise.all([
+        fetch('/api/admin/inscriptions'),
+        fetch('/api/admin/classes')
+      ])
+      if (rIns.ok) {
+        const data = await rIns.json()
         setInscriptions(data.items || [])
+      }
+      if (rClass.ok) {
+        const data = await rClass.json()
+        setClasses(data.classes || [])
       }
     } catch (e) {
       console.error(e)
@@ -49,17 +59,17 @@ export default function AdminInscriptionsPage() {
     setTimeout(() => setMsg(null), 3000)
   }
 
-  const handleAction = async (id: string, status: 'accepted' | 'refused') => {
+  const handleAction = async (id: string, status: 'accepted' | 'refused', classe?: string) => {
     setActionLoading(id)
     try {
       const res = await fetch('/api/admin/inscriptions', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status })
+        body: JSON.stringify({ id, status, classe })
       })
       if (res.ok) {
         showMsg('success', `Inscription ${status === 'accepted' ? 'acceptée' : 'refusée'} avec succès.`)
-        loadInscriptions()
+        loadData()
       } else {
         const err = await res.json()
         showMsg('error', err.error || 'Erreur lors de l\'action')
@@ -68,7 +78,15 @@ export default function AdminInscriptionsPage() {
       showMsg('error', 'Erreur de connexion')
     } finally {
       setActionLoading(null)
+      setAcceptModalOpen(false)
+      setSelectedInscriptionId(null)
+      setSelectedClass('')
     }
+  }
+
+  const openAcceptModal = (id: string) => {
+    setSelectedInscriptionId(id)
+    setAcceptModalOpen(true)
   }
 
   const filtered = filter === 'all' ? inscriptions : inscriptions.filter(i => i.status === filter)
@@ -125,33 +143,19 @@ export default function AdminInscriptionsPage() {
                 <div className="flex items-center gap-3">
                   <h3 className="text-xl font-black text-white">{i.prenom} {i.nom.toUpperCase()}</h3>
                   <span className="text-xs bg-white/5 text-discord-muted px-2 py-1 rounded-full font-mono">{i.discord_id}</span>
-                  <span className={clsx(
-                    "text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded-lg",
-                    i.classe === 'NOV' ? "bg-discord-blurple/20 text-discord-blurple" : "bg-discord-error/20 text-discord-error"
-                  )}>
-                    {i.classe === 'NOV' ? 'Nova' : 'Nébuleuse'}
-                  </span>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white/5 p-3 rounded-xl">
                     <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">Date Naissance</p>
                     <p className="text-sm text-white font-medium">{i.dob}</p>
                   </div>
                   <div className="bg-white/5 p-3 rounded-xl">
-                    <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">LV2</p>
-                    <p className="text-sm text-white font-medium">{i.langue || 'Aucune'}</p>
-                  </div>
-                  <div className="bg-white/5 p-3 rounded-xl col-span-2">
-                    <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">Options/Clubs</p>
+                    <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">Spécialité</p>
                     <p className="text-sm text-white font-medium">
-                      {i.options?.length ? i.options.join(', ') : 'Aucun'}
+                      {i.options?.length ? i.options.join(', ') : 'Aucune'}
                     </p>
                   </div>
-                </div>
-
-                <div className="bg-white/5 p-4 rounded-xl text-sm text-discord-muted italic">
-                  "{i.description}"
                 </div>
                 
                 <p className="text-[10px] text-discord-muted flex items-center gap-1 font-mono">
@@ -162,9 +166,9 @@ export default function AdminInscriptionsPage() {
               {i.status === 'pending' && (
                 <div className="flex md:flex-col gap-2 shrink-0 md:w-48">
                   <button 
-                    onClick={() => handleAction(i.id, 'accepted')}
+                    onClick={() => openAcceptModal(i.id)}
                     disabled={actionLoading === i.id}
-                    className="btn btn-success flex-1 flex items-center justify-center gap-2"
+                    className="btn bg-[#57F287] hover:bg-[#57F287]/80 text-black flex-1 flex items-center justify-center gap-2 font-bold"
                   >
                     {actionLoading === i.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     Accepter
@@ -172,7 +176,7 @@ export default function AdminInscriptionsPage() {
                   <button 
                     onClick={() => handleAction(i.id, 'refused')}
                     disabled={actionLoading === i.id}
-                    className="btn btn-error flex-1 flex items-center justify-center gap-2"
+                    className="btn bg-[#ED4245] hover:bg-[#ED4245]/80 text-white flex-1 flex items-center justify-center gap-2 font-bold"
                   >
                     {actionLoading === i.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
                     Refuser
@@ -197,6 +201,47 @@ export default function AdminInscriptionsPage() {
           ))
         )}
       </div>
+
+      {acceptModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#1e1e24] border border-white/10 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-white/10">
+              <h3 className="text-xl font-black text-white">Validation de l'inscription</h3>
+              <p className="text-sm text-discord-muted mt-1">Choisissez la classe dans laquelle ajouter l'élève.</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">Classe de l'élève</label>
+                <select
+                  value={selectedClass}
+                  onChange={e => setSelectedClass(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-discord-blurple"
+                >
+                  <option value="" disabled>-- Sélectionner une classe --</option>
+                  {classes.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="p-6 bg-black/20 flex justify-end gap-3">
+              <button
+                onClick={() => setAcceptModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl font-bold text-discord-muted hover:text-white hover:bg-white/5 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => selectedInscriptionId && handleAction(selectedInscriptionId, 'accepted', selectedClass)}
+                disabled={!selectedClass}
+                className="px-5 py-2.5 rounded-xl font-bold bg-discord-success hover:bg-discord-success/80 text-white transition-colors disabled:opacity-50"
+              >
+                Confirmer l'ajout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

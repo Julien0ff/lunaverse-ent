@@ -506,5 +506,9 @@
     "no_comments": "Aucun commentaire pour le moment.",
     "post_error": "Erreur lors de la création du post.",
     "nothing_preview": "_Rien à prévisualiser_"
+  },
+  "maison_page": {
+    "maintenance_title": "En Maintenance",
+    "maintenance_desc": "Le système de maisons est actuellement désactivé. Une refonte complète de la fonctionnalité est en cours de préparation."
   }
 }

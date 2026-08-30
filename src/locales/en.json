@@ -506,5 +506,9 @@
     "no_comments": "No comments yet.",
     "post_error": "Error creating post.",
     "nothing_preview": "_Nothing to preview_"
+  },
+  "maison_page": {
+    "maintenance_title": "Under Maintenance",
+    "maintenance_desc": "The housing system is currently disabled. A complete overhaul of the feature is in preparation."
   }
 }

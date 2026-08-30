@@ -7,20 +7,21 @@ import Link from 'next/link'
 import {
   Shield, Users, Wallet, ShoppingCart, Key,
   Utensils, FileText, Calendar, Megaphone,
-  CreditCard, Loader2
+  CreditCard, Loader2, BookOpen, UserPlus, Component
 } from 'lucide-react'
 import clsx from 'clsx'
 
 const ADMIN_PAGES = [
   { href: '/admin/users', label: 'Utilisateurs', icon: Users },
+  { href: '/admin/inscriptions', label: 'Inscriptions', icon: UserPlus },
+  { href: '/admin/classes', label: 'Classes', icon: BookOpen },
+  { href: '/admin/options', label: 'Spécialités & Clubs', icon: Component },
   { href: '/admin/finances', label: 'Finances', icon: Wallet },
   { href: '/admin/primes', label: 'Bourse & Primes', icon: CreditCard },
   { href: '/admin/shop', label: 'Boutique', icon: ShoppingCart },
   { href: '/admin/roles', label: 'Rôles & Salaires', icon: Key },
   { href: '/admin/cantine', label: 'Cantine', icon: Utensils },
   { href: '/admin/declarations', label: 'Déclarations', icon: FileText },
-  { href: '/admin/inscriptions', label: 'Inscriptions', icon: FileText },
-  { href: '/admin/options', label: 'Spécialités', icon: FileText },
   { href: '/admin/absences', label: 'Absences', icon: Calendar },
   { href: '/admin/annonces', label: 'Annonces', icon: Megaphone },
 ]

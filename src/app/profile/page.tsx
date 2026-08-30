@@ -140,9 +140,19 @@ export default function ProfilePage() {
               <h2 className="text-4xl font-black text-white tracking-tight group-hover:text-discord-blurple transition-colors">
                 {profile?.username || '…'}
               </h2>
-              {roles.some(r => r.name === 'Admin') && (
+              {roles.some(r => r.name.toLowerCase().includes('élève') || r.name.toLowerCase().includes('eleve')) && (
+                <span className="bg-[#57F287]/20 text-[#57F287] text-[10px] font-black px-2 py-0.5 rounded-md border border-[#57F287]/30 uppercase tracking-widest w-fit mx-auto md:mx-0">
+                  Élève
+                </span>
+              )}
+              {roles.some(r => r.name.toLowerCase().includes('prof')) && (
+                <span className="bg-[#FEE75C]/20 text-[#FEE75C] text-[10px] font-black px-2 py-0.5 rounded-md border border-[#FEE75C]/30 uppercase tracking-widest w-fit mx-auto md:mx-0">
+                  Professeur
+                </span>
+              )}
+              {roles.some(r => r.name === 'Admin' || r.name.toLowerCase().includes('direction')) && (
                 <span className="bg-discord-blurple/20 text-discord-blurple text-[10px] font-black px-2 py-0.5 rounded-md border border-discord-blurple/30 uppercase tracking-widest w-fit mx-auto md:mx-0">
-                  {t('profile.staff')}
+                  {roles.some(r => r.name.toLowerCase().includes('direction')) ? 'Direction' : t('profile.staff')}
                 </span>
               )}
             </div>
