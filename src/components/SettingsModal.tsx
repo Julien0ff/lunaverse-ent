@@ -23,6 +23,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [isAdminUser, setIsAdminUser] = useState(false)
   const [dynamicStatsEnabled, setDynamicStatsEnabled] = useState(true)
   const [savingAdmin, setSavingAdmin] = useState(false)
+  const [discordSettings, setDiscordSettings] = useState<Record<string, string>>({})
   
   const [suggestionTitle, setSuggestionTitle] = useState('')
   const [suggestionText, setSuggestionText] = useState('')
@@ -53,8 +54,19 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   }, [profile, supabase])
 
   const fetchAdminSettings = useCallback(async () => {
-    const { data } = await supabase.from('server_settings').select('value').eq('key', 'global_dynamic_stats').maybeSingle()
-    if (data) setDynamicStatsEnabled(data.value === true)
+    const { data } = await supabase.from('server_settings').select('key, value')
+    if (data) {
+      const dynStat = data.find(d => d.key === 'global_dynamic_stats')
+      if (dynStat) setDynamicStatsEnabled(dynStat.value === true)
+      
+      const newSettings: Record<string, string> = {}
+      for (const row of data) {
+        if (typeof row.value === 'string') {
+          newSettings[row.key] = row.value
+        }
+      }
+      setDiscordSettings(newSettings)
+    }
   }, [supabase])
 
   useEffect(() => {
@@ -79,6 +91,11 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     setDynamicStatsEnabled(newState)
     await supabase.from('server_settings').upsert({ key: 'global_dynamic_stats', value: newState, updated_at: new Date().toISOString() })
     setSavingAdmin(false)
+  }
+
+  const updateDiscordSetting = async (key: string, value: string) => {
+    setDiscordSettings(prev => ({ ...prev, [key]: value }))
+    await supabase.from('server_settings').upsert({ key, value, updated_at: new Date().toISOString() })
   }
 
   const toggleDms = async () => {

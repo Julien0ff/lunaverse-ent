@@ -172,12 +172,6 @@ const commands = [
       option.setName('article').setDescription('Le nom de l\'article').setRequired(true).setAutocomplete(true)
     ),
 
-  new SlashCommandBuilder()
-    .setName('set-channel-code')
-    .setDescription('[ADMIN] Configurer le système d\'inscription RP')
-    .addChannelOption(o => o.setName('salon_inscription').setDescription('Où envoyer le bouton').setRequired(true))
-    .addChannelOption(o => o.setName('salon_admin').setDescription('Où recevoir les candidatures').setRequired(true))
-    .addChannelOption(o => o.setName('salon_reponses').setDescription('Où ping les joueurs acceptés').setRequired(true)),
 
   new SlashCommandBuilder()
     .setName('couple')
@@ -199,31 +193,6 @@ const commands = [
     .setDescription('Voir votre profil RP ou celui d\'un autre utilisateur')
     .addUserOption(o => o.setName('utilisateur').setDescription('Profil à afficher').setRequired(false)),
 
-  new SlashCommandBuilder()
-    .setName('setcantine')
-    .setDescription('[ADMIN] Configurer le salon et les horaires de la cantine')
-    .addChannelOption(o => o.setName('salon').setDescription('Le salon de la cantine').setRequired(true))
-    .addStringOption(o => o.setName('heure_debut').setDescription('Heure de début (ex: 11:30)').setRequired(true))
-    .addStringOption(o => o.setName('heure_fin').setDescription('Heure de fin (ex: 13:30)').setRequired(true)),
-
-  new SlashCommandBuilder()
-    .setName('deploycantine')
-    .setDescription('[ADMIN] Envoyer l\'embed pour scanner la carte de cantine'),
-
-  new SlashCommandBuilder()
-    .setName('setprofil_setup')
-    .setDescription('[ADMIN] Configurer le salon validant les photos Pronote')
-    .addChannelOption(o => o.setName('salon_admin').setDescription('Le salon admin').setRequired(true)),
-
-  new SlashCommandBuilder()
-    .setName('setfeed')
-    .setDescription('[ADMIN] Configurer le salon du réseau social')
-    .addChannelOption(o => o.setName('salon').setDescription('Le salon où envoyer les posts').setRequired(true)),
-
-  new SlashCommandBuilder()
-    .setName('setmenu')
-    .setDescription('[ADMIN] Configurer le salon du menu de la cantine')
-    .addChannelOption(o => o.setName('salon').setDescription('Le salon où envoyer et maj le menu').setRequired(true)),
 
 
 
@@ -2038,125 +2007,6 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
 
   try {
     switch (commandName) {
-      case 'set-channel-code': {
-        if (!await isAdmin(user.id, interaction)) {
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(ERROR).setTitle('🚫 Accès refusé').setDescription('Vous ne disposez pas des permissions admin.')] })
-          return
-        }
-
-        const sInscription = interaction.options.getChannel('salon_inscription')
-        const sAdmin = interaction.options.getChannel('salon_admin')
-        const sReponses = interaction.options.getChannel('salon_reponses')
-
-        if (!sInscription || !sAdmin || !sReponses) {
-          await interaction.reply('Paramètres invalides.')
-          return
-        }
-
-        const embed = new EmbedBuilder()
-          .setTitle('🎓 Inscription RP - ENT LunaVerse')
-          .setAuthor({
-            name: interaction.guild?.name || 'Serveur',
-            iconURL: interaction.guild?.iconURL() || undefined
-          })
-          .setDescription(`> ⬇️  **Cliquez sur le bouton** ci-dessous pour remplir votre** formulaire d'inscription RP** 🔥 pour __obtenir vos accès PRONOTE  <:pronote:1317623827630653573> .__`)
-          .setColor(0x000049)
-          .setImage('https://i.ibb.co/cXRfH1ST/Luna-Verse-RP-1.png')
-
-        const btn = new ButtonBuilder()
-          .setCustomId(`rp_enroll|${sAdmin.id}|${sReponses.id}`)
-          .setLabel('Je m\'inscris !')
-          .setEmoji('1259611750966366239')
-          .setStyle(ButtonStyle.Primary)
-
-        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(btn)
-
-        try {
-          await (sInscription as any).send({ embeds: [embed], components: [row] })
-          await interaction.reply({ content: `✅ Panel d'inscription envoyé dans <#${sInscription.id}>. Les réponses iront dans <#${sAdmin.id}> et les validations dans <#${sReponses.id}>.`, ephemeral: true })
-        } catch (error) {
-          console.error('Error sending enrollment panel:', error)
-          await interaction.reply({ content: '❌ Erreur lors de l\'envoi du panel. Vérifiez les permissions du bot dans ce salon.', ephemeral: true })
-        }
-        break
-      }
-
-      case 'setcantine': {
-        if (!await isAdmin(user.id, interaction)) {
-          await interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
-          return
-        }
-        const sCantine = interaction.options.getChannel('salon')
-        const hDebut = interaction.options.getString('heure_debut')
-        const hFin = interaction.options.getString('heure_fin')
-
-        await setServerSetting('cantine_channel_id', sCantine?.id)
-        await setServerSetting('cantine_start_time', hDebut)
-        await setServerSetting('cantine_end_time', hFin)
-
-        await interaction.reply({ content: `✅ Cantine configurée dans <#${sCantine?.id}> de ${hDebut} à ${hFin}.`, ephemeral: true })
-        break
-      }
-
-      case 'deploycantine': {
-        if (!await isAdmin(user.id, interaction)) {
-          await interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
-          return
-        }
-        const cId = await getServerSetting('cantine_channel_id')
-        if (!cId) {
-          await interaction.reply({ content: 'Erreur: Salon cantine non configuré. Utilisez /setcantine d\'abord.', ephemeral: true })
-          return
-        }
-        const chan = await client.channels.fetch(cId).catch(() => null)
-        if (!chan || !chan.isTextBased()) {
-          await interaction.reply({ content: 'Erreur: Impossible de trouver le salon de la cantine.', ephemeral: true })
-          return
-        }
-
-        const cEmbed = new EmbedBuilder()
-          .setTitle('🍽️ Cantine LunaVerse')
-          .setDescription('Cliquez sur le bouton ci-dessous pour présenter votre **Carte Cantine** à l\'entrée du self.')
-          .setColor(0xF97316)
-
-        const cBtn = new ButtonBuilder()
-          .setCustomId('cantine_scan')
-          .setLabel('Scanner ma carte')
-          .setEmoji('💳')
-          .setStyle(ButtonStyle.Primary)
-
-        const cRow = new ActionRowBuilder<ButtonBuilder>().addComponents(cBtn)
-        await (chan as any).send({ embeds: [cEmbed], components: [cRow] })
-        await interaction.reply({ content: '✅ Embed de la cantine déployé.', ephemeral: true })
-        break
-      }
-
-      case 'setprofil_setup': {
-        if (!await isAdmin(user.id, interaction)) {
-          await interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
-          return
-        }
-        const sPRON = interaction.options.getChannel('salon_admin')
-        await setServerSetting('pronote_admin_id', sPRON?.id)
-        await interaction.reply({ content: `✅ Demandes Pronote envoyées désormais dans <#${sPRON?.id}>.`, ephemeral: true })
-        break
-      }
-
-
-      case 'setmenu': {
-        if (!await isAdmin(user.id, interaction)) {
-          await interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
-          return
-        }
-        const sMenu = interaction.options.getChannel('salon')
-        await setServerSetting('discord_canteen_menu_channel_id', sMenu?.id)
-        // Reset the message ID so it creates a new one in the new channel
-        await setServerSetting('discord_canteen_menu_message_id', null)
-        await interaction.reply({ content: `✅ Salon du menu de la cantine configuré sur <#${sMenu?.id}>.`, ephemeral: true })
-        await updateCanteenMenuMessage()
-        break
-      }
-
 
 
       case 'profil': {
