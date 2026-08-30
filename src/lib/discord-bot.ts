@@ -180,24 +180,6 @@ const commands = [
     .addChannelOption(o => o.setName('salon_reponses').setDescription('Où ping les joueurs acceptés').setRequired(true)),
 
   new SlashCommandBuilder()
-    .setName('options')
-    .setDescription('[ADMIN] Gérer les options/clubs pour l\'inscription RP')
-    .addSubcommand(sub => sub
-      .setName('ajouter')
-      .setDescription('Ajouter une nouvelle option')
-      .addStringOption(o => o.setName('nom').setDescription('Nom de l\'option').setRequired(true))
-    )
-    .addSubcommand(sub => sub
-      .setName('supprimer')
-      .setDescription('Supprimer une option')
-      .addStringOption(o => o.setName('nom').setDescription('Nom de l\'option').setRequired(true))
-    )
-    .addSubcommand(sub => sub
-      .setName('liste')
-      .setDescription('Voir la liste des options')
-    ),
-
-  new SlashCommandBuilder()
     .setName('couple')
     .setDescription('Demander quelqu\'un en couple')
     .addUserOption(o => o.setName('utilisateur').setDescription('La personne à demander').setRequired(true)),
@@ -243,31 +225,8 @@ const commands = [
     .setDescription('[ADMIN] Configurer le salon du menu de la cantine')
     .addChannelOption(o => o.setName('salon').setDescription('Le salon où envoyer et maj le menu').setRequired(true)),
 
-  new SlashCommandBuilder()
-    .setName('market')
-    .setDescription('Voir les objets actuellement en vente sur Luna Market'),
 
-  new SlashCommandBuilder()
-    .setName('set_channel_house')
-    .setDescription('[ADMIN] Configurer le salon pour les demandes de maison')
-    .addChannelOption(o => o.setName('salon').setDescription('Le salon où envoyer le bouton').setRequired(true)),
 
-  new SlashCommandBuilder()
-    .setName('set_house_category')
-    .setDescription('[ADMIN] Configurer la catégorie où créer les salons de maison')
-    .addChannelOption(o => o.setName('categorie').setDescription('La catégorie Discord').addChannelTypes(ChannelType.GuildCategory).setRequired(true)),
-
-  new SlashCommandBuilder()
-    .setName('maison_setup')
-    .setDescription('[ADMIN] Envoyer l\'embed pour demander une maison'),
-
-  new SlashCommandBuilder()
-    .setName('dormir')
-    .setDescription('Se reposer dans sa maison (Restaure la fatigue)'),
-
-  new SlashCommandBuilder()
-    .setName('frigo')
-    .setDescription('Ouvrir le frigo de sa maison (Restaure la faim/soif)'),
 ]
 
 // Helper functions
@@ -1006,6 +965,53 @@ client.on('ready', async () => {
           }
         } catch (err) { console.error('new profile sync fail', err) }
       })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'inscriptions' }, async (payload: any) => {
+        try {
+          const newRec = payload.new
+          const oldRec = payload.old
+          
+          if (oldRec.status === 'pending' && (newRec.status === 'accepted' || newRec.status === 'refused')) {
+            const rChan = await client.channels.fetch(newRec.responses_channel_id).catch(() => null)
+            if (rChan && rChan.isTextBased()) {
+              if (newRec.status === 'accepted') {
+                const infoEmbed = new EmbedBuilder()
+                  .setTitle('🎉 Ton inscription est acceptée !')
+                  .setDescription(`<@${newRec.discord_id}>, ton inscription a été validée par l'administration.\nTu peux désormais te connecter à l'ENT et à Pronote via les liens ci-dessous.`)
+                  .setColor(SUCCESS)
+
+                const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+                  new ButtonBuilder().setLabel('Accéder à l\'ENT').setStyle(ButtonStyle.Link).setURL(process.env.NEXT_PUBLIC_SITE_URL || 'https://lunaverse-ent.vercel.app'),
+                  new ButtonBuilder().setLabel('Accéder à Pronote').setStyle(ButtonStyle.Link).setURL(process.env.NEXT_PUBLIC_PRONOTE_URL || 'https://pronote.lunaverse.fr')
+                )
+
+                await (rChan as any).send({ content: `<@${newRec.discord_id}>`, embeds: [infoEmbed], components: [row] })
+                
+                // --- Role automation ---
+                const guild = client.guilds.cache.first()
+                if (guild) {
+                  const member = await guild.members.fetch(newRec.discord_id).catch(() => null)
+                  if (member) {
+                    const newNick = `${newRec.classe}・${newRec.prenom} ${newRec.nom.toUpperCase()}`.substring(0, 32)
+                    await member.setNickname(newNick).catch(() => null)
+                    
+                    const rolesToAdd = [ROLE_ELEVE]
+                    if (newRec.classe === 'NOV') rolesToAdd.push(ROLE_NOVA)
+                    if (newRec.classe === 'NÉB') rolesToAdd.push(ROLE_NEBULEUSE)
+                    await member.roles.add(rolesToAdd).catch(() => null)
+                  }
+                }
+              } else {
+                // refused
+                const infoEmbed = new EmbedBuilder()
+                  .setTitle('❌ Inscription refusée')
+                  .setDescription(`<@${newRec.discord_id}>, ton inscription a été refusée par l'administration.`)
+                  .setColor(ERROR)
+                await (rChan as any).send({ content: `<@${newRec.discord_id}>`, embeds: [infoEmbed] })
+              }
+            }
+          }
+        } catch (err) { console.error('inscription sync fail', err) }
+      })
       .subscribe((status: string, err?: Error) => {
         if (err) console.error('📡 Realtime subscription error:', err)
         console.log(`📡 Realtime subscription status: ${status}`)
@@ -1506,33 +1512,25 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
          reg.options.push('Cybersécurité')
       }
 
-      const embed = new EmbedBuilder()
-        .setTitle('Nouvelle Inscription RP')
-        .setColor(WARNING)
-        .addFields(
-          { name: 'Utilisateur', value: `<@${interaction.user.id}>` },
-          { name: 'ID Discord', value: interaction.user.id },
-          { name: 'Prénom RP', value: reg.prenom, inline: true },
-          { name: 'Nom RP', value: reg.nom, inline: true },
-          { name: 'Classe choisie', value: reg.classe === 'NOV' ? 'Nova' : 'Nébuleuse', inline: true },
-          { name: 'Date de Naissance RP', value: reg.dob, inline: true },
-          { name: 'Langue LV2', value: reg.langue || 'Aucune', inline: true },
-          { name: 'Options / Clubs', value: reg.options.length > 0 ? reg.options.join(', ') : 'Aucun', inline: true },
-          { name: 'Description', value: reg.desc }
-        )
+      const { error } = await supabase.from('inscriptions').insert({
+        discord_id: interaction.user.id,
+        prenom: reg.prenom,
+        nom: reg.nom,
+        dob: reg.dob,
+        description: reg.desc,
+        classe: reg.classe,
+        langue: reg.langue,
+        options: reg.options,
+        status: 'pending',
+        responses_channel_id: reg.responsesId
+      })
 
-      const btnAcc = new ButtonBuilder().setCustomId(`rp_accept|${interaction.user.id}|${reg.responsesId}|${reg.classe}`).setLabel('Accepter').setStyle(ButtonStyle.Success).setEmoji('1217171776220561409')
-      const btnChangeClass = new ButtonBuilder().setCustomId(`rp_change_class|${interaction.user.id}|${reg.responsesId}`).setLabel('Modifier Classe').setStyle(ButtonStyle.Secondary)
-      const btnRef = new ButtonBuilder().setCustomId(`rp_refuse|${interaction.user.id}`).setLabel('Refuser').setStyle(ButtonStyle.Danger).setEmoji('1262454063912452207')
-      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(btnAcc, btnChangeClass, btnRef)
-
-      const adminChannel = await client.channels.fetch(reg.adminId).catch(() => null)
-      if (adminChannel && adminChannel.isTextBased()) {
-        await (adminChannel as any).send({ embeds: [embed], components: [row] })
-        await interaction.update({ content: '✅ Votre demande a été envoyée au staff !', components: [] })
-        pendingRegistrations.delete(interaction.user.id)
+      if (error) {
+        console.error('Erreur inscription:', error)
+        await interaction.reply({ content: '❌ Erreur lors de l\'enregistrement de votre inscription.', ephemeral: true })
       } else {
-        await interaction.reply({ content: '❌ Erreur de configuration: salon admin introuvable.', ephemeral: true })
+        await interaction.update({ content: '✅ Votre inscription a été enregistrée ! L\'administration va la traiter sur l\'ENT. Vous recevrez une notification lorsque ce sera fait.', components: [] })
+        pendingRegistrations.delete(interaction.user.id)
       }
       return
     }
@@ -2110,30 +2108,6 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         break
       }
 
-      case 'options': {
-        if (!await isAdmin(user.id, interaction)) return interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
-        const sub = interaction.options.getSubcommand()
-        let currentOptions: string[] = await getServerSetting('rp_options', ['Cybersécurité'])
-        if (!Array.isArray(currentOptions)) currentOptions = ['Cybersécurité']
-
-        if (sub === 'ajouter') {
-          const nom = interaction.options.getString('nom')!
-          if (currentOptions.includes(nom)) return interaction.reply({ content: '❌ Cette option existe déjà.', ephemeral: true })
-          currentOptions.push(nom)
-          await setServerSetting('rp_options', currentOptions)
-          return interaction.reply({ content: `✅ Option **${nom}** ajoutée !`, ephemeral: true })
-        } else if (sub === 'supprimer') {
-          const nom = interaction.options.getString('nom')!
-          if (!currentOptions.includes(nom)) return interaction.reply({ content: '❌ Cette option n\'existe pas.', ephemeral: true })
-          currentOptions = currentOptions.filter((o: string) => o !== nom)
-          await setServerSetting('rp_options', currentOptions)
-          return interaction.reply({ content: `✅ Option **${nom}** supprimée !`, ephemeral: true })
-        } else if (sub === 'liste') {
-          return interaction.reply({ content: `**Options disponibles :**\n${currentOptions.length ? currentOptions.map((o: string) => `- ${o}`).join('\n') : 'Aucune option'}`, ephemeral: true })
-        }
-        break
-      }
-
       case 'setcantine': {
         if (!await isAdmin(user.id, interaction)) {
           await interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
@@ -2210,16 +2184,7 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         break
       }
 
-      case 'set_house_category': {
-        if (!await isAdmin(user.id, interaction)) {
-          await interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
-          return
-        }
-        const category = interaction.options.getChannel('categorie')
-        await setServerSetting('house_category_id', category?.id)
-        await interaction.reply({ content: `✅ Les nouveaux salons de maison seront créés dans la catégorie **${category?.name}**.`, ephemeral: true })
-        break
-      }
+
 
       case 'profil': {
         const uTarget = interaction.options.getUser('utilisateur') || user;
@@ -2676,40 +2641,6 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         break
       }
 
-      case 'market': {
-        const { data: listings } = await supabase
-          .from('market_listings')
-          .select('*, profile:profiles(username, nickname_rp)')
-          .eq('status', 'active')
-          .order('created_at', { ascending: false })
-          .limit(10)
-
-        const embed = new EmbedBuilder()
-          .setTitle('🛒 Luna Market • En vente')
-          .setColor(0xFEE75C)
-          .setTimestamp()
-          .setFooter({ text: 'Accédez au Marché sur l\'ENT pour acheter' })
-
-        if (listings && listings.length > 0) {
-          const list = listings.map(l => {
-            const seller = l.profile?.nickname_rp || l.profile?.username || 'Inconnu'
-            return `📦 **${l.title}** — ${l.price}€\n👤 Vendeur: ${seller}\n`
-          }).join('\n')
-          embed.setDescription(list)
-
-          const btn = new ButtonBuilder()
-            .setLabel('Voir sur l\'ENT')
-            .setURL(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://lunaverse-ent.vercel.app'}/market`)
-            .setStyle(ButtonStyle.Link)
-          
-          const row = new ActionRowBuilder<ButtonBuilder>().addComponents(btn)
-          await interaction.reply({ embeds: [embed], components: [row] })
-        } else {
-          embed.setDescription('Aucun objet en vente actuellement.')
-          await interaction.reply({ embeds: [embed] })
-        }
-        break
-      }
 
       case 'utiliser': {
         const articleName = interaction.options.getString('article')
@@ -2986,68 +2917,7 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         break
       }
 
-      case 'set_channel_house': {
-        if (!await isAdmin(user.id, interaction)) return interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
-        const salon = interaction.options.getChannel('salon')
-        if (!salon) return
-        await setServerSetting('house_request_channel', salon.id)
-        await interaction.reply({ content: `✅ Salon des demandes configuré sur <#${salon.id}>.`, ephemeral: true })
-        break
-      }
 
-      case 'maison_setup': {
-        if (!await isAdmin(user.id, interaction)) return interaction.reply({ content: '❌ Permission refusée.', ephemeral: true })
-        const channelId = await getServerSetting('house_request_channel')
-        const channel = await client.channels.fetch(channelId).catch(() => null)
-        if (!channel || !channel.isTextBased()) return interaction.reply({ content: '❌ Salon non configuré ou invalide.', ephemeral: true })
-
-        const embed = new EmbedBuilder()
-          .setTitle('🏠 Demande de Propriété • LunaVerse')
-          .setDescription('Souhaitez-vous obtenir une résidence privée sur LunaVerse ?\n\n**Avantages :**\n• Salon Discord privé & exclusif\n• Gestion des accès (Whitelist)\n• Aménagements RP (Lit, Frigo...)\n\nCliquez sur le bouton ci-dessous pour faire votre demande.')
-          .setColor(BLURPLE)
-          .setImage('https://i.ibb.co/3ykG2W9/house-banner.png')
-
-        const btn = new ButtonBuilder()
-          .setCustomId('house_request_start')
-          .setLabel('Demander une Maison')
-          .setStyle(ButtonStyle.Primary)
-          .setEmoji('🏠')
-
-        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(btn)
-        await (channel as any).send({ embeds: [embed], components: [row] })
-        await interaction.reply({ content: '✅ Embed déployé.', ephemeral: true })
-        break
-      }
-
-      case 'dormir': {
-        const profile = await getProfile(user.id)
-        if (!profile) return interaction.reply({ content: '❌ Profil introuvable.', ephemeral: true })
-        
-        const { data: house } = await supabase.from('houses').select('*').eq('discord_channel_id', interaction.channelId).maybeSingle()
-        if (!house) return interaction.reply({ content: '❌ Cette commande n\'est utilisable que dans votre salon de maison privé.', ephemeral: true })
-
-        // Check if has bed furnishings
-        if (!house.furnishings?.bed) return interaction.reply({ content: '❌ Vous n\'avez pas encore de **Lit** dans votre maison ! Achetez-le sur l\'ENT.', ephemeral: true })
-
-        await supabase.from('profiles').update({ fatigue: 100 }).eq('id', profile.id)
-        await interaction.reply({ content: `😴 <@${user.id}> s'installe confortablement dans son lit et récupère toute son énergie !` })
-        break
-      }
-
-      case 'frigo': {
-        const profile = await getProfile(user.id)
-        if (!profile) return interaction.reply({ content: '❌ Profil introuvable.', ephemeral: true })
-        
-        const { data: house } = await supabase.from('houses').select('*').eq('discord_channel_id', interaction.channelId).maybeSingle()
-        if (!house) return interaction.reply({ content: '❌ Cette commande n\'est utilisable que dans votre salon de maison privé.', ephemeral: true })
-
-        // Check if has fridge furnishings (key is 'frigo' in the ENT DLC system)
-        if (!house.furnishings?.frigo) return interaction.reply({ content: '❌ Vous n\'avez pas encore de **Réfrigérateur** ! Achetez-le sur l\'ENT.', ephemeral: true })
-
-        await supabase.from('profiles').update({ hunger: 100, thirst: 100 }).eq('id', profile.id)
-        await interaction.reply({ content: `❄️ <@${user.id}> ouvre son frigo et prend un bon repas frais. Faim et Soif restaurées !` })
-        break
-      }
     }
   } catch (error) {
     console.error('Error handling command:', error)

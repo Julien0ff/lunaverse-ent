@@ -7,40 +7,42 @@ export async function GET() {
     .select('role_id, roles(name)')
     .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
 
-  const isAdmin = userRoles?.some((r: any) => (r.roles as any)?.name === 'admin' || (r.roles as any)?.name === 'staff')
+  const isAdmin = userRoles?.some(r => (r.roles as any)?.name === 'admin')
   if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
   const { data, error } = await supabase
-    .from('absences')
-    .select('*, profile:profiles!absences_user_id_fkey(username, nickname_rp, avatar_url)')
-    .order('created_at', { ascending: false })
+    .from('server_settings')
+    .select('value')
+    .eq('key', 'rp_options')
+    .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ items: data })
+  if (error && error.code !== 'PGRST116') {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ options: data?.value || ['Cybersécurité'] })
 }
 
-export async function PATCH(request: Request) {
+export async function POST(request: Request) {
   const supabase = createSupabaseServer()
   const { data: userRoles } = await supabase.from('user_roles')
     .select('role_id, roles(name)')
     .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
 
-  const isAdmin = userRoles?.some((r: any) => (r.roles as any)?.name === 'admin' || (r.roles as any)?.name === 'staff')
+  const isAdmin = userRoles?.some(r => (r.roles as any)?.name === 'admin')
   if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
   try {
-    const { id, status } = await request.json()
-    if (!id || !['accepted', 'refused'].includes(status)) {
-      return NextResponse.json({ error: 'Invalid data' }, { status: 400 })
-    }
+    const { options } = await request.json()
+    if (!Array.isArray(options)) return NextResponse.json({ error: 'Invalid data' }, { status: 400 })
 
     const { error } = await supabase
-      .from('absences')
-      .update({ status })
-      .eq('id', id)
+      .from('server_settings')
+      .upsert({ key: 'rp_options', value: options })
 
     if (error) throw error
-    return NextResponse.json({ success: true })
+
+    return NextResponse.json({ success: true, options })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

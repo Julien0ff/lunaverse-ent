@@ -7,12 +7,12 @@ export async function GET() {
     .select('role_id, roles(name)')
     .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
 
-  const isAdmin = userRoles?.some((r: any) => (r.roles as any)?.name === 'admin' || (r.roles as any)?.name === 'staff')
+  const isAdmin = userRoles?.some(r => (r.roles as any)?.name === 'admin')
   if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
   const { data, error } = await supabase
-    .from('absences')
-    .select('*, profile:profiles!absences_user_id_fkey(username, nickname_rp, avatar_url)')
+    .from('inscriptions')
+    .select('*')
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -25,7 +25,7 @@ export async function PATCH(request: Request) {
     .select('role_id, roles(name)')
     .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
 
-  const isAdmin = userRoles?.some((r: any) => (r.roles as any)?.name === 'admin' || (r.roles as any)?.name === 'staff')
+  const isAdmin = userRoles?.some(r => (r.roles as any)?.name === 'admin')
   if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
   try {
@@ -35,11 +35,12 @@ export async function PATCH(request: Request) {
     }
 
     const { error } = await supabase
-      .from('absences')
-      .update({ status })
+      .from('inscriptions')
+      .update({ status, updated_at: new Date().toISOString() })
       .eq('id', id)
 
     if (error) throw error
+
     return NextResponse.json({ success: true })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

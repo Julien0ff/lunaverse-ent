@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import Image from 'next/image'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
-import { Heart, X, Flame, Sparkles, MessageCircle, AlertCircle } from 'lucide-react'
+import { Heart, X, Flame, MessageCircle, AlertCircle, RefreshCw, Upload, Image as ImageIcon, Camera, ArrowRight, Info, ChevronRight, ChevronLeft, Loader2, Plus } from 'lucide-react'
 import clsx from 'clsx'
 
 interface DatingProfile {
@@ -34,6 +34,7 @@ export default function Dating() {
   const [savingProfile, setSavingProfile] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [photoIndex, setPhotoIndex] = useState(0)
 
   const fetchProfiles = useCallback(async () => {
     try {
@@ -46,11 +47,11 @@ export default function Dating() {
       }
     } catch (e) {
       console.error(e)
-      setErrorMsg(t('dating_page.loading_error'))
+      setErrorMsg(t('dating_page.loading_error') || 'Erreur de chargement')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     if (profile?.id) {
@@ -61,6 +62,15 @@ export default function Dating() {
     }
   }, [profile, fetchProfiles])
 
+  useEffect(() => {
+    setPhotoIndex(0)
+  }, [currentIndex])
+
+  const showMsg = (msg: string) => {
+    setErrorMsg(msg)
+    setTimeout(() => setErrorMsg(null), 3000)
+  }
+
   const saveDatingProfile = async () => {
     setSavingProfile(true)
     try {
@@ -69,8 +79,7 @@ export default function Dating() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dating_photo_url: datingPhotos[0] || null, dating_photos: datingPhotos, dating_bio: datingBio })
       })
-      setErrorMsg(t('dating_page.profile_saved'))
-      setTimeout(() => setErrorMsg(null), 3000)
+      showMsg(t('dating_page.profile_saved') || 'Profil sauvegardé')
     } finally {
       setSavingProfile(false)
     }
@@ -85,10 +94,9 @@ export default function Dating() {
       const data = await res.json()
       if (res.ok) {
         setDatingPhotos(prev => [...prev, data.url])
-        setErrorMsg(t('dating_page.photo_added'))
-        setTimeout(() => setErrorMsg(null), 3000)
+        showMsg(t('dating_page.photo_added') || 'Photo ajoutée')
       } else {
-        setErrorMsg(data.error || 'Erreur upload')
+        showMsg(data.error || 'Erreur upload')
       }
     } finally {
       setUploadingPhoto(false)
@@ -101,11 +109,11 @@ export default function Dating() {
       const res = await fetch('/api/dating/reset', { method: 'DELETE' })
       const data = await res.json()
       if (res.ok) {
-        setErrorMsg('✅ ' + data.message)
+        showMsg('✅ ' + data.message)
         setCurrentIndex(0)
         fetchProfiles()
       } else {
-        setErrorMsg(data.error)
+        showMsg(data.error)
       }
     } finally {
       setResetting(false)
@@ -132,7 +140,7 @@ export default function Dating() {
         if (data.isMatch) {
           setMatchPopup(target)
         }
-      }, 500)
+      }, 400) // Match the CSS animation duration
     } catch (e) {
       console.error(e)
       setSwiping(null)
@@ -140,223 +148,267 @@ export default function Dating() {
   }
 
   const currentProfile = profiles[currentIndex]
-  const [photoIndex, setPhotoIndex] = useState(0)
-
-  useEffect(() => {
-    setPhotoIndex(0) // Reset photo index when profile changes
-  }, [currentIndex])
+  const cPhotos = currentProfile?.dating_photos?.length ? currentProfile.dating_photos : (currentProfile?.dating_photo_url ? [currentProfile.dating_photo_url] : [currentProfile?.avatar_url])
+  const activePhoto = cPhotos[photoIndex]
 
   return (
-    <div className="page-container h-[calc(100vh-80px)] overflow-hidden flex flex-col relative">
-      <div className="text-center mb-6 animate-slideIn flex flex-col items-center">
-        <h1 className="text-3xl font-black text-rose-500 flex items-center justify-center gap-2 tracking-tight">
-          <Flame className="w-8 h-8 fill-rose-500" /> Luna Match
+    <div className="page-container h-[calc(100vh-80px)] overflow-hidden flex flex-col relative px-4 md:px-0">
+      
+      {/* ── Background Glow ── */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-rose-500/10 rounded-full blur-[100px] pointer-events-none opacity-50" />
+
+      {/* ── Header ── */}
+      <div className="text-center mb-6 z-10 flex flex-col items-center animate-fadeIn">
+        <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-pink-600 flex items-center justify-center gap-3 tracking-tighter italic">
+          <Flame className="w-10 h-10 text-rose-500 fill-rose-500 drop-shadow-[0_0_15px_rgba(244,63,94,0.5)]" /> LunaMatch
         </h1>
-        <p className="text-discord-muted text-sm mt-1 uppercase tracking-widest font-bold">{t('dating_page.subtitle')}</p>
         
-        <div className="flex bg-white/5 rounded-xl p-1 mt-4">
-           <button onClick={() => setTab('swipe')} className={clsx("px-4 py-1.5 rounded-lg text-sm font-bold transition-all", tab === 'swipe' ? "bg-rose-500 text-white" : "text-discord-muted hover:text-white")}>
-             {t('dating_page.tab_swipe')}
+        {/* Modern Tabs */}
+        <div className="flex bg-black/40 backdrop-blur-md rounded-full p-1.5 mt-6 border border-white/5 shadow-2xl">
+           <button 
+             onClick={() => setTab('swipe')} 
+             className={clsx(
+               "px-6 py-2.5 rounded-full text-sm font-black transition-all duration-300 flex items-center gap-2", 
+               tab === 'swipe' ? "bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg shadow-rose-500/25" : "text-white/40 hover:text-white"
+             )}
+           >
+             <Flame className="w-4 h-4" /> Rencontres
            </button>
-           <button onClick={() => setTab('profile')} className={clsx("px-4 py-1.5 rounded-lg text-sm font-bold transition-all", tab === 'profile' ? "bg-rose-500 text-white" : "text-discord-muted hover:text-white")}>
-             {t('dating_page.tab_profile')}
+           <button 
+             onClick={() => setTab('profile')} 
+             className={clsx(
+               "px-6 py-2.5 rounded-full text-sm font-black transition-all duration-300 flex items-center gap-2", 
+               tab === 'profile' ? "bg-white/10 text-white shadow-lg backdrop-blur-md border border-white/10" : "text-white/40 hover:text-white"
+             )}
+           >
+             <Camera className="w-4 h-4" /> Mon Profil
            </button>
         </div>
       </div>
 
+      {/* ── Notifications ── */}
+      {errorMsg && (
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full text-sm font-bold border border-white/10 shadow-2xl flex items-center gap-2 animate-bounce">
+          <Info className="w-4 h-4 text-rose-400" /> {errorMsg}
+        </div>
+      )}
+
+      {/* ── Match Popup ── */}
       {matchPopup && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="text-center p-8 animate-bounce">
-            <h2 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-pink-500 mb-4 italic tracking-tighter">
-              C&apos;EST UN MATCH !
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl animate-fadeIn">
+          {/* Confetti / Glow effects could go here */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(244,63,94,0.2)_0%,transparent_70%)]" />
+          
+          <div className="text-center p-8 relative z-10 flex flex-col items-center">
+            <h2 className="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 mb-2 tracking-tighter">
+              MATCH!
             </h2>
-            <p className="text-white/80 text-lg sm:text-xl font-medium mb-8">
-              {t('dating_page.match_desc').replace('{name}', matchPopup.username)}
+            <p className="text-rose-400 text-xl font-medium mb-12 italic">
+              Vous avez un match avec {matchPopup.username}
             </p>
-            <div className="flex flex-col gap-4">
-              <button 
-                onClick={() => setMatchPopup(null)}
-                className="btn bg-rose-500 hover:bg-rose-600 text-white font-black py-4 px-8 rounded-full shadow-lg shadow-rose-500/50 flex items-center gap-3 mx-auto"
-              >
-                <MessageCircle className="w-5 h-5" /> {t('dating_page.talk_friends')}
-              </button>
+            
+            <div className="flex items-center gap-6 mb-12">
+              <div className="relative w-32 h-32 rounded-full p-1 bg-gradient-to-br from-rose-400 to-pink-600 shadow-[0_0_30px_rgba(244,63,94,0.4)]">
+                <Image src={profile?.avatar_url || ''} alt="You" fill className="rounded-full object-cover border-4 border-black" />
+              </div>
+              <Heart className="w-12 h-12 text-rose-500 fill-rose-500 animate-pulse" />
+              <div className="relative w-32 h-32 rounded-full p-1 bg-gradient-to-br from-rose-400 to-pink-600 shadow-[0_0_30px_rgba(244,63,94,0.4)]">
+                <Image src={matchPopup.avatar_url || ''} alt="Them" fill className="rounded-full object-cover border-4 border-black" />
+              </div>
             </div>
+
+            <button 
+              onClick={() => setMatchPopup(null)}
+              className="group relative px-8 py-4 bg-white text-black font-black rounded-full overflow-hidden transition-transform hover:scale-105 active:scale-95"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-rose-400 to-pink-500 opacity-0 group-hover:opacity-10 transition-opacity" />
+              Continuer à swiper
+            </button>
           </div>
         </div>
       )}
 
-      {tab === 'profile' ? (
-        <div className="flex-1 flex flex-col items-center max-w-sm mx-auto w-full animate-fadeIn">
-           <div className="glass-card w-full space-y-5">
-             <h2 className="text-xl font-black text-white">{t('dating_page.my_dating_profile')}</h2>
-             <p className="text-sm text-discord-muted">{t('dating_page.dating_desc')}</p>
-
-             {/* Photo upload */}
-             <div>
-               <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block flex justify-between">
-                 <span>{t('dating_page.profile_photos')}</span>
-                 <span>{datingPhotos.length}/5</span>
-               </label>
-               
-               {datingPhotos.length > 0 && (
-                 <div className="grid grid-cols-3 gap-2 mb-3">
-                   {datingPhotos.map((url, i) => (
-                     <div key={i} className="relative group">
-                                               <div className="w-full aspect-square relative rounded-xl overflow-hidden ring-2 ring-rose-500/30">
-                          <Image src={url} alt={`Photo ${i+1}`} fill className="object-cover" />
-                        </div>
-                       <button 
-                         onClick={() => setDatingPhotos(prev => prev.filter((_, idx) => idx !== i))}
-                         className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                       >
-                         <X className="w-3 h-3" />
-                       </button>
-                     </div>
-                   ))}
-                 </div>
-               )}
-               
-               {datingPhotos.length < 5 && (
-                 <label className={clsx(
-                   'flex flex-col items-center justify-center gap-1 w-full py-4 px-4 rounded-xl border-2 border-dashed text-sm font-bold cursor-pointer transition-all',
-                   uploadingPhoto
-                     ? 'border-rose-500/40 text-rose-400 animate-pulse'
-                     : 'border-white/15 text-discord-muted hover:border-rose-500/50 hover:text-rose-400'
-                 )}>
-                   <span className="text-xl">📸</span>
-                   <span className="text-center">{uploadingPhoto ? t('dating_page.uploading') : t('dating_page.add_photo')}</span>
-                   <span className="text-[10px] opacity-60">JPG, PNG, WEBP max 5 Mo</span>
-                   <input
-                     type="file" className="hidden" accept="image/*"
-                     disabled={uploadingPhoto}
-                     onChange={e => {
-                       const file = e.target.files?.[0]
-                       if (file) uploadDatingPhoto(file)
-                     }}
-                   />
-                 </label>
-               )}
+      {/* ── Swipe Area ── */}
+      {tab === 'swipe' && (
+        <div className="flex-1 flex flex-col items-center justify-center relative w-full max-w-sm mx-auto z-10 perspective-1000">
+          {loading ? (
+             <div className="flex flex-col items-center text-rose-500">
+               <Flame className="w-12 h-12 animate-pulse mb-4" />
+               <p className="font-bold tracking-widest text-sm uppercase">Recherche en cours...</p>
              </div>
-
-             {/* Bio */}
-             <div>
-               <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-1 block">{t('dating_page.bio_label')}</label>
-               <textarea placeholder={t('dating_page.bio_placeholder')} className="glass-input text-sm" rows={3} value={datingBio} onChange={e => setDatingBio(e.target.value)} />
-             </div>
-
-             <button onClick={saveDatingProfile} disabled={savingProfile} className="btn bg-rose-500 hover:bg-rose-600 text-white w-full shadow-lg shadow-rose-500/20">
-               {savingProfile ? t('dating_page.saving') : t('dating_page.save_profile')}
-             </button>
-
-             {/* Reset */}
-             <div className="border-t border-white/8 pt-4">
-               <p className="text-xs text-discord-muted mb-2">{t('dating_page.reset_desc')}</p>
-               <button
-                 onClick={resetSeenProfiles}
-                 disabled={resetting}
-                 className="btn bg-white/5 hover:bg-white/10 text-discord-muted hover:text-white w-full text-sm"
-               >
-                 {resetting ? t('dating_page.resetting') : t('dating_page.reset_btn')}
-               </button>
-             </div>
-
-             {errorMsg && <p className="text-discord-success text-center text-sm font-bold">{errorMsg}</p>}
-           </div>
-        </div>
-      ) : loading ? (
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="w-24 h-24 relative animate-pulse mb-6">
-            <Heart className="w-full h-full text-rose-500/20" />
-            <Sparkles className="w-10 h-10 text-rose-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-bounce" />
-          </div>
-          <p className="font-bold text-discord-muted uppercase tracking-widest animate-pulse">{t('dating_page.searching')}</p>
-        </div>
-      ) : currentProfile ? (
-        <div className="flex-1 flex flex-col items-center max-w-sm mx-auto w-full relative h-[60vh] max-h-[600px] perspective-1000">
-          
-          <div className={clsx("w-full h-[85%] relative preserve-3d shadow-2xl shadow-rose-500/10 rounded-3xl overflow-hidden glass-card transition-transform duration-500", swiping === 'left' ? '-translate-x-full rotate-[-20deg] opacity-0' : swiping === 'right' ? 'translate-x-full rotate-[20deg] opacity-0' : '')}>
-            
-            {/* Carousel navigation areas */}
-            {(() => {
-              const profilePhotos = currentProfile.dating_photos?.length ? currentProfile.dating_photos : (currentProfile.dating_photo_url ? [currentProfile.dating_photo_url] : [])
-              const showPhoto = profilePhotos[photoIndex] || currentProfile.avatar_url
-              return (
-                <>
-                  {showPhoto ? (
-                    <Image 
-                      src={showPhoto} 
-                      alt={currentProfile.username} 
-                      fill 
-                      className="object-cover" 
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-b from-rose-500/20 to-purple-800/40 flex items-center justify-center text-rose-500/50">
-                      <Heart className="w-32 h-32" />
-                    </div>
-                  )}
-
-                  {/* Photo indicators */}
-                  {profilePhotos.length > 1 && (
-                    <div className="absolute top-3 left-3 right-3 flex gap-1 z-20">
-                      {profilePhotos.map((_, i) => (
-                        <div key={i} className={clsx("h-1 rounded-full flex-1 transition-all", i === photoIndex ? "bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" : "bg-white/30")} />
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Invisible tap zones for navigating photos */}
-                  {profilePhotos.length > 1 && (
-                    <>
-                      <div className="absolute top-0 left-0 w-1/2 h-2/3 z-10 cursor-pointer" onClick={() => setPhotoIndex(prev => Math.max(0, prev - 1))} />
-                      <div className="absolute top-0 right-0 w-1/2 h-2/3 z-10 cursor-pointer" onClick={() => setPhotoIndex(prev => Math.min(profilePhotos.length - 1, prev + 1))} />
-                    </>
-                  )}
-                </>
-              )
-            })()}
-            
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
-            
-            <div className="absolute bottom-0 left-0 w-full p-6 text-white">
-              <h2 className="text-4xl font-black mb-1 flex items-end gap-2">
-                {currentProfile.username} 
-                {currentProfile.age && <span className="text-xl font-normal text-white/80">{currentProfile.age}</span>}
-              </h2>
-              {errorMsg && (
-                <div className="mt-2 text-xs font-bold text-discord-error">{errorMsg}</div>
-              )}
-              <div className="flex items-center gap-2 mb-3 text-sm text-rose-200">
-                <AlertCircle className="w-4 h-4" /> {t('dating_page.rp_only')}
+          ) : !currentProfile ? (
+            <div className="text-center p-8 bg-black/40 backdrop-blur-xl rounded-[2rem] border border-white/5 shadow-2xl w-full">
+              <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Flame className="w-10 h-10 text-rose-500/50" />
               </div>
-              {(currentProfile.dating_bio || currentProfile.bio) && (
-                <p className="text-white/80 font-medium leading-relaxed">{currentProfile.dating_bio || currentProfile.bio}</p>
-              )}
+              <h3 className="text-2xl font-black text-white mb-2">Plus de profils</h3>
+              <p className="text-discord-muted text-sm mb-8 leading-relaxed">
+                Vous avez vu tous les profils disponibles pour le moment. Revenez plus tard ou réinitialisez vos vues !
+              </p>
+              <button 
+                onClick={resetSeenProfiles} 
+                disabled={resetting}
+                className="w-full py-4 rounded-full bg-white/5 hover:bg-white/10 text-white font-bold transition-colors flex items-center justify-center gap-2 border border-white/10"
+              >
+                {resetting ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
+                Revoir les profils
+              </button>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Profile Card Container */}
+              <div 
+                className={clsx(
+                  "relative w-full aspect-[3/4] rounded-[2rem] overflow-hidden bg-zinc-900 shadow-2xl transition-all duration-300 border border-white/10",
+                  swiping === 'left' && "-translate-x-full rotate-[-15deg] opacity-0",
+                  swiping === 'right' && "translate-x-full rotate-[15deg] opacity-0"
+                )}
+              >
+                {/* Image */}
+                {activePhoto ? (
+                  <Image src={activePhoto} alt={currentProfile.username} fill className="object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                    <ImageIcon className="w-16 h-16 text-white/20" />
+                  </div>
+                )}
+                
+                {/* Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
+                
+                {/* Photo Pagination Indicators */}
+                {cPhotos.length > 1 && (
+                  <div className="absolute top-4 left-0 w-full px-4 flex gap-1.5 z-20">
+                    {cPhotos.map((_, i) => (
+                      <div key={i} className={clsx("h-1 flex-1 rounded-full transition-colors", i === photoIndex ? "bg-white" : "bg-white/30 backdrop-blur-sm")} />
+                    ))}
+                  </div>
+                )}
+                
+                {/* Tap Zones for Photos */}
+                <div className="absolute inset-0 z-10 flex">
+                  <div className="w-1/2 h-full" onClick={() => setPhotoIndex(p => Math.max(0, p - 1))} />
+                  <div className="w-1/2 h-full" onClick={() => setPhotoIndex(p => Math.min(cPhotos.length - 1, p + 1))} />
+                </div>
 
-          <div className="w-full h-[15%] flex justify-center items-center gap-8 mt-4">
-            <button 
-              onClick={() => handleSwipe(false)}
-              className="w-20 h-20 rounded-full bg-discord-dark flex items-center justify-center text-discord-error hover:bg-discord-error hover:text-white transition-all shadow-xl shadow-discord-dark border-4 border-discord-error/20 hover:scale-110 active:scale-95"
-            >
-              <X className="w-10 h-10" />
-            </button>
-            <button 
-              onClick={() => handleSwipe(true)}
-              className="w-20 h-20 rounded-full bg-discord-dark flex items-center justify-center text-discord-success hover:bg-discord-success hover:text-white transition-all shadow-xl shadow-discord-dark border-4 border-discord-success/20 hover:scale-110 active:scale-95"
-            >
-              <Heart className="w-8 h-8 fill-current stroke-[3] group-hover:scale-110 transition-transform" />
-            </button>
-          </div>
+                {/* Profile Info */}
+                <div className="absolute bottom-0 left-0 w-full p-6 z-20 pointer-events-none">
+                  <div className="flex items-end justify-between mb-2">
+                    <h2 className="text-3xl font-black text-white drop-shadow-md">
+                      {currentProfile.username} <span className="text-2xl font-light text-white/80">{currentProfile.age}</span>
+                    </h2>
+                  </div>
+                  
+                  {currentProfile.dating_bio && (
+                    <p className="text-white/90 text-sm line-clamp-3 leading-relaxed drop-shadow-md">
+                      {currentProfile.dating_bio}
+                    </p>
+                  )}
+                  
+                  {/* Swipe Overlay Indicators */}
+                  {swiping === 'right' && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-rose-500 border-4 border-rose-500 rounded-2xl px-6 py-2 text-4xl font-black rotate-[-15deg] uppercase">Like</div>}
+                  {swiping === 'left' && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white border-4 border-white rounded-2xl px-6 py-2 text-4xl font-black rotate-[15deg] uppercase">Nope</div>}
+                </div>
+              </div>
 
+              {/* Action Buttons */}
+              <div className="flex items-center justify-center gap-6 mt-8">
+                <button 
+                  onClick={() => handleSwipe(false)}
+                  disabled={!!swiping}
+                  className="w-16 h-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center text-white/50 hover:bg-white/5 hover:text-white hover:scale-110 active:scale-95 transition-all shadow-xl disabled:opacity-50"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+                <button 
+                  onClick={() => handleSwipe(true)}
+                  disabled={!!swiping}
+                  className="w-20 h-20 rounded-full bg-gradient-to-br from-rose-400 to-pink-600 flex items-center justify-center text-white hover:scale-110 active:scale-95 transition-all shadow-[0_0_30px_rgba(244,63,94,0.3)] hover:shadow-[0_0_40px_rgba(244,63,94,0.5)] disabled:opacity-50"
+                >
+                  <Heart className="w-10 h-10 fill-white" />
+                </button>
+              </div>
+            </>
+          )}
         </div>
-      ) : (
-        <div className="flex-1 flex flex-col items-center justify-center text-center max-w-sm mx-auto">
-          <div className="w-32 h-32 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
-            <Heart className="w-12 h-12 text-discord-muted" />
+      )}
+
+      {/* ── Profile Area ── */}
+      {tab === 'profile' && (
+        <div className="flex-1 overflow-y-auto custom-scrollbar w-full max-w-sm mx-auto z-10 pb-20">
+          <div className="bg-black/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-6 shadow-2xl">
+            <h2 className="text-2xl font-black text-white mb-6">Éditer le profil</h2>
+            
+            {/* Photos Grid */}
+            <div className="space-y-3 mb-8">
+              <label className="text-xs font-black text-discord-muted uppercase tracking-widest flex justify-between">
+                <span>Photos</span>
+                <span>{datingPhotos.length}/6</span>
+              </label>
+              
+              <div className="grid grid-cols-3 gap-2">
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="aspect-[3/4] relative rounded-xl overflow-hidden bg-white/5 border border-white/5 group">
+                    {datingPhotos[i] ? (
+                      <>
+                        <Image src={datingPhotos[i]} alt="Photo" fill className="object-cover" />
+                        <button 
+                          onClick={() => setDatingPhotos(prev => prev.filter((_, idx) => idx !== i))}
+                          className="absolute bottom-1 right-1 bg-red-500 w-6 h-6 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </>
+                    ) : i === datingPhotos.length ? (
+                      <label className="absolute inset-0 flex items-center justify-center cursor-pointer hover:bg-white/5 transition-colors">
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) uploadDatingPhoto(e.target.files[0])
+                          }} 
+                        />
+                        {uploadingPhoto ? <Loader2 className="w-5 h-5 text-rose-500 animate-spin" /> : <Plus className="w-6 h-6 text-rose-500" />}
+                      </label>
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-white/10 font-black">{i + 1}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-white/40 leading-relaxed">
+                Ajoutez jusqu'à 6 photos. La première photo sera votre photo principale. Cliquez sur le + pour ajouter une photo.
+              </p>
+            </div>
+
+            {/* Bio */}
+            <div className="space-y-3 mb-8">
+              <label className="text-xs font-black text-discord-muted uppercase tracking-widest">
+                À propos de moi
+              </label>
+              <textarea
+                value={datingBio}
+                onChange={e => setDatingBio(e.target.value)}
+                placeholder="Rédigez une bio sympa pour attirer l'attention..."
+                className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-rose-500/50 transition-colors resize-none h-32"
+                maxLength={500}
+              />
+              <p className="text-right text-[10px] text-white/40 font-mono">
+                {datingBio.length}/500
+              </p>
+            </div>
+
+            <button 
+              onClick={saveDatingProfile}
+              disabled={savingProfile}
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-black hover:opacity-90 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(244,63,94,0.3)] flex items-center justify-center gap-2"
+            >
+              {savingProfile ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sauvegarder le profil'}
+            </button>
           </div>
-          <h2 className="text-xl font-black text-white mb-2">{t('dating_page.no_more')}</h2>
-          <p className="text-discord-muted">{t('dating_page.no_more_desc')}</p>
         </div>
       )}
     </div>
