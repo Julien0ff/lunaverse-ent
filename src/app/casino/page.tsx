@@ -259,36 +259,35 @@ export default function CasinoPage() {
   }
 
   return (
-    <div className="page-container">
+    <div className="page-container font-sans bg-black min-h-screen relative text-zinc-300">
       {/* Big win/lose overlay */}
       <ResultOverlay result={overlayResult} onClose={() => setOverlayResult(null)} />
 
       {/* Header */}
-      <div className="animate-slideIn relative z-10">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="animate-fadeIn relative z-10 mb-12">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/10 pb-6">
           <div>
-            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-fuchsia-500 to-pink-500 tracking-tight flex items-center gap-4 drop-shadow-[0_0_15px_rgba(217,70,239,0.5)]">
-              <span className="text-5xl animate-bounce">🎰</span>
-              LUNA CASINO VIP
+            <h1 className="text-4xl md:text-5xl font-light text-white tracking-widest uppercase">
+              Luna <span className="font-bold text-yellow-600">Casino</span>
             </h1>
-            <p className="text-purple-200 mt-2 font-medium text-lg tracking-wide uppercase">{t('casino_page.subtitle')} - Tentez le Jackpot</p>
+            <p className="text-zinc-500 mt-2 text-sm uppercase tracking-[0.2em]">{t('casino_page.subtitle')} - Espace Privilège</p>
           </div>
           {/* Session stats */}
-          <div className="hidden md:flex items-center gap-6 px-6 py-4 bg-black/60 border-t-2 border-purple-500/50 rounded-3xl shadow-[0_0_30px_rgba(168,85,247,0.15)] backdrop-blur-xl">
+          <div className="hidden md:flex items-center gap-8 px-6 py-4 bg-zinc-900/50 rounded-none border border-white/5">
             <div className="text-center">
-              <p className="text-xs font-black text-purple-300 uppercase tracking-widest">{t('casino_page.wins')}</p>
-              <p className="text-2xl font-black text-discord-success drop-shadow-[0_0_10px_rgba(87,242,135,0.8)]">{stats.wins}</p>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">{t('casino_page.wins')}</p>
+              <p className="text-xl font-light text-white">{stats.wins}</p>
             </div>
-            <div className="w-px h-10 bg-purple-500/20" />
+            <div className="w-px h-8 bg-white/10" />
             <div className="text-center">
-              <p className="text-xs font-black text-purple-300 uppercase tracking-widest">{t('casino_page.losses')}</p>
-              <p className="text-2xl font-black text-discord-error drop-shadow-[0_0_10px_rgba(237,66,69,0.8)]">{stats.losses}</p>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">{t('casino_page.losses')}</p>
+              <p className="text-xl font-light text-white">{stats.losses}</p>
             </div>
-            <div className="w-px h-10 bg-purple-500/20" />
+            <div className="w-px h-8 bg-white/10" />
             <div className="text-center">
-              <p className="text-xs font-black text-purple-300 uppercase tracking-widest">{t('casino_page.net_gains')}</p>
-              <p className={clsx('text-2xl font-black', stats.totalWon >= 0 ? 'text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]' : 'text-discord-error')}>
-                {stats.totalWon >= 0 ? '+' : ''}{stats.totalWon.toFixed(0)}€
+              <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">{t('casino_page.net_gains')}</p>
+              <p className={clsx('text-xl font-light', stats.totalWon >= 0 ? 'text-yellow-600' : 'text-red-500/80')}>
+                {stats.totalWon >= 0 ? '+' : ''}{stats.totalWon.toLocaleString()} €
               </p>
             </div>
           </div>
@@ -296,148 +295,125 @@ export default function CasinoPage() {
       </div>
 
       {/* Balance pills */}
-      <div className="flex flex-wrap items-center gap-3 animate-fadeIn">
-        <div className="px-4 py-2 bg-discord-blurple/15 border border-discord-blurple/25 rounded-xl flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-discord-success animate-pulse" />
-          <span className="text-sm font-bold text-white">{t('casino_page.balance_label').replace('{amount}', (profile?.balance.toFixed(0) || '0'))}</span>
+      <div className="flex flex-wrap items-center gap-4 mb-8 animate-fadeIn">
+        <div className="px-5 py-2.5 bg-zinc-900/80 border border-white/10 flex items-center gap-3">
+          <div className="w-1.5 h-1.5 rounded-full bg-white" />
+          <span className="text-xs tracking-widest uppercase text-white font-medium">{t('casino_page.balance_label').replace('{amount}', (profile?.balance.toFixed(0) || '0'))}</span>
         </div>
         
         {(profile as any)?.dirty_balance > 0 && (
-          <div className="px-4 py-2 bg-red-500/15 border border-red-500/25 rounded-xl flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-red-500" />
-            <span className="text-sm font-bold text-red-100">{t('casino_page.dirty_money').replace('{amount}', (profile as any).dirty_balance.toFixed(0))}</span>
+          <div className="px-5 py-2.5 bg-zinc-900/80 border border-red-900/30 flex items-center gap-3">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-600" />
+            <span className="text-xs tracking-widest uppercase text-zinc-400">{t('casino_page.dirty_money').replace('{amount}', (profile as any).dirty_balance.toFixed(0))}</span>
           </div>
         )}
 
         {(profile as any)?.casino_streak > 0 && (
           <div className={clsx(
-            "px-4 py-2 rounded-xl flex items-center gap-2 animate-bounce border shadow-lg transition-all",
+            "px-5 py-2.5 flex items-center gap-3 transition-colors border",
             (profile as any).casino_streak >= 3 
-              ? "bg-orange-500/20 border-orange-500/40 text-orange-400 shadow-orange-500/20" 
-              : "bg-white/5 border-white/10 text-white"
+              ? "bg-yellow-900/10 border-yellow-700/50 text-yellow-600" 
+              : "bg-zinc-900/80 border-white/10 text-zinc-400"
           )}>
-            <Sparkles className={clsx("w-4 h-4", (profile as any).casino_streak >= 3 && "animate-pulse")} />
-            <span className="text-sm font-black">{t('casino_page.streak').replace('{count}', (profile as any).casino_streak.toString())}</span>
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="text-xs tracking-widest uppercase font-medium">{t('casino_page.streak').replace('{count}', (profile as any).casino_streak.toString())}</span>
           </div>
         )}
 
         {(profile as any)?.casino_streak >= 3 && (
-          <div className="px-4 py-2 bg-discord-error/20 border border-discord-error/40 rounded-xl flex items-center gap-2 text-discord-error shadow-lg shadow-discord-error/10">
-            <AlertCircle className="w-4 h-4" />
-            <span className="text-sm font-black uppercase tracking-tighter">{t('casino_page.risk').replace('{amount}', ((profile as any).streak_accumulated_winnings?.toFixed(0) || '0'))}</span>
+          <div className="px-5 py-2.5 bg-red-950/20 border border-red-900/50 flex items-center gap-3 text-red-500">
+            <AlertCircle className="w-3.5 h-3.5" />
+            <span className="text-xs tracking-widest uppercase font-medium">{t('casino_page.risk').replace('{amount}', ((profile as any).streak_accumulated_winnings?.toFixed(0) || '0'))}</span>
           </div>
         )}
       </div>
 
       {/* No games fallback */}
       {games.length === 0 ? (
-        <div className="casino-card text-center py-16">
-          <div className="text-6xl mb-4">🎰</div>
-          <h2 className="text-xl font-bold text-white mb-2">{t('casino_page.no_games')}</h2>
-          <p className="text-discord-muted">{t('casino_page.games_soon')}</p>
+        <div className="text-center py-32 border border-white/5 bg-zinc-900/30">
+          <h2 className="text-2xl font-light text-white mb-2 tracking-widest uppercase">{t('casino_page.no_games')}</h2>
+          <p className="text-zinc-500 uppercase tracking-widest text-xs">{t('casino_page.games_soon')}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Game selector */}
-          <div className="space-y-3 relative z-10">
-            <p className="text-xs font-black text-purple-400 uppercase tracking-widest px-1 mb-4 flex items-center gap-2"><Sparkles className="w-4 h-4"/> Jeux VIP</p>
+          <div className="lg:col-span-4 space-y-4 relative z-10">
+            <p className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] mb-4">Sélection du jeu</p>
             {games.map(game => (
               <button
                 key={game.id}
                 onClick={() => { setSelectedGame(game); setMessage(null); setGuess('') }}
                 className={clsx(
-                  'w-full text-left p-4 rounded-3xl border transition-all duration-300 relative overflow-hidden group',
+                  'w-full text-left p-6 transition-all duration-500 relative flex items-center justify-between border-l-2',
                   selectedGame?.id === game.id
-                    ? 'bg-gradient-to-r from-purple-900/80 to-fuchsia-900/40 border-fuchsia-500/50 shadow-[0_0_20px_rgba(217,70,239,0.3)]'
-                    : 'bg-black/40 border-white/5 hover:bg-purple-900/30 hover:border-purple-500/30'
+                    ? 'bg-zinc-900 border-yellow-600'
+                    : 'bg-zinc-950 border-transparent hover:bg-zinc-900/50 hover:border-white/20 text-zinc-500'
                 )}
               >
-                {selectedGame?.id === game.id && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shimmer" />}
-                <div className="flex items-center gap-4 relative z-10">
-                  <div className="text-3xl filter drop-shadow-md">
-                    {game.name.toLowerCase().includes('slot') || game.name.toLowerCase().includes('machine') ? '🎰'
-                      : game.name.toLowerCase().includes('coin') || game.name.toLowerCase().includes('pile') ? '🪙'
-                        : game.name.toLowerCase().includes('dé') || game.name.toLowerCase().includes('dice') ? '🎲'
-                          : game.name.toLowerCase().includes('roulette') ? '🎡'
-                            : game.name.toLowerCase().includes('blackjack') ? '🃏'
-                              : '🎮'}
-                  </div>
-                  <div>
-                    <p className={clsx("font-black text-lg", selectedGame?.id === game.id ? "text-fuchsia-200" : "text-white")}>{game.name}</p>
-                    <p className="text-xs font-bold text-yellow-500/80 mt-1 uppercase tracking-wider">{game.min_bet}€ — {game.max_bet}€</p>
-                  </div>
-                  {selectedGame?.id === game.id && (
-                    <div className="ml-auto w-3 h-3 rounded-full bg-fuchsia-500 shadow-[0_0_10px_#d946ef] animate-pulse" />
-                  )}
+                <div>
+                  <p className={clsx("font-medium tracking-widest uppercase text-sm", selectedGame?.id === game.id ? "text-white" : "text-inherit")}>{game.name}</p>
+                  <p className="text-[10px] font-normal tracking-[0.2em] mt-2 opacity-60">LIMITE: {game.min_bet}€ - {game.max_bet}€</p>
                 </div>
+                {selectedGame?.id === game.id && (
+                  <div className="w-1.5 h-1.5 rounded-full bg-yellow-600" />
+                )}
               </button>
             ))}
           </div>
 
           {/* Main game area */}
           {selectedGame && (
-            <div className="lg:col-span-2 relative z-10">
-              <div className="bg-gradient-to-b from-black/80 to-[#120a1f] border border-purple-500/30 p-8 rounded-[40px] shadow-[0_0_50px_rgba(168,85,247,0.1)] relative overflow-hidden h-full">
-                {/* Decorative neon light */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[1px] bg-gradient-to-r from-transparent via-fuchsia-500 to-transparent shadow-[0_0_20px_#d946ef]" />
+            <div className="lg:col-span-8 relative z-10">
+              <div className="bg-zinc-950 border border-white/10 p-10 h-full flex flex-col justify-between">
                 
-                <div className="mb-10 text-center">
-                  <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600 drop-shadow-md uppercase tracking-widest">{selectedGame.name}</h2>
-                  <p className="text-purple-300 text-sm mt-2 font-medium">{selectedGame.description}</p>
+                <div className="mb-12 text-center">
+                  <h2 className="text-2xl font-light text-white uppercase tracking-[0.3em]">{selectedGame.name}</h2>
+                  <p className="text-zinc-500 text-xs mt-3 uppercase tracking-widest">{selectedGame.description}</p>
                 </div>
 
               {/* Slots reels */}
               {currentGameType === 'slots' && (
-                <div className="relative py-12 px-4 bg-gradient-to-b from-gray-900 to-black border-4 border-yellow-600/50 rounded-3xl overflow-hidden shadow-[inset_0_0_50px_rgba(0,0,0,0.8)] mx-auto max-w-lg mb-8">
-                  {/* Inner glowing machine frame */}
-                  <div className="absolute inset-0 border-[8px] border-black/50 rounded-2xl pointer-events-none z-30" />
-                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-24 bg-fuchsia-500/10 blur-3xl rounded-full" />
-                  
-                  <div className="relative flex items-center justify-center gap-4 md:gap-6 z-10">
+                <div className="relative py-12 px-6 bg-black border border-white/5 mx-auto max-w-lg mb-12">
+                  <div className="relative flex items-center justify-center gap-6 z-10">
                     {slotResult.map((sym, i) => (
                       <div
                         key={i}
                         className={clsx(
-                          'slot-reel w-24 h-32 md:w-28 md:h-36 flex items-center justify-center text-7xl md:text-8xl bg-gradient-to-b from-white/10 to-white/5 border-2 rounded-2xl shadow-2xl relative overflow-hidden',
-                          spinning ? 'spinning border-fuchsia-500/80 shadow-[0_0_30px_#d946ef]' : 'border-white/10'
+                          'w-24 h-32 flex items-center justify-center text-5xl bg-zinc-900 border transition-all duration-300',
+                          spinning ? 'border-yellow-600/50' : 'border-white/10'
                         )}
-                        style={{ animationDelay: `${i * 120}ms` }}
                       >
-                        {/* Glossy overlay on reel */}
-                        <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-black/50 pointer-events-none" />
-                        <span className="drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] z-10">{sym}</span>
+                        <span className={clsx(spinning && "opacity-50 blur-[1px]")}>{sym}</span>
                       </div>
                     ))}
                   </div>
-                  {/* Payline */}
-                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1 bg-red-500/80 z-20 mix-blend-screen shadow-[0_0_15px_rgba(239,68,68,1)] pointer-events-none" />
+                  <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 h-px bg-yellow-600/30 z-20 pointer-events-none" />
                 </div>
               )}
 
               {/* Coin flip visual */}
               {currentGameType === 'coin' && (
-                <div className="flex flex-col items-center gap-6">
+                <div className="flex flex-col items-center gap-10 mb-12">
                    <div className={clsx(
-                     "w-24 h-24 rounded-full bg-yellow-500 border-4 border-yellow-600 flex items-center justify-center text-5xl shadow-2xl transition-all duration-500",
-                     spinning && "animate-spin"
+                     "w-28 h-28 rounded-full bg-zinc-900 border border-yellow-600/30 flex items-center justify-center text-4xl transition-all duration-700",
+                     spinning && "animate-spin border-yellow-600 scale-110"
                    )}>
                      {spinning ? '🪙' : (slotResult[0] || '🪙')}
                    </div>
-                   <div className="grid grid-cols-2 gap-3 w-full">
+                   <div className="grid grid-cols-2 gap-4 w-full max-w-md">
                       {COIN_OPTIONS.map(opt => (
                         <button
                           key={opt.value}
                           onClick={() => setGuess(opt.value)}
                           className={clsx(
-                            'p-4 rounded-2xl border transition-all duration-200 text-center font-bold',
+                            'p-6 border transition-all duration-300 text-center uppercase tracking-widest text-xs',
                             guess === opt.value
-                              ? 'bg-discord-blurple/20 border-discord-blurple text-white'
-                              : 'bg-white/4 border-white/8 text-discord-muted hover:bg-white/8'
+                              ? 'bg-zinc-900 border-yellow-600 text-white'
+                              : 'bg-black border-white/10 text-zinc-500 hover:border-white/30 hover:text-zinc-300'
                           )}
                         >
-                          <div className="text-3xl mb-1">{opt.icon}</div>
-                          <span className="text-sm">{opt.label}</span>
-                          <div className="text-xs text-discord-success mt-1">× 1.9</div>
+                          <span className="block mb-2">{opt.label}</span>
+                          <span className="text-[10px] text-yellow-600/60">× 1.9</span>
                         </button>
                       ))}
                    </div>
@@ -446,28 +422,27 @@ export default function CasinoPage() {
 
               {/* Dice choice */}
               {currentGameType === 'dice' && (
-                <div className="flex flex-col items-center gap-6">
+                <div className="flex flex-col items-center gap-10 mb-12">
                    <div className={clsx(
-                     "w-24 h-24 bg-white rounded-2xl border-4 border-gray-200 flex items-center justify-center text-6xl shadow-xl transition-all duration-500",
-                     spinning && "animate-bounce"
+                     "w-28 h-28 bg-zinc-900 border border-white/20 flex items-center justify-center text-5xl transition-all duration-300",
+                     spinning && "animate-pulse border-white/50"
                    )}>
                      {spinning ? '🎲' : (slotResult[0] || '🎲')}
                    </div>
-                   <div className="grid grid-cols-2 gap-3 w-full">
+                   <div className="grid grid-cols-2 gap-4 w-full max-w-md">
                       {DICE_OPTIONS.map(opt => (
                         <button
                           key={opt.value}
                           onClick={() => setGuess(opt.value)}
                           className={clsx(
-                            'p-4 rounded-2xl border transition-all duration-200 text-center font-bold',
+                            'p-6 border transition-all duration-300 text-center uppercase tracking-widest text-xs',
                             guess === opt.value
-                              ? 'bg-discord-blurple/20 border-discord-blurple text-white'
-                              : 'bg-white/4 border-white/8 text-discord-muted hover:bg-white/8'
+                              ? 'bg-zinc-900 border-yellow-600 text-white'
+                              : 'bg-black border-white/10 text-zinc-500 hover:border-white/30 hover:text-zinc-300'
                           )}
                         >
-                          <div className="text-3xl mb-1">{opt.value === 'high' ? '📈' : '📉'}</div>
-                          <span className="text-sm">{opt.label}</span>
-                          <div className="text-xs text-discord-success mt-1">{opt.desc}</div>
+                          <span className="block mb-2">{opt.label}</span>
+                          <span className="text-[10px] text-yellow-600/60">{opt.desc}</span>
                         </button>
                       ))}
                    </div>
@@ -476,32 +451,30 @@ export default function CasinoPage() {
 
               {/* Roulette choice */}
               {currentGameType === 'roulette' && (
-                <div className="flex flex-col items-center gap-6">
+                <div className="flex flex-col items-center gap-10 mb-12">
                    <div className={clsx(
-                     "w-32 h-32 rounded-full border-8 border-zinc-900 bg-zinc-800 flex items-center justify-center text-4xl shadow-2xl relative",
-                     spinning && "animate-spin"
+                     "w-32 h-32 rounded-full border border-white/20 bg-zinc-900 flex items-center justify-center text-3xl relative transition-all duration-1000",
+                     spinning && "rotate-[720deg]"
                    )}>
-                      <div className="absolute inset-2 border-2 border-dashed border-white/10 rounded-full" />
+                      <div className="absolute inset-4 border border-dashed border-white/10 rounded-full" />
                       {spinning ? '🎡' : '🎰'}
                    </div>
-                   <div className="grid grid-cols-2 gap-3 w-full">
+                   <div className="grid grid-cols-2 gap-4 w-full max-w-md">
                       <button
                         onClick={() => setGuess('red')}
-                        className={clsx('p-4 rounded-2xl border transition-all duration-200 text-center font-bold',
-                          guess === 'red' ? 'bg-red-500/20 border-red-500 text-white' : 'bg-white/4 border-white/8 text-discord-muted hover:bg-white/8')}
+                        className={clsx('p-6 border transition-all duration-300 text-center uppercase tracking-widest text-xs',
+                          guess === 'red' ? 'bg-red-950/40 border-red-800 text-white' : 'bg-black border-white/10 text-zinc-500 hover:border-white/30')}
                       >
-                        <div className="text-3xl mb-1">🔴</div>
-                        <span className="text-sm">Rouge</span>
-                        <div className="text-xs text-discord-success mt-1">× 1.9</div>
+                        <span className="block mb-2 text-red-500 font-bold">ROUGE</span>
+                        <span className="text-[10px] text-red-400/60">× 1.9</span>
                       </button>
                       <button
                         onClick={() => setGuess('black')}
-                        className={clsx('p-4 rounded-2xl border transition-all duration-200 text-center font-bold',
-                          guess === 'black' ? 'bg-zinc-800/40 border-zinc-700 text-white' : 'bg-white/4 border-white/8 text-discord-muted hover:bg-white/8')}
+                        className={clsx('p-6 border transition-all duration-300 text-center uppercase tracking-widest text-xs',
+                          guess === 'black' ? 'bg-zinc-800 border-zinc-500 text-white' : 'bg-black border-white/10 text-zinc-500 hover:border-white/30')}
                       >
-                        <div className="text-3xl mb-1">⚫</div>
-                        <span className="text-sm">Noir</span>
-                        <div className="text-xs text-discord-success mt-1">× 1.9</div>
+                        <span className="block mb-2 text-zinc-300 font-bold">NOIR</span>
+                        <span className="text-[10px] text-zinc-400/60">× 1.9</span>
                       </button>
                    </div>
                 </div>
@@ -509,92 +482,76 @@ export default function CasinoPage() {
 
               {/* Blackjack */}
               {currentGameType === 'blackjack' && (
-                <div className="p-6 bg-white/3 border border-dashed border-white/10 rounded-2xl text-center">
-                  <div className="text-4xl mb-2">🃏</div>
-                  <p className="text-sm text-discord-muted">{t('casino_page.blackjack_desc')}</p>
+                <div className="p-12 bg-black border border-white/5 text-center mb-12">
+                  <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{t('casino_page.blackjack_desc')}</p>
                 </div>
               )}
 
-              {/* Bet amount */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-black text-discord-muted uppercase tracking-widest">{t('casino_page.bet_amount')}</p>
-                  <span className="text-xs text-discord-muted">{selectedGame.min_bet}€ — {selectedGame.max_bet}€</span>
-                </div>
-                <div className="relative">
-                  <input
-                    type="number"
-                    placeholder={`Ex: ${selectedGame.min_bet}`}
-                    className="glass-input pr-24"
-                    value={bet}
-                    min={selectedGame.min_bet}
-                    max={Math.min(selectedGame.max_bet, profile?.balance || 0)}
-                    onChange={e => setBet(e.target.value)}
-                    disabled={spinning}
-                  />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-                    {[selectedGame.min_bet, Math.floor(selectedGame.max_bet / 2), selectedGame.max_bet].map(v => (
-                      <button
-                        key={v}
-                        onClick={() => setBet(Math.min(v, profile?.balance || 0).toString())}
-                        className="px-2 py-1 text-xs font-bold bg-white/8 hover:bg-discord-blurple/30 text-discord-muted hover:text-white rounded-lg transition-all"
-                      >{v}€</button>
-                    ))}
+              {/* Inputs and Actions */}
+              <div className="max-w-md mx-auto w-full">
+                <div className="mb-8">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{t('casino_page.bet_amount')}</p>
+                    <span className="text-[10px] text-zinc-600 font-mono">{selectedGame.min_bet}€ — {selectedGame.max_bet}€</span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      placeholder="0"
+                      className="w-full bg-black border border-white/10 text-white px-4 py-4 text-center font-mono text-lg focus:outline-none focus:border-yellow-600 transition-colors"
+                      value={bet}
+                      min={selectedGame.min_bet}
+                      max={Math.min(selectedGame.max_bet, profile?.balance || 0)}
+                      onChange={e => setBet(e.target.value)}
+                      disabled={spinning}
+                    />
+                    <div className="flex justify-center gap-2 mt-4">
+                      {[selectedGame.min_bet, Math.floor(selectedGame.max_bet / 2), selectedGame.max_bet].map(v => (
+                        <button
+                          key={v}
+                          onClick={() => setBet(Math.min(v, profile?.balance || 0).toString())}
+                          className="px-4 py-2 text-[10px] tracking-widest uppercase bg-zinc-900 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+                        >{v}€</button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Inline message (smaller) */}
-              {message && (
-                <div className={clsx(
-                  'p-3 rounded-2xl text-sm font-bold flex items-center gap-3 animate-scaleIn border',
-                  message.type === 'win'
-                    ? 'bg-discord-success/10 text-discord-success border-discord-success/20'
-                    : message.type === 'lose'
-                      ? 'bg-discord-error/10 text-discord-error border-discord-error/20'
-                      : 'bg-discord-warning/10 text-discord-warning border-discord-warning/20'
-                )}>
-                  {message.type === 'win' ? <Trophy className="w-5 h-5 flex-shrink-0" />
-                    : message.type === 'error' ? <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                      : <TrendingDown className="w-5 h-5 flex-shrink-0" />}
-                  {message.text}
-                </div>
-              )}
+                {/* Inline message */}
+                {message && (
+                  <div className={clsx(
+                    'p-4 text-xs tracking-widest uppercase text-center mb-6 flex items-center justify-center gap-3 animate-fadeIn border',
+                    message.type === 'win'
+                      ? 'bg-green-950/30 text-green-500 border-green-900/50'
+                      : message.type === 'lose'
+                        ? 'bg-red-950/30 text-red-500 border-red-900/50'
+                        : 'bg-yellow-950/30 text-yellow-600 border-yellow-900/50'
+                  )}>
+                    {message.text}
+                  </div>
+                )}
 
-              {/* Play button */}
-              <div className="mt-8">
+                {/* Play button */}
                 <button
                   onClick={() => handlePlay(currentGameType)}
                   disabled={spinning || !bet}
-                  className="w-full relative group rounded-2xl overflow-hidden"
+                  className="w-full bg-white hover:bg-zinc-200 text-black py-5 flex items-center justify-center gap-3 transition-colors disabled:opacity-50 disabled:bg-zinc-800 disabled:text-zinc-500"
                   id="casino-play-btn"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-fuchsia-600 to-purple-600 transition-transform group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay" />
-                  <div className="relative flex items-center justify-center gap-3 py-4 text-white font-black text-xl uppercase tracking-widest drop-shadow-md">
-                    {spinning ? (
-                      <>
-                        <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin shadow-lg" />
-                        {t('casino_page.spinning')}
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-6 h-6" />
-                        {currentGameType === 'slots' ? t('casino_page.spin_slots') : t('casino_page.play')}
-                      </>
-                    )}
-                  </div>
+                  <span className="font-bold uppercase tracking-[0.2em] text-sm">
+                    {spinning ? t('casino_page.spinning') : (currentGameType === 'slots' ? t('casino_page.spin_slots') : t('casino_page.play'))}
+                  </span>
                 </button>
               </div>
 
               {/* Slots odds */}
               {currentGameType === 'slots' && (
-                <div className="mt-2 p-4 bg-white/3 border border-white/6 rounded-2xl">
-                  <p className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2">{t('casino_page.potential_wins')}</p>
-                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                    <div className="p-2 bg-white/4 rounded-xl"><div>🍒🍒🍒</div><div className="text-discord-success font-bold mt-1">× 10</div></div>
-                    <div className="p-2 bg-white/4 rounded-xl"><div>💎💎💎</div><div className="text-discord-success font-bold mt-1">× 25</div></div>
-                    <div className="p-2 bg-white/4 rounded-xl"><div>🎰🎰🎰</div><div className="text-yellow-400 font-bold mt-1">× 50 🏆</div></div>
+                <div className="mt-12 pt-8 border-t border-white/5">
+                  <p className="text-[10px] text-zinc-600 uppercase tracking-widest mb-4 text-center">{t('casino_page.potential_wins')}</p>
+                  <div className="grid grid-cols-3 gap-4 text-center text-xs">
+                    <div className="text-zinc-400 font-mono tracking-widest">🍒🍒🍒<br/><span className="text-yellow-600/80 mt-2 block">× 10</span></div>
+                    <div className="text-zinc-400 font-mono tracking-widest">💎💎💎<br/><span className="text-yellow-600/80 mt-2 block">× 25</span></div>
+                    <div className="text-zinc-400 font-mono tracking-widest">🎰🎰🎰<br/><span className="text-yellow-600 font-bold mt-2 block">× 50</span></div>
                   </div>
                 </div>
               )}

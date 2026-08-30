@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
-import { Wallet, ArrowUpRight, ArrowDownRight, Gift, Clock, Search, Send, Briefcase, FileText, CheckCircle2, AlertCircle, Euro, ChevronDown } from 'lucide-react'
+import { Wallet, ArrowUpRight, ArrowDownRight, Gift, Clock, Search, Send, Briefcase, FileText, CheckCircle2, AlertCircle, Euro, ChevronDown, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import clsx from 'clsx'
 
@@ -571,21 +571,38 @@ export default function Bank() {
 
 
           {activeTab === 'declarations' && (
-            <div className="animate-fadeIn space-y-6">
-              <div className="glass-card">
-                <h3 className="text-xl font-black text-white mb-2">{t('bank_page.laundering_title')}</h3>
-                <p className="text-discord-muted text-sm mb-6">{t('bank_page.laundering_desc')}</p>
+            <div className="animate-fadeIn space-y-8">
+              <div className="glass-card overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-discord-warning/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
                 
-                <div className="space-y-6">
-                  {/* Source Selection List */}
+                <div className="relative z-10 flex items-start gap-4 mb-8">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-discord-warning to-orange-500 flex items-center justify-center shadow-lg shadow-discord-warning/20 flex-shrink-0">
+                    <Briefcase className="w-7 h-7 text-white" />
+                  </div>
                   <div>
-                    <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-3 block">{t('bank_page.dirty_sources')}</label>
+                    <h3 className="text-2xl font-black text-white">{t('bank_page.laundering_title')}</h3>
+                    <p className="text-discord-muted mt-1">{t('bank_page.laundering_desc')}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-8 relative z-10">
+                  {/* Source Selection List */}
+                  <div className="bg-black/20 p-6 rounded-[2rem] border border-white/5">
+                    <label className="flex items-center gap-2 text-xs font-black text-discord-muted uppercase tracking-widest mb-4">
+                      <span className="w-6 h-px bg-white/10" />
+                      {t('bank_page.dirty_sources')}
+                      <span className="flex-1 h-px bg-white/10" />
+                    </label>
                     {dirtySources.length === 0 ? (
-                      <div className="p-8 text-center rounded-2xl bg-white/3 border border-white/5 border-dashed">
-                        <p className="text-discord-muted text-sm font-bold">{t('bank_page.no_dirty')}</p>
+                      <div className="py-12 text-center">
+                        <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+                          <CheckCircle2 className="w-8 h-8 text-discord-muted" />
+                        </div>
+                        <p className="text-white font-bold text-lg">{t('bank_page.no_dirty')}</p>
+                        <p className="text-discord-muted text-sm mt-1">Vos finances sont en règle.</p>
                       </div>
                     ) : (
-                      <div className="grid gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                      <div className="grid gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
                         {dirtySources.map((source: any) => (
                           <button
                             key={source.id}
@@ -594,24 +611,28 @@ export default function Bank() {
                               if (!decReason) setDecReason(`Blanchiment : ${source.source} (${source.amount}€)`)
                             }}
                             className={clsx(
-                              "w-full p-4 rounded-2xl border text-left transition-all group flex items-center justify-between",
+                              "w-full p-5 rounded-2xl border text-left transition-all group flex items-center justify-between",
                               selectedSourceId === source.id 
-                                ? "bg-discord-blurple/20 border-discord-blurple shadow-lg" 
-                                : "bg-white/3 border-white/5 hover:border-white/10"
+                                ? "bg-gradient-to-r from-discord-warning/20 to-transparent border-discord-warning/50 shadow-[0_0_20px_rgba(254,231,92,0.1)]" 
+                                : "bg-white/5 border-transparent hover:border-white/10 hover:bg-white/10"
                             )}
                           >
                             <div className="flex items-center gap-4">
-                              <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center transition-colors", selectedSourceId === source.id ? "bg-discord-blurple text-white" : "bg-white/5 text-discord-muted group-hover:text-white")}>
-                                <Briefcase size={20} />
+                              <div className={clsx(
+                                "w-12 h-12 rounded-xl flex items-center justify-center transition-colors shadow-inner", 
+                                selectedSourceId === source.id ? "bg-discord-warning text-black" : "bg-black/50 text-gray-400 group-hover:text-white"
+                              )}>
+                                <Briefcase size={24} />
                               </div>
                               <div>
-                                <p className="font-bold text-white text-sm">{source.source}</p>
-                                <p className="text-[10px] text-discord-muted uppercase tracking-tight">{source.details} — {new Date(source.created_at).toLocaleDateString()}</p>
+                                <p className={clsx("font-black text-lg", selectedSourceId === source.id ? "text-discord-warning" : "text-white")}>{source.source}</p>
+                                <p className="text-xs text-gray-400 font-medium">{source.details} • {new Date(source.created_at).toLocaleDateString()}</p>
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="text-lg font-black text-amber-400">{source.amount.toFixed(0)}€</p>
-                              {selectedSourceId === source.id && <CheckCircle2 size={16} className="text-discord-blurple animate-bounce ml-auto mt-1" />}
+                              <p className={clsx("text-xl font-black", selectedSourceId === source.id ? "text-discord-warning" : "text-gray-300")}>
+                                {source.amount.toLocaleString()} €
+                              </p>
                             </div>
                           </button>
                         ))}
@@ -620,12 +641,15 @@ export default function Bank() {
                   </div>
 
                   {selectedSourceId && (
-                    <div className="space-y-4 animate-slideUp">
+                    <div className="space-y-4 animate-slideUp bg-discord-warning/5 p-6 rounded-[2rem] border border-discord-warning/20">
                       <div>
-                        <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">{t('bank_page.justification')}</label>
+                        <label className="text-xs font-black text-discord-warning uppercase tracking-widest mb-2 block flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4" />
+                          {t('bank_page.justification')}
+                        </label>
                         <textarea
                           placeholder={t('bank_page.justification_placeholder')}
-                          className="glass-input w-full min-h-[100px] py-4"
+                          className="w-full min-h-[120px] bg-black/40 border border-discord-warning/30 rounded-2xl p-4 text-white focus:outline-none focus:border-discord-warning focus:ring-1 focus:ring-discord-warning transition-all resize-none font-medium"
                           value={decReason}
                           onChange={(e) => setDecReason(e.target.value)}
                         />
@@ -633,9 +657,10 @@ export default function Bank() {
 
                       {message && (
                         <div className={clsx(
-                          "p-4 rounded-xl text-sm font-bold animate-fadeIn",
-                          message.type === 'success' ? "bg-discord-success/10 text-discord-success border border-discord-success/20" : "bg-discord-error/10 text-discord-error border border-discord-error/20"
+                          "p-4 rounded-xl text-sm font-bold flex items-center gap-3 animate-fadeIn",
+                          message.type === 'success' ? "bg-discord-success/20 text-discord-success" : "bg-discord-error/20 text-discord-error"
                         )}>
+                          {message.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
                           {message.text}
                         </div>
                       )}
@@ -643,54 +668,60 @@ export default function Bank() {
                       <button
                         onClick={handleDeclare}
                         disabled={loading}
-                        className="btn btn-warning w-full py-4 text-base shadow-xl shadow-discord-warning/10"
+                        className="w-full py-4 rounded-xl font-black text-lg uppercase tracking-widest transition-all bg-discord-warning hover:bg-yellow-500 text-black shadow-[0_0_20px_rgba(254,231,92,0.3)] hover:shadow-[0_0_30px_rgba(254,231,92,0.5)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
-                        {loading ? t('bank_page.submitting') : t('bank_page.submit_case')}
+                        {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : t('bank_page.submit_case')}
                       </button>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="glass-card p-2">
-                <h3 className="text-lg font-black text-white px-4 py-4">{t('bank_page.recent_requests')}</h3>
-                <div className="space-y-1">
+              <div className="glass-card">
+                <h3 className="text-xl font-black text-white mb-6 flex items-center gap-3">
+                  <Clock className="w-6 h-6 text-discord-blurple" />
+                  {t('bank_page.recent_requests')}
+                </h3>
+                
+                <div className="space-y-3">
                   {declarations.length > 0 ? (
                     declarations.map((dec) => (
-                      <div key={dec.id} className="flex items-center gap-4 p-4 hover:bg-white/5 rounded-2xl transition-colors group">
-                        <div className={clsx(
-                          "w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110",
-                          dec.status === 'accepted' ? "bg-discord-success/20 text-discord-success" : 
-                          dec.status === 'refused' ? "bg-discord-error/20 text-discord-error" : 
-                          "bg-discord-warning/20 text-discord-warning"
-                        )}>
-                          {dec.status === 'accepted' ? <CheckCircle2 className="w-6 h-6" /> : 
-                           dec.status === 'refused' ? <AlertCircle className="w-6 h-6" /> : 
-                           <Clock className="w-6 h-6" />}
+                      <div key={dec.id} className="group relative bg-black/20 hover:bg-black/40 border border-white/5 hover:border-white/10 p-5 rounded-[1.5rem] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all">
+                        <div className="flex items-center gap-4">
+                          <div className={clsx(
+                            "w-12 h-12 rounded-xl flex items-center justify-center shadow-inner flex-shrink-0",
+                            dec.status === 'accepted' ? "bg-discord-success text-white" : 
+                            dec.status === 'refused' ? "bg-discord-error text-white" : 
+                            "bg-discord-warning text-black"
+                          )}>
+                            {dec.status === 'accepted' ? <CheckCircle2 className="w-6 h-6" /> : 
+                             dec.status === 'refused' ? <AlertCircle className="w-6 h-6" /> : 
+                             <Clock className="w-6 h-6" />}
+                          </div>
+                          <div>
+                            <p className="text-white font-bold text-lg">{dec.reason}</p>
+                            <p className="text-xs font-medium text-discord-muted">
+                              {dec.source} • {new Date(dec.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white font-bold truncate">{dec.reason}</p>
-                          <p className="text-[10px] font-black text-discord-muted uppercase tracking-[0.2em]">
-                            {dec.source} — {new Date(dec.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-black text-white">{dec.amount.toFixed(0)} €</p>
-                          <p className={clsx(
-                            "text-[10px] font-black uppercase tracking-widest",
-                            dec.status === 'accepted' ? "text-discord-success" : 
-                            dec.status === 'refused' ? "text-discord-error" : 
-                            "text-discord-warning"
+                        <div className="flex items-center md:flex-col md:items-end justify-between w-full md:w-auto gap-2">
+                          <p className="text-2xl font-black text-white">{dec.amount.toLocaleString()} €</p>
+                          <span className={clsx(
+                            "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest",
+                            dec.status === 'accepted' ? "bg-discord-success/20 text-discord-success" : 
+                            dec.status === 'refused' ? "bg-discord-error/20 text-discord-error" : 
+                            "bg-discord-warning/20 text-discord-warning"
                           )}>
                             {dec.status === 'accepted' ? t('bank_page.validated') : 
-                             dec.status === 'refused' ? t('bank_page.refused') : 
+                             dec.status === 'refused' ? (dec.has_penalty ? 'Refusé (Amende)' : t('bank_page.refused')) : 
                              t('bank_page.pending_status')}
-                          </p>
+                          </span>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="p-12 text-center opacity-50">
+                    <div className="py-12 text-center border border-white/5 border-dashed rounded-[2rem] bg-white/3">
                       <p className="text-discord-muted font-bold text-sm">{t('bank_page.no_declarations')}</p>
                     </div>
                   )}
