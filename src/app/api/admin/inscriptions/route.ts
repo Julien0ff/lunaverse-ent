@@ -40,9 +40,12 @@ export async function PATCH(request: Request) {
     const { data: inscription, error: fetchErr } = await supabase.from('inscriptions').select('*').eq('id', id).single()
     if (fetchErr || !inscription) throw new Error('Inscription introuvable')
 
+    const updateData: any = { status, updated_at: new Date().toISOString() }
+    if (classe !== undefined) updateData.classe = classe
+
     const { error } = await supabase
       .from('inscriptions')
-      .update({ status, classe: classe || null, updated_at: new Date().toISOString() })
+      .update(updateData)
       .eq('id', id)
 
     if (error) throw error

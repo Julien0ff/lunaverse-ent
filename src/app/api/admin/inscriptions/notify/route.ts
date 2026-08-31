@@ -13,9 +13,9 @@ export async function POST(request: Request) {
   if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
   try {
-    const { id, pronoteId, pronotePass } = await request.json()
-    if (!id || !pronoteId || !pronotePass) {
-      return NextResponse.json({ error: 'Données manquantes' }, { status: 400 })
+    const { id } = await request.json()
+    if (!id) {
+      return NextResponse.json({ error: 'ID manquant' }, { status: 400 })
     }
 
     const { data: inscription, error: fetchErr } = await supabase.from('inscriptions').select('*').eq('id', id).single()
@@ -56,23 +56,9 @@ export async function POST(request: Request) {
         content: `<@${targetUserId}>`,
         embeds: [{
           title: '🎉 Ton compte a été créé !',
-          description: `<@${targetUserId}>, ton inscription a été validée par l'administration.\nClique sur le bouton ci-dessous pour récupérer tes identifiants (accessible uniquement par toi).`,
+          description: `<@${targetUserId}>, ton inscription a été validée par l'administration et tes accès ont été créés !\nBienvenue officiellement dans l'établissement !`,
           color: SUCCESS
-        }],
-        components: [
-          {
-            type: 1,
-            components: [
-              {
-                type: 2,
-                style: 1, // Primary
-                label: 'Récupérer mes codes',
-                emoji: { id: "1293639591797985350" },
-                custom_id: `rp_rec|${targetUserId}|${pronoteId}|${pronotePass}`
-              }
-            ]
-          }
-        ]
+        }]
       })
     })
 
