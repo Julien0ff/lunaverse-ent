@@ -34,6 +34,19 @@ export async function POST() {
     const token = process.env.DISCORD_BOT_TOKEN
     if (!token) return NextResponse.json({ error: 'DISCORD_BOT_TOKEN manquant.' }, { status: 500 })
 
+    // 2.5 Fetch server logo
+    const guildId = '1216443076168515724'
+    const guildRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}`, {
+      headers: { 'Authorization': `Bot ${token}` }
+    })
+    let guildIconUrl = "https://cdn-icons-png.flaticon.com/512/3135/3135810.png"
+    if (guildRes.ok) {
+      const guildData = await guildRes.json()
+      if (guildData.icon) {
+        guildIconUrl = `https://cdn.discordapp.com/icons/${guildId}/${guildData.icon}.png?size=512`
+      }
+    }
+
     // 3. Send embed to Discord
     const res = await fetch(`https://discord.com/api/v10/channels/${salonAdmin}/messages`, {
       method: 'POST',
@@ -46,7 +59,7 @@ export async function POST() {
           title: '🎓 Inscription Académique | LunaVerse',
           description: "Bienvenue dans le processus d'inscription !\n\nPour rejoindre officiellement les rangs de l'établissement, veuillez remplir votre dossier d'inscription. Vous recevrez ensuite vos accès à l'Environnement Numérique de Travail (ENT).\n\n**Comment s'inscrire ?**\n1️⃣ Cliquez sur le bouton **Commencer l'inscription** ci-dessous.\n2️⃣ Remplissez le formulaire avec vos informations RP.\n3️⃣ Un membre de l'administration validera votre dossier.\n\n*Préparez-vous à entrer dans la cour des grands !*",
           color: 0x5865F2,
-          thumbnail: { url: "https://cdn-icons-png.flaticon.com/512/3135/3135810.png" },
+          thumbnail: { url: guildIconUrl },
           image: { url: "https://media.discordapp.net/attachments/1256708304198303865/1271813155106193498/LUNAVERSE_ENT_4.png?ex=66de48a8&is=66dcf728&hm=c23067eb0a01e5200259e217278385b0d0c3ebc92c90c791dd15d18eefc8fca3&=&format=webp&quality=lossless&width=1164&height=654" },
           footer: { text: "Administration LunaVerse" }
         }],

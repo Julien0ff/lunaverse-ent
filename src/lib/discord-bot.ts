@@ -1,7 +1,7 @@
 import { config } from 'dotenv'
 config({ path: '.env.local' })
 
-import { Client, GatewayIntentBits, SlashCommandBuilder, REST, Routes, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, PermissionFlagsBits, ChannelType, TextChannel } from 'discord.js'
+import { Client, GatewayIntentBits, SlashCommandBuilder, REST, Routes, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, PermissionFlagsBits, ChannelType, TextChannel, ComponentType, FileUploadBuilder } from 'discord.js'
 import { createClient } from '@supabase/supabase-js'
 // Memory fallback for settings if table doesn't exist yet
 const memorySettings = new Map<string, any>()
@@ -1302,34 +1302,62 @@ client.on('interactionCreate', async (interaction) => {
       const prenom = interaction.fields.getTextInputValue('prenom')
       const nom = interaction.fields.getTextInputValue('nom')
       const dob = interaction.fields.getTextInputValue('age')
+      const uploadedFiles = interaction.fields.getUploadedFiles ? interaction.fields.getUploadedFiles('photo') : null
+      const photo = uploadedFiles ? uploadedFiles.first()?.url : null
+      
+      let options: string[] = []
+      // SelectMenus are technically sent in the components tree for ModalSubmit
+      const optRow = interaction.components.find(r => (r as any).components?.[0]?.customId === 'options') as any
+      if (optRow && optRow.components[0].type === ComponentType.StringSelect) {
+        options = optRow.components[0].values || []
+      }
 
-      pendingRegistrations.set(interaction.user.id, {
-        adminId,
-        responsesId,
+      const { error } = await supabase.from('inscriptions').insert({
+        discord_id: interaction.user.id,
         prenom,
         nom,
         dob,
-        desc: '',
-        classe: null,
-        langue: null,
-        options: []
+        options,
+        status: 'pending',
+        classe: 'À définir',
+        responses_channel_id: responsesId
       })
 
-      let opts: any[] = await getServerSetting('rp_options', ['Cybersécurité'])
-      if (!Array.isArray(opts) || opts.length === 0) opts = ['Cybersécurité']
+      if (error) {
+        console.error('Erreur inscription:', error)
+        await interaction.reply({ content: '❌ Erreur lors de l\'enregistrement de votre inscription.', ephemeral: true })
+        return
+      }
 
-      const sel = new StringSelectMenuBuilder()
-        .setCustomId('rp_reg_opt')
-        .setPlaceholder('Choisissez votre spécialité')
-        .setMinValues(1)
-        .setMaxValues(1)
-        .addOptions(opts.map((o: string) => new StringSelectMenuOptionBuilder().setLabel(o).setValue(o)))
+      await interaction.reply({ content: '✅ Votre inscription a été enregistrée ! L\'administration va la traiter. Vous recevrez une notification lorsque ce sera fait.', ephemeral: true })
 
-      const row1 = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(sel)
-      const btn = new ButtonBuilder().setCustomId('rp_reg_submit').setLabel('Envoyer l\'inscription').setStyle(ButtonStyle.Success)
-      const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(btn)
+      // Send to Admin Channel
+      try {
+        const adminChan = await client.channels.fetch(adminId).catch(() => null)
+        if (adminChan && adminChan.isTextBased()) {
+          const embed = new EmbedBuilder()
+            .setTitle('Nouvelle demande d\'inscription RP')
+            .setColor(0x5865F2)
+            .addFields(
+              { name: 'Discord', value: `<@${interaction.user.id}> (${interaction.user.tag})`, inline: false },
+              { name: 'Prénom RP', value: prenom, inline: true },
+              { name: 'Nom RP', value: nom, inline: true },
+              { name: 'Date de naissance', value: dob, inline: true },
+              { name: 'Spécialités', value: options.length > 0 ? options.join(', ') : 'Aucune', inline: true }
+            )
+          if (photo && photo.trim().length > 0) {
+             embed.setThumbnail(photo)
+             embed.addFields({ name: 'Lien Photo', value: photo })
+          }
 
-      await interaction.reply({ content: 'Sélectionnez votre spécialité ci-dessous pour finaliser l\'inscription :', components: [row1, row2], ephemeral: true })
+          const btnAccept = new ButtonBuilder().setCustomId(`rp_accept|${interaction.user.id}|${responsesId}`).setLabel('Accepter').setStyle(ButtonStyle.Success)
+          const btnRefuse = new ButtonBuilder().setCustomId(`rp_refuse|${interaction.user.id}|${responsesId}`).setLabel('Refuser').setStyle(ButtonStyle.Danger)
+          const row = new ActionRowBuilder<ButtonBuilder>().addComponents(btnAccept, btnRefuse)
+          await (adminChan as any).send({ embeds: [embed], components: [row] })
+        }
+      } catch (err) {
+        console.error('Failed to notify admin channel', err)
+      }
       return
     }
 
@@ -1455,38 +1483,28 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
       const tPrenom = new TextInputBuilder().setCustomId('prenom').setLabel('Prénom RP').setStyle(TextInputStyle.Short).setRequired(true)
       const tNom = new TextInputBuilder().setCustomId('nom').setLabel('Nom RP').setStyle(TextInputStyle.Short).setRequired(true)
       const tAge = new TextInputBuilder().setCustomId('age').setLabel('Date de naissance RP').setStyle(TextInputStyle.Short).setRequired(true)
+      const tPhoto = new FileUploadBuilder().setCustomId('photo').setRequired(false)
+
+      // Spécialité as a TextInput, because SelectMenus in modals via builder can cause API structural mismatches depending on exactly how it's sent. But wait, discord.js allows it via StringSelectMenuBuilder. Let's try it:
+      let opts: any[] = await getServerSetting('rp_options', ['Cybersécurité'])
+      if (!Array.isArray(opts) || opts.length === 0) opts = ['Cybersécurité']
+
+      const selOpts = new StringSelectMenuBuilder()
+        .setCustomId('options')
+        .setPlaceholder('Sélectionnez votre spécialité')
+        .setMinValues(1)
+        .setMaxValues(1)
+        .addOptions(opts.map((o: string) => new StringSelectMenuOptionBuilder().setLabel(o).setValue(o)))
 
       modal.addComponents(
         new ActionRowBuilder<TextInputBuilder>().addComponents(tPrenom),
         new ActionRowBuilder<TextInputBuilder>().addComponents(tNom),
-        new ActionRowBuilder<TextInputBuilder>().addComponents(tAge)
+        new ActionRowBuilder<TextInputBuilder>().addComponents(tAge),
+        new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selOpts) as any,
+        new ActionRowBuilder<any>().addComponents(tPhoto) as any
       )
 
       await interaction.showModal(modal)
-      return
-    }
-
-    if (interaction.customId === 'rp_reg_submit') {
-      const reg = pendingRegistrations.get(interaction.user.id)
-      if (!reg) return interaction.reply({ content: '❌ Session expirée.', ephemeral: true })
-      
-      const { error } = await supabase.from('inscriptions').insert({
-        discord_id: interaction.user.id,
-        prenom: reg.prenom,
-        nom: reg.nom,
-        dob: reg.dob,
-        options: reg.options,
-        status: 'pending',
-        responses_channel_id: reg.responsesId
-      })
-
-      if (error) {
-        console.error('Erreur inscription:', error)
-        await interaction.reply({ content: '❌ Erreur lors de l\'enregistrement de votre inscription.', ephemeral: true })
-      } else {
-        await interaction.update({ content: '✅ Votre inscription a été enregistrée ! L\'administration va la traiter sur l\'ENT. Vous recevrez une notification lorsque ce sera fait.', components: [] })
-        pendingRegistrations.delete(interaction.user.id)
-      }
       return
     }
 
@@ -1780,21 +1798,7 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
       return
     }
 
-    if (interaction.customId === 'profil_edit_photo') {
-      // Discord ne permet pas d'upload de fichier dans un SelectMenu ni directement sur un bouton simple
-      // On va envoyer un message éphémère demandant à l'utilisateur d'utiliser la commande Slash pour la photo s'il n'y a pas d'option.
-      // OU : On va lui donner un select menu pour choisir s'il veut l'ajouter à pronote.
-      const sel = new StringSelectMenuBuilder()
-        .setCustomId('profil_pronote_choice')
-        .setPlaceholder('Voulez-vous répercuter la photo sur Pronote ?')
-        .addOptions(
-          new StringSelectMenuOptionBuilder().setLabel('Oui, demander au Staff Pronote').setValue('yes').setEmoji('✅'),
-          new StringSelectMenuOptionBuilder().setLabel('Non, uniquement sur mon profil').setValue('no').setEmoji('❌')
-        )
-      const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(sel)
-      await interaction.reply({ content: 'Pour changer votre photo, vous devrez d\'abord confirmer si elle s\'appliquera aussi à Pronote :', components: [row], ephemeral: true })
-      return
-    }
+
 
     if (interaction.customId === 'profil_settings') {
       const sel = new StringSelectMenuBuilder()
@@ -1930,13 +1934,6 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
   if (interaction.isStringSelectMenu()) {
 
 
-    if (interaction.customId === 'rp_reg_opt') {
-      const reg = pendingRegistrations.get(interaction.user.id)
-      if (!reg) return interaction.reply({ content: '❌ Session expirée.', ephemeral: true })
-      reg.options = interaction.values
-      await interaction.deferUpdate()
-      return
-    }
 
     if (interaction.customId.startsWith('rp_class_sel|')) {
       const parts = interaction.customId.split('|')
@@ -2059,7 +2056,6 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         if (isSelf) {
           row.addComponents(
             new ButtonBuilder().setCustomId('profil_edit_infos').setLabel('Modifier mes infos').setStyle(ButtonStyle.Primary).setEmoji('📝'),
-            new ButtonBuilder().setCustomId('profil_edit_photo').setLabel('Changer de photo').setStyle(ButtonStyle.Secondary).setEmoji('📸'),
             new ButtonBuilder().setCustomId('profil_settings').setLabel('Préférences').setStyle(ButtonStyle.Secondary).setEmoji('⚙️')
           )
         }
