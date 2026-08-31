@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Check, X, Loader2, AlertCircle, Clock } from 'lucide-react'
+import { Check, X, Loader2, AlertCircle, Clock, Copy, ImageDown } from 'lucide-react'
 import clsx from 'clsx'
 
 interface Inscription {
@@ -12,6 +12,7 @@ interface Inscription {
   dob: string
   options: string[]
   status: 'pending' | 'accepted' | 'refused'
+  photo?: string
   created_at: string
 }
 
@@ -32,6 +33,11 @@ export default function AdminInscriptionsPage() {
   const [acceptModalOpen, setAcceptModalOpen] = useState(false)
   const [selectedInscriptionId, setSelectedInscriptionId] = useState<string | null>(null)
   const [selectedClass, setSelectedClass] = useState('')
+  
+  const [pronoteModalOpen, setPronoteModalOpen] = useState(false)
+  const [selectedFaitId, setSelectedFaitId] = useState<string | null>(null)
+  const [pronoteId, setPronoteId] = useState('')
+  const [pronotePass, setPronotePass] = useState('')
 
   useEffect(() => {
     loadData()
@@ -68,6 +74,15 @@ export default function AdminInscriptionsPage() {
   const showMsg = (type: 'success'|'error', text: string) => {
     setMsg({ type, text })
     setTimeout(() => setMsg(null), 3000)
+  }
+
+  const copyId = (id: string) => {
+    navigator.clipboard.writeText(id).then(() => showMsg('success', 'ID Discord copié !'))
+  }
+
+  const openPhoto = (url?: string) => {
+    if (url) window.open(url, '_blank')
+    else showMsg('error', 'Aucune photo disponible.')
   }
 
   const saveSettings = async () => {
@@ -135,6 +150,40 @@ export default function AdminInscriptionsPage() {
   const openAcceptModal = (id: string) => {
     setSelectedInscriptionId(id)
     setAcceptModalOpen(true)
+  }
+
+  const openFaitModal = (id: string) => {
+    setSelectedFaitId(id)
+    setPronoteModalOpen(true)
+  }
+
+  const handleFaitSubmit = async () => {
+    if (!selectedFaitId || !pronoteId || !pronotePass) {
+      showMsg('error', 'Tous les champs sont obligatoires.')
+      return
+    }
+    setActionLoading(selectedFaitId)
+    try {
+      const res = await fetch('/api/admin/inscriptions/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedFaitId, pronoteId, pronotePass })
+      })
+      if (res.ok) {
+        showMsg('success', 'Notification envoyée avec succès sur Discord !')
+      } else {
+        const err = await res.json()
+        showMsg('error', err.error || 'Erreur lors de l\'envoi')
+      }
+    } catch (e) {
+      showMsg('error', 'Erreur de connexion')
+    } finally {
+      setActionLoading(null)
+      setPronoteModalOpen(false)
+      setSelectedFaitId(null)
+      setPronoteId('')
+      setPronotePass('')
+    }
   }
 
   const filtered = filter === 'all' ? inscriptions : inscriptions.filter(i => i.status === filter)
@@ -250,6 +299,17 @@ export default function AdminInscriptionsPage() {
                     </p>
                   </div>
                 </div>
+
+                <div className="flex gap-2 mt-2">
+                  <button onClick={() => copyId(i.discord_id)} className="flex items-center gap-1 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-colors">
+                    <Copy className="w-3 h-3 text-discord-muted" /> Copier ID
+                  </button>
+                  {i.photo && (
+                    <button onClick={() => openPhoto(i.photo)} className="flex items-center gap-1 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-colors">
+                      <ImageDown className="w-3 h-3 text-discord-muted" /> Photo
+                    </button>
+                  )}
+                </div>
                 
                 <p className="text-[10px] text-discord-muted flex items-center gap-1 font-mono">
                   <Clock className="w-3 h-3" /> Soumis le {new Date(i.created_at).toLocaleString('fr-FR')}
@@ -281,13 +341,25 @@ export default function AdminInscriptionsPage() {
               )}
               
               {i.status !== 'pending' && (
-                <div className="flex flex-col justify-center items-center shrink-0 md:w-48 bg-white/5 rounded-xl border border-white/5">
-                   <p className={clsx(
-                     "text-sm font-black uppercase tracking-widest flex items-center gap-2",
-                     i.status === 'accepted' ? "text-discord-success" : "text-discord-error"
-                   )}>
-                     {i.status === 'accepted' ? <><Check className="w-5 h-5"/> Acceptée</> : <><X className="w-5 h-5"/> Refusée</>}
-                   </p>
+                <div className="flex flex-col gap-2 shrink-0 md:w-48">
+                   <div className="flex flex-col justify-center items-center bg-white/5 rounded-xl border border-white/5 p-3">
+                     <p className={clsx(
+                       "text-sm font-black uppercase tracking-widest flex items-center gap-2",
+                       i.status === 'accepted' ? "text-discord-success" : "text-discord-error"
+                     )}>
+                       {i.status === 'accepted' ? <><Check className="w-5 h-5"/> Acceptée</> : <><X className="w-5 h-5"/> Refusée</>}
+                     </p>
+                   </div>
+                   {i.status === 'accepted' && (
+                     <button
+                       onClick={() => openFaitModal(i.id)}
+                       disabled={actionLoading === i.id}
+                       className="btn bg-[#5865F2] hover:bg-[#5865F2]/80 text-white flex items-center justify-center gap-2 font-bold w-full"
+                     >
+                       {actionLoading === i.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                       Fait (Pronote)
+                     </button>
+                   )}
                 </div>
               )}
             </div>
@@ -330,6 +402,55 @@ export default function AdminInscriptionsPage() {
                 className="px-5 py-2.5 rounded-xl font-bold bg-discord-success hover:bg-discord-success/80 text-white transition-colors disabled:opacity-50"
               >
                 Confirmer l'ajout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pronoteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#1e1e24] border border-white/10 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-white/10">
+              <h3 className="text-xl font-black text-white">Création Pronote</h3>
+              <p className="text-sm text-discord-muted mt-1">Entrez les identifiants générés pour cet élève. Ils lui seront envoyés sur Discord.</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">Identifiant Pronote</label>
+                <input
+                  type="text"
+                  value={pronoteId}
+                  onChange={e => setPronoteId(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-discord-blurple"
+                  placeholder="ex: prenom.nom"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-black text-discord-muted uppercase tracking-widest mb-2 block">Mot de passe temporaire</label>
+                <input
+                  type="text"
+                  value={pronotePass}
+                  onChange={e => setPronotePass(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-discord-blurple"
+                  placeholder="ex: azerty123"
+                />
+              </div>
+            </div>
+            <div className="p-6 bg-black/20 flex justify-end gap-3">
+              <button
+                onClick={() => setPronoteModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl font-bold text-discord-muted hover:text-white hover:bg-white/5 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleFaitSubmit}
+                disabled={!pronoteId || !pronotePass || actionLoading === selectedFaitId}
+                className="px-5 py-2.5 rounded-xl font-bold bg-[#5865F2] hover:bg-[#5865F2]/80 text-white transition-colors flex items-center gap-2"
+              >
+                {actionLoading === selectedFaitId ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Valider & Envoyer
               </button>
             </div>
           </div>

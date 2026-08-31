@@ -1898,6 +1898,7 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         nom,
         dob,
         options,
+        photo,
         status: 'pending',
         classe: 'À définir',
         responses_channel_id: responsesId
@@ -1913,30 +1914,7 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
       
       await interaction.update({ content: '✅ Votre inscription a été enregistrée ! L\'administration va la traiter. Vous recevrez une notification lorsque ce sera fait.', components: [] })
 
-      try {
-        const adminChan = await client.channels.fetch(adminId).catch(() => null)
-        if (adminChan && adminChan.isTextBased()) {
-          const embed = new EmbedBuilder()
-            .setTitle('Nouvelle demande d\'inscription RP')
-            .setColor(0x5865F2)
-            .addFields(
-              { name: 'Discord', value: `<@${interaction.user.id}> (${interaction.user.tag})`, inline: false },
-              { name: 'Prénom RP', value: prenom, inline: true },
-              { name: 'Nom RP', value: nom, inline: true },
-              { name: 'Date de naissance', value: dob, inline: true },
-              { name: 'Spécialités', value: options.length > 0 ? options.join(', ') : 'Aucune', inline: true }
-            )
-            .setThumbnail(photo)
-            .addFields({ name: 'Lien Photo (Avatar par défaut)', value: photo })
 
-          const btnAccept = new ButtonBuilder().setCustomId(`rp_accept|${interaction.user.id}|${responsesId}`).setLabel('Accepter').setStyle(ButtonStyle.Success)
-          const btnRefuse = new ButtonBuilder().setCustomId(`rp_refuse|${interaction.user.id}|${responsesId}`).setLabel('Refuser').setStyle(ButtonStyle.Danger)
-          const row = new ActionRowBuilder<ButtonBuilder>().addComponents(btnAccept, btnRefuse)
-          await (adminChan as any).send({ embeds: [embed], components: [row] })
-        }
-      } catch (err) {
-        console.error('Failed to notify admin channel', err)
-      }
       return
     }
 
