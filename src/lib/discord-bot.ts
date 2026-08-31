@@ -1302,62 +1302,22 @@ client.on('interactionCreate', async (interaction) => {
       const prenom = interaction.fields.getTextInputValue('prenom')
       const nom = interaction.fields.getTextInputValue('nom')
       const dob = interaction.fields.getTextInputValue('age')
-      const uploadedFiles = interaction.fields.getUploadedFiles ? interaction.fields.getUploadedFiles('photo') : null
-      const photo = uploadedFiles ? uploadedFiles.first()?.url : null
+
+      pendingRegistrations.set(interaction.user.id, { prenom, nom, dob, adminId, responsesId })
+
+      let opts: any[] = await getServerSetting('rp_options', ['Cybersécurité'])
+      if (!Array.isArray(opts) || opts.length === 0) opts = ['Cybersécurité']
+
+      const selOpts = new StringSelectMenuBuilder()
+        .setCustomId('rp_enroll_spe')
+        .setPlaceholder('Sélectionnez votre spécialité')
+        .setMinValues(1)
+        .setMaxValues(1)
+        .addOptions(opts.map((o: string) => new StringSelectMenuOptionBuilder().setLabel(o).setValue(o)))
+
+      const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selOpts)
       
-      let options: string[] = []
-      // SelectMenus are technically sent in the components tree for ModalSubmit
-      const optRow = interaction.components.find(r => (r as any).components?.[0]?.customId === 'options') as any
-      if (optRow && optRow.components[0].type === ComponentType.StringSelect) {
-        options = optRow.components[0].values || []
-      }
-
-      const { error } = await supabase.from('inscriptions').insert({
-        discord_id: interaction.user.id,
-        prenom,
-        nom,
-        dob,
-        options,
-        status: 'pending',
-        classe: 'À définir',
-        responses_channel_id: responsesId
-      })
-
-      if (error) {
-        console.error('Erreur inscription:', error)
-        await interaction.reply({ content: '❌ Erreur lors de l\'enregistrement de votre inscription.', ephemeral: true })
-        return
-      }
-
-      await interaction.reply({ content: '✅ Votre inscription a été enregistrée ! L\'administration va la traiter. Vous recevrez une notification lorsque ce sera fait.', ephemeral: true })
-
-      // Send to Admin Channel
-      try {
-        const adminChan = await client.channels.fetch(adminId).catch(() => null)
-        if (adminChan && adminChan.isTextBased()) {
-          const embed = new EmbedBuilder()
-            .setTitle('Nouvelle demande d\'inscription RP')
-            .setColor(0x5865F2)
-            .addFields(
-              { name: 'Discord', value: `<@${interaction.user.id}> (${interaction.user.tag})`, inline: false },
-              { name: 'Prénom RP', value: prenom, inline: true },
-              { name: 'Nom RP', value: nom, inline: true },
-              { name: 'Date de naissance', value: dob, inline: true },
-              { name: 'Spécialités', value: options.length > 0 ? options.join(', ') : 'Aucune', inline: true }
-            )
-          if (photo && photo.trim().length > 0) {
-             embed.setThumbnail(photo)
-             embed.addFields({ name: 'Lien Photo', value: photo })
-          }
-
-          const btnAccept = new ButtonBuilder().setCustomId(`rp_accept|${interaction.user.id}|${responsesId}`).setLabel('Accepter').setStyle(ButtonStyle.Success)
-          const btnRefuse = new ButtonBuilder().setCustomId(`rp_refuse|${interaction.user.id}|${responsesId}`).setLabel('Refuser').setStyle(ButtonStyle.Danger)
-          const row = new ActionRowBuilder<ButtonBuilder>().addComponents(btnAccept, btnRefuse)
-          await (adminChan as any).send({ embeds: [embed], components: [row] })
-        }
-      } catch (err) {
-        console.error('Failed to notify admin channel', err)
-      }
+      await interaction.reply({ content: 'Dernière étape : Choisissez votre spécialité !', components: [row], ephemeral: true })
       return
     }
 
@@ -1483,25 +1443,11 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
       const tPrenom = new TextInputBuilder().setCustomId('prenom').setLabel('Prénom RP').setStyle(TextInputStyle.Short).setRequired(true)
       const tNom = new TextInputBuilder().setCustomId('nom').setLabel('Nom RP').setStyle(TextInputStyle.Short).setRequired(true)
       const tAge = new TextInputBuilder().setCustomId('age').setLabel('Date de naissance RP').setStyle(TextInputStyle.Short).setRequired(true)
-      const tPhoto = new FileUploadBuilder().setCustomId('photo').setRequired(false)
-
-      // Spécialité as a TextInput, because SelectMenus in modals via builder can cause API structural mismatches depending on exactly how it's sent. But wait, discord.js allows it via StringSelectMenuBuilder. Let's try it:
-      let opts: any[] = await getServerSetting('rp_options', ['Cybersécurité'])
-      if (!Array.isArray(opts) || opts.length === 0) opts = ['Cybersécurité']
-
-      const selOpts = new StringSelectMenuBuilder()
-        .setCustomId('options')
-        .setPlaceholder('Sélectionnez votre spécialité')
-        .setMinValues(1)
-        .setMaxValues(1)
-        .addOptions(opts.map((o: string) => new StringSelectMenuOptionBuilder().setLabel(o).setValue(o)))
 
       modal.addComponents(
         new ActionRowBuilder<TextInputBuilder>().addComponents(tPrenom),
         new ActionRowBuilder<TextInputBuilder>().addComponents(tNom),
-        new ActionRowBuilder<TextInputBuilder>().addComponents(tAge),
-        new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selOpts) as any,
-        new ActionRowBuilder<any>().addComponents(tPhoto) as any
+        new ActionRowBuilder<TextInputBuilder>().addComponents(tAge)
       )
 
       await interaction.showModal(modal)
@@ -1933,6 +1879,67 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
 
   if (interaction.isStringSelectMenu()) {
 
+    if (interaction.customId === 'rp_enroll_spe') {
+      const pending = pendingRegistrations.get(interaction.user.id)
+      if (!pending) {
+        await interaction.reply({ content: '❌ Session expirée ou introuvable. Veuillez recommencer.', ephemeral: true })
+        return
+      }
+
+      const { prenom, nom, dob, adminId, responsesId } = pending
+      const spe = interaction.values[0]
+      const options = [spe]
+      
+      const photo = interaction.user.displayAvatarURL({ size: 512, extension: 'png' })
+      
+      const { error } = await supabase.from('inscriptions').insert({
+        discord_id: interaction.user.id,
+        prenom,
+        nom,
+        dob,
+        options,
+        photo,
+        status: 'pending',
+        classe: 'À définir',
+        responses_channel_id: responsesId
+      })
+
+      if (error) {
+        console.error('Erreur inscription:', error)
+        await interaction.reply({ content: '❌ Erreur lors de l\'enregistrement.', ephemeral: true })
+        return
+      }
+      
+      pendingRegistrations.delete(interaction.user.id)
+      
+      await interaction.update({ content: '✅ Votre inscription a été enregistrée ! L\'administration va la traiter. Vous recevrez une notification lorsque ce sera fait.', components: [] })
+
+      try {
+        const adminChan = await client.channels.fetch(adminId).catch(() => null)
+        if (adminChan && adminChan.isTextBased()) {
+          const embed = new EmbedBuilder()
+            .setTitle('Nouvelle demande d\'inscription RP')
+            .setColor(0x5865F2)
+            .addFields(
+              { name: 'Discord', value: `<@${interaction.user.id}> (${interaction.user.tag})`, inline: false },
+              { name: 'Prénom RP', value: prenom, inline: true },
+              { name: 'Nom RP', value: nom, inline: true },
+              { name: 'Date de naissance', value: dob, inline: true },
+              { name: 'Spécialités', value: options.length > 0 ? options.join(', ') : 'Aucune', inline: true }
+            )
+            .setThumbnail(photo)
+            .addFields({ name: 'Lien Photo (Avatar par défaut)', value: photo })
+
+          const btnAccept = new ButtonBuilder().setCustomId(`rp_accept|${interaction.user.id}|${responsesId}`).setLabel('Accepter').setStyle(ButtonStyle.Success)
+          const btnRefuse = new ButtonBuilder().setCustomId(`rp_refuse|${interaction.user.id}|${responsesId}`).setLabel('Refuser').setStyle(ButtonStyle.Danger)
+          const row = new ActionRowBuilder<ButtonBuilder>().addComponents(btnAccept, btnRefuse)
+          await (adminChan as any).send({ embeds: [embed], components: [row] })
+        }
+      } catch (err) {
+        console.error('Failed to notify admin channel', err)
+      }
+      return
+    }
 
 
     if (interaction.customId.startsWith('rp_class_sel|')) {
