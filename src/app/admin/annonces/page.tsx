@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { Megaphone, Plus, Trash2, Send, Loader2, X, AlertCircle } from 'lucide-react'
 import clsx from 'clsx'
-import Image from 'next/image'
 
 interface Announcement {
   id: string
@@ -26,6 +25,12 @@ interface User {
   nickname_rp: string
 }
 
+interface RpClass {
+  name: string
+  roleId: string
+  channelId: string
+}
+
 const SUBJECTS = [
   'ALLEMAND', 'ANGLAIS', 'ARTS PLASTIQUES', 'BRANLETTE COLLECTIVE', 'CLUB (au choix)',
   'CRIMINOLOGIE', 'CUISINE', 'CYBERSÉCURITÉ', 'DROIT', 'DROIT CONSTITUTIONNEL DE LA VE RÉPUBLIQUE',
@@ -41,6 +46,7 @@ const SUBJECTS = [
 export default function AdminAnnoncesPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [users, setUsers] = useState<User[]>([])
+  const [classes, setClasses] = useState<RpClass[]>([])
   const [loading, setLoading] = useState(true)
   
   const [showModal, setShowModal] = useState(false)
@@ -49,7 +55,7 @@ export default function AdminAnnoncesPage() {
 
   const [formData, setFormData] = useState<Partial<Announcement>>({
     type: 'info',
-    target_class: 'nova',
+    target_class: 'all',
     subject: 'MATHÉMATIQUES',
     info_status: 'information',
     teacher_id: '',
@@ -63,9 +69,10 @@ export default function AdminAnnoncesPage() {
 
   const fetchData = async () => {
     try {
-      const [annRes, usrRes] = await Promise.all([
+      const [annRes, usrRes, clsRes] = await Promise.all([
         fetch('/api/admin/announcements'),
-        fetch('/api/admin/users')
+        fetch('/api/admin/users'),
+        fetch('/api/admin/classes')
       ])
       
       if (annRes.ok) {
@@ -75,6 +82,10 @@ export default function AdminAnnoncesPage() {
       if (usrRes.ok) {
         const u = await usrRes.json()
         setUsers(u.users || [])
+      }
+      if (clsRes.ok) {
+        const c = await clsRes.json()
+        setClasses(c.classes || [])
       }
     } catch (e) {
       console.error(e)
@@ -215,16 +226,17 @@ export default function AdminAnnoncesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Classe</label>
-                  <select value={formData.target_class} onChange={e => setFormData({...formData, target_class: e.target.value})} className="input-field mt-1" required>
-                    <option value="nova">Nova</option>
-                    <option value="nebuleuse">Nébuleuse</option>
-                    <option value="general">Général (Les deux)</option>
+                  <select value={formData.target_class} onChange={e => setFormData({...formData, target_class: e.target.value})} className="glass-input w-full mt-1" required>
+                    <option value="all">Toutes les classes</option>
+                    {classes.map(c => (
+                      <option key={c.name} value={c.name}>{c.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Type Perturbation</label>
-                  <select value={formData.info_status} onChange={e => setFormData({...formData, info_status: e.target.value})} className="input-field mt-1" required>
-                    <option value="information">Information</option>
+                  <select value={formData.info_status} onChange={e => setFormData({...formData, info_status: e.target.value})} className="glass-input w-full mt-1" required>
+                    <option value="information">Information / Cours normal</option>
                     <option value="supprime">Supprimé</option>
                     <option value="remplace">Remplacé</option>
                     <option value="retard">En retard</option>
@@ -234,15 +246,15 @@ export default function AdminAnnoncesPage() {
               </div>
 
               <div>
-                <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Matière</label>
-                <select value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} className="input-field mt-1" required>
+                <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Matière / Raison</label>
+                <select value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} className="glass-input w-full mt-1" required>
                   {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Professeur Concerne</label>
-                <select value={formData.teacher_id} onChange={e => setFormData({...formData, teacher_id: e.target.value})} className="input-field mt-1">
+                <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Professeur Concerné</label>
+                <select value={formData.teacher_id} onChange={e => setFormData({...formData, teacher_id: e.target.value})} className="glass-input w-full mt-1">
                   <option value="">-- Aucun --</option>
                   {users.map(u => <option key={u.id} value={u.id}>{u.nickname_rp || u.username}</option>)}
                 </select>
@@ -251,7 +263,7 @@ export default function AdminAnnoncesPage() {
               {formData.info_status === 'remplace' && (
                 <div>
                   <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Professeur Remplaçant</label>
-                  <select value={formData.replacement_teacher_id} onChange={e => setFormData({...formData, replacement_teacher_id: e.target.value})} className="input-field mt-1">
+                  <select value={formData.replacement_teacher_id} onChange={e => setFormData({...formData, replacement_teacher_id: e.target.value})} className="glass-input w-full mt-1">
                     <option value="">-- Aucun --</option>
                     {users.map(u => <option key={u.id} value={u.id}>{u.nickname_rp || u.username}</option>)}
                   </select>
@@ -263,7 +275,7 @@ export default function AdminAnnoncesPage() {
                 <textarea 
                   value={formData.info_text} 
                   onChange={e => setFormData({...formData, info_text: e.target.value})} 
-                  className="input-field mt-1 resize-none h-20" placeholder="Ex: Devoir annulé..."
+                  className="glass-input w-full mt-1 resize-none h-20" placeholder="Ex: Devoir annulé..."
                 />
               </div>
               

@@ -1,89 +1,106 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
-import { createSupabaseAdmin } from '@/lib/supabase-admin'
-import { requireAdmin } from '@/lib/auth-server'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
-export async function POST(request: NextRequest) {
-    try {
-        const supabase = createSupabaseServer()
-        const admin = createSupabaseAdmin()
-        const user = await requireAdmin(supabase, admin)
-        if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+export async function POST() {
+  const supabase = createSupabaseServer()
 
-        const { data } = await admin
-          .from('server_settings')
-          .select('key, value')
-          .in('key', ['discord_canteen_menu_channel_id', 'discord_canteen_menu_message_id', 'canteen_menu_text'])
+  // 1. Check admin
+  const { data: userRoles } = await supabase.from('user_roles')
+    .select('role_id, roles(name)')
+    .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
 
-        const settings: Record<string, string> = {}
-        if (data) {
-          for (const row of data) {
-            settings[row.key] = row.value
-          }
-        }
+  const isAdmin = userRoles?.some(r => (r.roles as any)?.name === 'admin')
+  if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
-        const channelId = settings['discord_canteen_menu_channel_id']
-        const menuText = settings['canteen_menu_text'] || '_Aucun menu défini._'
-        const messageId = settings['discord_canteen_menu_message_id']
+  try {
+    // 2. Fetch settings for discord channel
+    const { data: settingsData } = await supabase
+      .from('server_settings')
+      .select('key, value')
+      .in('key', ['discord_canteen_menu_channel_id'])
 
-        if (!channelId) {
-            return NextResponse.json({ error: 'Salon de cantine non configuré dans les paramètres.' }, { status: 400 })
-        }
+    const menuChannelId = settingsData?.find(s => s.key === 'discord_canteen_menu_channel_id')?.value
 
-        const embed = {
-            title: '🍽️ Menu de la Cantine',
-            color: 0xF97316,
-            description: menuText,
-            timestamp: new Date().toISOString()
-        }
-
-        const components = [{
-            type: 1,
-            components: [{
-                type: 2,
-                custom_id: 'cantine_admin_refresh',
-                label: 'Actualiser',
-                style: 2,
-                emoji: { name: '🔄' }
-            }]
-        }]
-
-        const token = process.env.DISCORD_BOT_TOKEN
-        if (!token) return NextResponse.json({ error: 'Discord Token manquant.' }, { status: 500 })
-
-        const headers = {
-            'Authorization': `Bot ${token}`,
-            'Content-Type': 'application/json'
-        }
-
-        // Si messageId existe, on tente de l'éditer, sinon on en crée un nouveau
-        if (messageId) {
-            const res = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages/${messageId}`, {
-                method: 'PATCH',
-                headers,
-                body: JSON.stringify({ embeds: [embed], components })
-            })
-            if (res.ok) {
-                return NextResponse.json({ success: true })
-            }
-        }
-
-        // Si pas de messageId ou erreur d'édition, on crée un nouveau message
-        const res = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ embeds: [embed], components })
-        })
-
-        if (res.ok) {
-            const msg = await res.json()
-            await admin.from('server_settings').upsert({ key: 'discord_canteen_menu_message_id', value: msg.id, updated_at: new Date().toISOString() })
-            return NextResponse.json({ success: true })
-        } else {
-            const err = await res.json()
-            return NextResponse.json({ error: err.message }, { status: 400 })
-        }
-    } catch (err: any) {
-        return NextResponse.json({ error: err.message }, { status: 500 })
+    if (!menuChannelId) {
+      return NextResponse.json({ error: 'Veuillez configurer le salon menu.' }, { status: 400 })
     }
+
+    // 3. Fetch next 2 days from canteen_menus
+    const today = new Date()
+    today.setHours(0,0,0,0)
+    const todayStr = today.toISOString().split('T')[0]
+
+    const { data: menus } = await supabase
+      .from('canteen_menus')
+      .select('*')
+      .gte('menu_date', todayStr)
+      .order('menu_date', { ascending: true })
+      .limit(2)
+
+    if (!menus || menus.length === 0) {
+      return NextResponse.json({ error: 'Aucun menu prévu pour aujourd\'hui ou demain.' }, { status: 400 })
+    }
+
+    const token = process.env.DISCORD_BOT_TOKEN
+    if (!token) return NextResponse.json({ error: 'DISCORD_BOT_TOKEN manquant.' }, { status: 500 })
+
+    const embedFields = menus.map(m => {
+      const date = new Date(m.menu_date)
+      const dayName = new Intl.DateTimeFormat('fr-FR', { weekday: 'long' }).format(date)
+      
+      let val = ''
+      if (m.starter) val += `**Entrée:** ${m.starter}\n`
+      if (m.main) val += `**Plat:** ${m.main}\n`
+      if (m.side) val += `**Accompagnement:** ${m.side}\n`
+      if (m.drink) val += `**Boisson:** ${m.drink}\n`
+      if (m.dessert) val += `**Dessert:** ${m.dessert}\n`
+      if (m.note) val += `*${m.note}*\n`
+
+      return {
+        name: `📅 ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${date.toLocaleDateString('fr-FR')}`,
+        value: val || 'Aucun menu défini.',
+        inline: false
+      }
+    })
+
+    // 4. Send embed to Discord
+    const res = await fetch(`https://discord.com/api/v10/channels/${menuChannelId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bot ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        embeds: [{
+          title: '🍲 Menu de la Cantine',
+          description: "Voici le menu pour les deux prochains jours !",
+          color: 0xEAB308, // amber-500
+          fields: embedFields
+        }],
+        components: [
+          {
+            type: 1,
+            components: [
+              {
+                type: 2,
+                style: 1, // Primary
+                label: "Voir le reste de la semaine",
+                custom_id: "cantine_show_more"
+              }
+            ]
+          }
+        ]
+      })
+    })
+
+    if (!res.ok) {
+      const errText = await res.text()
+      console.error('Discord deploy error:', errText)
+      return NextResponse.json({ error: 'Erreur Discord' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
 }

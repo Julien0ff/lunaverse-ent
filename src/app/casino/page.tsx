@@ -24,7 +24,6 @@ const DICE_OPTIONS = [
   { value: 'low', label: 'Bas (≤50)', desc: '× 1.8' },
 ]
 
-// ─── Big result overlay ──────────────────────────────────────────
 function ResultOverlay({ result, onClose }: { result: 'win' | 'lose' | null; onClose: () => void }) {
   useEffect(() => {
     if (!result) return
@@ -37,15 +36,14 @@ function ResultOverlay({ result, onClose }: { result: 'win' | 'lose' | null; onC
   const isWin = result === 'win'
   return (
     <div
-      className="fixed inset-0 z-[9000] flex items-center justify-center cursor-pointer"
-      style={{ background: isWin ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.8)' }}
+      className="fixed inset-0 z-[9000] flex items-center justify-center cursor-pointer bg-black/80 backdrop-blur-sm"
       onClick={onClose}
     >
       <div className={clsx(
-        'flex flex-col items-center justify-center gap-6 p-12 rounded-3xl border-4 animate-scaleIn shadow-2xl',
+        'flex flex-col items-center justify-center gap-6 p-12 rounded-[2rem] border-4 animate-scaleIn shadow-2xl',
         isWin
-          ? 'bg-discord-success/15 border-discord-success/60 shadow-green-500/30'
-          : 'bg-discord-error/15 border-discord-error/60 shadow-red-500/30'
+          ? 'bg-discord-success/15 border-discord-success/60 shadow-[0_0_50px_rgba(87,242,135,0.3)]'
+          : 'bg-discord-error/15 border-discord-error/60 shadow-[0_0_50px_rgba(237,66,69,0.3)]'
       )}>
         <div className="text-8xl select-none" style={{ filter: isWin ? 'drop-shadow(0 0 30px #57F287)' : 'drop-shadow(0 0 30px #ED4245)' }}>
           {isWin ? '🏆' : '💀'}
@@ -57,7 +55,7 @@ function ResultOverlay({ result, onClose }: { result: 'win' | 'lose' | null; onC
           {isWin ? 'VICTOIRE !' : 'DÉFAITE !'}
         </div>
         <div className={clsx('text-sm font-bold uppercase tracking-widest', isWin ? 'text-discord-success/60' : 'text-discord-error/60')}>
-          Click to continue
+          Cliquez pour continuer
         </div>
       </div>
     </div>
@@ -75,10 +73,8 @@ export default function CasinoPage() {
   const [message, setMessage] = useState<{ type: 'win' | 'lose' | 'error'; text: string } | null>(null)
   const [spinning, setSpinning] = useState(false)
   const [slotResult, setSlotResult] = useState<string[]>(['🎰', '🎰', '🎰'])
-  // Session stats (live this session, synced from API on load)
   const [stats, setStats] = useState({ wins: 0, losses: 0, totalWon: 0 })
   const [statsLoaded, setStatsLoaded] = useState(false)
-  // Big overlay
   const [overlayResult, setOverlayResult] = useState<'win' | 'lose' | null>(null)
 
   const messageTimerRef = useRef<ReturnType<typeof setTimeout>>()
@@ -90,7 +86,6 @@ export default function CasinoPage() {
 
   useEffect(() => {
     unmountedRef.current = false
-    // Preload audio
     winAudioRef.current = new Audio('https://cdn.freesound.org/previews/270/270545_5123851-lq.mp3')
     loseAudioRef.current = new Audio('https://cdn.freesound.org/previews/331/331912_3248244-lq.mp3')
     winAudioRef.current.volume = 0.2
@@ -106,7 +101,6 @@ export default function CasinoPage() {
     }
   }, [])
 
-  // Load games
   useEffect(() => {
     fetch('/api/casino/games')
       .then(r => r.json())
@@ -120,7 +114,6 @@ export default function CasinoPage() {
       .finally(() => { if (!unmountedRef.current) setLoading(false) })
   }, [])
 
-  // Sync casino stats from profile API on first load
   useEffect(() => {
     if (statsLoaded) return
     fetch('/api/profile/stats')
@@ -130,7 +123,7 @@ export default function CasinoPage() {
           setStats({
             wins: d.casinoWins ?? 0,
             losses: d.casinoLosses ?? 0,
-            totalWon: (d.totalWon ?? 0) - (d.totalLost ?? 0), // Net gain
+            totalWon: (d.totalWon ?? 0) - (d.totalLost ?? 0),
           })
           setStatsLoaded(true)
         }
@@ -176,8 +169,6 @@ export default function CasinoPage() {
 
       if (res.ok) {
         const isWin = data.isWin
-        
-        // Wait for animation
         const animDuration = gameType === 'slots' ? 1000 : 600
         
         setTimeout(() => {
@@ -198,7 +189,6 @@ export default function CasinoPage() {
 
           showMessage(isWin ? 'win' : 'lose', data.message || (isWin ? `Gagné ${data.winAmount}€ !` : `Perdu ${betAmount}€.`))
 
-          // Incremental session stats
           if (isWin) {
             setStats(s => ({ ...s, wins: s.wins + 1, totalWon: s.totalWon + (data.winAmount - betAmount) }))
           } else {
@@ -209,11 +199,10 @@ export default function CasinoPage() {
           try {
             if (isWin) winAudioRef.current?.play().catch(() => {})
             else loseAudioRef.current?.play().catch(() => {})
-          } catch { /* audio blocked */ }
+          } catch { }
           
           setSpinning(false)
           refreshProfile()
-          // Update local session stats if needed, but refreshProfile handles the global state
         }, animDuration)
         
       } else {
@@ -252,41 +241,39 @@ export default function CasinoPage() {
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          {[1, 2].map(i => <div key={i} className="h-64 bg-white/3 rounded-2xl animate-pulse" />)}
+          {[1, 2].map(i => <div key={i} className="glass-card h-64 animate-pulse" />)}
         </div>
       </div>
     )
   }
 
   return (
-    <div className="page-container font-sans bg-black min-h-screen relative text-zinc-300">
-      {/* Big win/lose overlay */}
+    <div className="page-container animate-fadeIn">
       <ResultOverlay result={overlayResult} onClose={() => setOverlayResult(null)} />
 
-      {/* Header */}
-      <div className="animate-fadeIn relative z-10 mb-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/10 pb-6">
+      <div className="mb-12">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <h1 className="text-4xl md:text-5xl font-light text-white tracking-widest uppercase">
-              Luna <span className="font-bold text-yellow-600">Casino</span>
+            <h1 className="text-4xl md:text-5xl font-black text-white tracking-widest uppercase">
+              Luna <span className="text-yellow-500">Casino</span>
             </h1>
-            <p className="text-zinc-500 mt-2 text-sm uppercase tracking-[0.2em]">{t('casino_page.subtitle')} - Espace Privilège</p>
+            <p className="text-discord-muted mt-2 text-sm uppercase tracking-[0.2em]">{t('casino_page.subtitle')} - Espace VIP</p>
           </div>
-          {/* Session stats */}
-          <div className="hidden md:flex items-center gap-8 px-6 py-4 bg-zinc-900/50 rounded-none border border-white/5">
+          
+          <div className="hidden md:flex items-center gap-8 px-6 py-4 glass-card rounded-[24px]">
             <div className="text-center">
-              <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">{t('casino_page.wins')}</p>
-              <p className="text-xl font-light text-white">{stats.wins}</p>
+              <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">{t('casino_page.wins')}</p>
+              <p className="text-xl font-bold text-white">{stats.wins}</p>
             </div>
             <div className="w-px h-8 bg-white/10" />
             <div className="text-center">
-              <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">{t('casino_page.losses')}</p>
-              <p className="text-xl font-light text-white">{stats.losses}</p>
+              <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">{t('casino_page.losses')}</p>
+              <p className="text-xl font-bold text-white">{stats.losses}</p>
             </div>
             <div className="w-px h-8 bg-white/10" />
             <div className="text-center">
-              <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">{t('casino_page.net_gains')}</p>
-              <p className={clsx('text-xl font-light', stats.totalWon >= 0 ? 'text-yellow-600' : 'text-red-500/80')}>
+              <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">{t('casino_page.net_gains')}</p>
+              <p className={clsx('text-xl font-bold', stats.totalWon >= 0 ? 'text-discord-success' : 'text-discord-error')}>
                 {stats.totalWon >= 0 ? '+' : ''}{stats.totalWon.toLocaleString()} €
               </p>
             </div>
@@ -294,268 +281,254 @@ export default function CasinoPage() {
         </div>
       </div>
 
-      {/* Balance pills */}
-      <div className="flex flex-wrap items-center gap-4 mb-8 animate-fadeIn">
-        <div className="px-5 py-2.5 bg-zinc-900/80 border border-white/10 flex items-center gap-3">
-          <div className="w-1.5 h-1.5 rounded-full bg-white" />
-          <span className="text-xs tracking-widest uppercase text-white font-medium">{t('casino_page.balance_label').replace('{amount}', (profile?.balance.toFixed(0) || '0'))}</span>
+      <div className="flex flex-wrap items-center gap-4 mb-8">
+        <div className="px-5 py-2.5 glass-card flex items-center gap-3 rounded-full">
+          <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_white]" />
+          <span className="text-xs font-black tracking-widest uppercase text-white">{t('casino_page.balance_label').replace('{amount}', (profile?.balance.toFixed(0) || '0'))}</span>
         </div>
         
         {(profile as any)?.dirty_balance > 0 && (
-          <div className="px-5 py-2.5 bg-zinc-900/80 border border-red-900/30 flex items-center gap-3">
-            <div className="w-1.5 h-1.5 rounded-full bg-red-600" />
-            <span className="text-xs tracking-widest uppercase text-zinc-400">{t('casino_page.dirty_money').replace('{amount}', (profile as any).dirty_balance.toFixed(0))}</span>
+          <div className="px-5 py-2.5 bg-red-950/40 border border-red-500/30 flex items-center gap-3 rounded-full backdrop-blur-md">
+            <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]" />
+            <span className="text-xs font-black tracking-widest uppercase text-red-400">{t('casino_page.dirty_money').replace('{amount}', (profile as any).dirty_balance.toFixed(0))}</span>
           </div>
         )}
 
         {(profile as any)?.casino_streak > 0 && (
           <div className={clsx(
-            "px-5 py-2.5 flex items-center gap-3 transition-colors border",
+            "px-5 py-2.5 flex items-center gap-3 transition-colors border rounded-full backdrop-blur-md font-black",
             (profile as any).casino_streak >= 3 
-              ? "bg-yellow-900/10 border-yellow-700/50 text-yellow-600" 
-              : "bg-zinc-900/80 border-white/10 text-zinc-400"
+              ? "bg-yellow-900/30 border-yellow-500/50 text-yellow-400" 
+              : "bg-white/5 border-white/10 text-discord-muted"
           )}>
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="text-xs tracking-widest uppercase font-medium">{t('casino_page.streak').replace('{count}', (profile as any).casino_streak.toString())}</span>
+            <Sparkles className="w-4 h-4" />
+            <span className="text-xs tracking-widest uppercase">{t('casino_page.streak').replace('{count}', (profile as any).casino_streak.toString())}</span>
           </div>
         )}
 
         {(profile as any)?.casino_streak >= 3 && (
-          <div className="px-5 py-2.5 bg-red-950/20 border border-red-900/50 flex items-center gap-3 text-red-500">
-            <AlertCircle className="w-3.5 h-3.5" />
-            <span className="text-xs tracking-widest uppercase font-medium">{t('casino_page.risk').replace('{amount}', ((profile as any).streak_accumulated_winnings?.toFixed(0) || '0'))}</span>
+          <div className="px-5 py-2.5 bg-red-950/40 border border-red-500/50 flex items-center gap-3 text-red-500 rounded-full font-black backdrop-blur-md">
+            <AlertCircle className="w-4 h-4" />
+            <span className="text-xs tracking-widest uppercase">{t('casino_page.risk').replace('{amount}', ((profile as any).streak_accumulated_winnings?.toFixed(0) || '0'))}</span>
           </div>
         )}
       </div>
 
-      {/* No games fallback */}
       {games.length === 0 ? (
-        <div className="text-center py-32 border border-white/5 bg-zinc-900/30">
-          <h2 className="text-2xl font-light text-white mb-2 tracking-widest uppercase">{t('casino_page.no_games')}</h2>
-          <p className="text-zinc-500 uppercase tracking-widest text-xs">{t('casino_page.games_soon')}</p>
+        <div className="text-center py-32 glass-card">
+          <h2 className="text-2xl font-black text-white mb-2 tracking-widest uppercase">{t('casino_page.no_games')}</h2>
+          <p className="text-discord-muted uppercase font-bold tracking-widest text-xs">{t('casino_page.games_soon')}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Game selector */}
-          <div className="lg:col-span-4 space-y-4 relative z-10">
-            <p className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] mb-4">Sélection du jeu</p>
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+          <div className="xl:col-span-3 space-y-4">
+            <p className="text-xs font-black text-discord-muted uppercase tracking-[0.2em] mb-4 pl-2">Jeux disponibles</p>
             {games.map(game => (
               <button
                 key={game.id}
                 onClick={() => { setSelectedGame(game); setMessage(null); setGuess('') }}
                 className={clsx(
-                  'w-full text-left p-6 transition-all duration-500 relative flex items-center justify-between border-l-2',
+                  'w-full text-left p-5 transition-all duration-300 rounded-[24px] border-2 relative',
                   selectedGame?.id === game.id
-                    ? 'bg-zinc-900 border-yellow-600'
-                    : 'bg-zinc-950 border-transparent hover:bg-zinc-900/50 hover:border-white/20 text-zinc-500'
+                    ? 'bg-white/10 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] text-white'
+                    : 'glass-card border-transparent hover:border-white/20 text-discord-muted'
                 )}
               >
                 <div>
-                  <p className={clsx("font-medium tracking-widest uppercase text-sm", selectedGame?.id === game.id ? "text-white" : "text-inherit")}>{game.name}</p>
-                  <p className="text-[10px] font-normal tracking-[0.2em] mt-2 opacity-60">LIMITE: {game.min_bet}€ - {game.max_bet}€</p>
+                  <p className="font-black tracking-widest uppercase text-sm">{game.name}</p>
+                  <p className="text-[10px] font-bold tracking-[0.2em] mt-2 opacity-60">LIMITE: {game.min_bet}€ - {game.max_bet}€</p>
                 </div>
-                {selectedGame?.id === game.id && (
-                  <div className="w-1.5 h-1.5 rounded-full bg-yellow-600" />
-                )}
               </button>
             ))}
           </div>
 
-          {/* Main game area */}
           {selectedGame && (
-            <div className="lg:col-span-8 relative z-10">
-              <div className="bg-zinc-950 border border-white/10 p-10 h-full flex flex-col justify-between">
+            <div className="xl:col-span-9">
+              <div className="glass-card p-8 md:p-12 min-h-[600px] flex flex-col justify-between relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-yellow-500/5 rounded-full blur-[100px] pointer-events-none" />
                 
-                <div className="mb-12 text-center">
-                  <h2 className="text-2xl font-light text-white uppercase tracking-[0.3em]">{selectedGame.name}</h2>
-                  <p className="text-zinc-500 text-xs mt-3 uppercase tracking-widest">{selectedGame.description}</p>
+                <div className="mb-12 text-center relative z-10">
+                  <h2 className="text-3xl font-black text-white uppercase tracking-[0.3em]">{selectedGame.name}</h2>
+                  <p className="text-discord-muted font-bold text-sm mt-3 uppercase tracking-widest">{selectedGame.description}</p>
                 </div>
 
-              {/* Slots reels */}
-              {currentGameType === 'slots' && (
-                <div className="relative py-12 px-6 bg-black border border-white/5 mx-auto max-w-lg mb-12">
-                  <div className="relative flex items-center justify-center gap-6 z-10">
-                    {slotResult.map((sym, i) => (
-                      <div
-                        key={i}
-                        className={clsx(
-                          'w-24 h-32 flex items-center justify-center text-5xl bg-zinc-900 border transition-all duration-300',
-                          spinning ? 'border-yellow-600/50' : 'border-white/10'
-                        )}
-                      >
-                        <span className={clsx(spinning && "opacity-50 blur-[1px]")}>{sym}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 h-px bg-yellow-600/30 z-20 pointer-events-none" />
-                </div>
-              )}
-
-              {/* Coin flip visual */}
-              {currentGameType === 'coin' && (
-                <div className="flex flex-col items-center gap-10 mb-12">
-                   <div className={clsx(
-                     "w-28 h-28 rounded-full bg-zinc-900 border border-yellow-600/30 flex items-center justify-center text-4xl transition-all duration-700",
-                     spinning && "animate-spin border-yellow-600 scale-110"
-                   )}>
-                     {spinning ? '🪙' : (slotResult[0] || '🪙')}
-                   </div>
-                   <div className="grid grid-cols-2 gap-4 w-full max-w-md">
-                      {COIN_OPTIONS.map(opt => (
-                        <button
-                          key={opt.value}
-                          onClick={() => setGuess(opt.value)}
+                {currentGameType === 'slots' && (
+                  <div className="relative py-12 px-8 bg-black/40 border border-white/10 rounded-[32px] mx-auto w-full max-w-xl mb-12 shadow-inner">
+                    <div className="relative flex items-center justify-center gap-4 md:gap-8 z-10">
+                      {slotResult.map((sym, i) => (
+                        <div
+                          key={i}
                           className={clsx(
-                            'p-6 border transition-all duration-300 text-center uppercase tracking-widest text-xs',
-                            guess === opt.value
-                              ? 'bg-zinc-900 border-yellow-600 text-white'
-                              : 'bg-black border-white/10 text-zinc-500 hover:border-white/30 hover:text-zinc-300'
+                            'w-24 h-32 md:w-32 md:h-40 flex items-center justify-center text-6xl md:text-7xl bg-white/5 border-2 rounded-[24px] shadow-lg transition-all duration-300',
+                            spinning ? 'border-yellow-500/50 shadow-yellow-500/20' : 'border-white/10'
                           )}
                         >
-                          <span className="block mb-2">{opt.label}</span>
-                          <span className="text-[10px] text-yellow-600/60">× 1.9</span>
-                        </button>
-                      ))}
-                   </div>
-                </div>
-              )}
-
-              {/* Dice choice */}
-              {currentGameType === 'dice' && (
-                <div className="flex flex-col items-center gap-10 mb-12">
-                   <div className={clsx(
-                     "w-28 h-28 bg-zinc-900 border border-white/20 flex items-center justify-center text-5xl transition-all duration-300",
-                     spinning && "animate-pulse border-white/50"
-                   )}>
-                     {spinning ? '🎲' : (slotResult[0] || '🎲')}
-                   </div>
-                   <div className="grid grid-cols-2 gap-4 w-full max-w-md">
-                      {DICE_OPTIONS.map(opt => (
-                        <button
-                          key={opt.value}
-                          onClick={() => setGuess(opt.value)}
-                          className={clsx(
-                            'p-6 border transition-all duration-300 text-center uppercase tracking-widest text-xs',
-                            guess === opt.value
-                              ? 'bg-zinc-900 border-yellow-600 text-white'
-                              : 'bg-black border-white/10 text-zinc-500 hover:border-white/30 hover:text-zinc-300'
-                          )}
-                        >
-                          <span className="block mb-2">{opt.label}</span>
-                          <span className="text-[10px] text-yellow-600/60">{opt.desc}</span>
-                        </button>
-                      ))}
-                   </div>
-                </div>
-              )}
-
-              {/* Roulette choice */}
-              {currentGameType === 'roulette' && (
-                <div className="flex flex-col items-center gap-10 mb-12">
-                   <div className={clsx(
-                     "w-32 h-32 rounded-full border border-white/20 bg-zinc-900 flex items-center justify-center text-3xl relative transition-all duration-1000",
-                     spinning && "rotate-[720deg]"
-                   )}>
-                      <div className="absolute inset-4 border border-dashed border-white/10 rounded-full" />
-                      {spinning ? '🎡' : '🎰'}
-                   </div>
-                   <div className="grid grid-cols-2 gap-4 w-full max-w-md">
-                      <button
-                        onClick={() => setGuess('red')}
-                        className={clsx('p-6 border transition-all duration-300 text-center uppercase tracking-widest text-xs',
-                          guess === 'red' ? 'bg-red-950/40 border-red-800 text-white' : 'bg-black border-white/10 text-zinc-500 hover:border-white/30')}
-                      >
-                        <span className="block mb-2 text-red-500 font-bold">ROUGE</span>
-                        <span className="text-[10px] text-red-400/60">× 1.9</span>
-                      </button>
-                      <button
-                        onClick={() => setGuess('black')}
-                        className={clsx('p-6 border transition-all duration-300 text-center uppercase tracking-widest text-xs',
-                          guess === 'black' ? 'bg-zinc-800 border-zinc-500 text-white' : 'bg-black border-white/10 text-zinc-500 hover:border-white/30')}
-                      >
-                        <span className="block mb-2 text-zinc-300 font-bold">NOIR</span>
-                        <span className="text-[10px] text-zinc-400/60">× 1.9</span>
-                      </button>
-                   </div>
-                </div>
-              )}
-
-              {/* Blackjack */}
-              {currentGameType === 'blackjack' && (
-                <div className="p-12 bg-black border border-white/5 text-center mb-12">
-                  <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{t('casino_page.blackjack_desc')}</p>
-                </div>
-              )}
-
-              {/* Inputs and Actions */}
-              <div className="max-w-md mx-auto w-full">
-                <div className="mb-8">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{t('casino_page.bet_amount')}</p>
-                    <span className="text-[10px] text-zinc-600 font-mono">{selectedGame.min_bet}€ — {selectedGame.max_bet}€</span>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      placeholder="0"
-                      className="w-full bg-black border border-white/10 text-white px-4 py-4 text-center font-mono text-lg focus:outline-none focus:border-yellow-600 transition-colors"
-                      value={bet}
-                      min={selectedGame.min_bet}
-                      max={Math.min(selectedGame.max_bet, profile?.balance || 0)}
-                      onChange={e => setBet(e.target.value)}
-                      disabled={spinning}
-                    />
-                    <div className="flex justify-center gap-2 mt-4">
-                      {[selectedGame.min_bet, Math.floor(selectedGame.max_bet / 2), selectedGame.max_bet].map(v => (
-                        <button
-                          key={v}
-                          onClick={() => setBet(Math.min(v, profile?.balance || 0).toString())}
-                          className="px-4 py-2 text-[10px] tracking-widest uppercase bg-zinc-900 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
-                        >{v}€</button>
+                          <span className={clsx(spinning && "opacity-50 blur-[2px]")}>{sym}</span>
+                        </div>
                       ))}
                     </div>
-                  </div>
-                </div>
-
-                {/* Inline message */}
-                {message && (
-                  <div className={clsx(
-                    'p-4 text-xs tracking-widest uppercase text-center mb-6 flex items-center justify-center gap-3 animate-fadeIn border',
-                    message.type === 'win'
-                      ? 'bg-green-950/30 text-green-500 border-green-900/50'
-                      : message.type === 'lose'
-                        ? 'bg-red-950/30 text-red-500 border-red-900/50'
-                        : 'bg-yellow-950/30 text-yellow-600 border-yellow-900/50'
-                  )}>
-                    {message.text}
+                    <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 h-1 bg-yellow-500/50 shadow-[0_0_15px_#eab308] z-20 pointer-events-none rounded-full" />
                   </div>
                 )}
 
-                {/* Play button */}
-                <button
-                  onClick={() => handlePlay(currentGameType)}
-                  disabled={spinning || !bet}
-                  className="w-full bg-white hover:bg-zinc-200 text-black py-5 flex items-center justify-center gap-3 transition-colors disabled:opacity-50 disabled:bg-zinc-800 disabled:text-zinc-500"
-                  id="casino-play-btn"
-                >
-                  <span className="font-bold uppercase tracking-[0.2em] text-sm">
-                    {spinning ? t('casino_page.spinning') : (currentGameType === 'slots' ? t('casino_page.spin_slots') : t('casino_page.play'))}
-                  </span>
-                </button>
-              </div>
-
-              {/* Slots odds */}
-              {currentGameType === 'slots' && (
-                <div className="mt-12 pt-8 border-t border-white/5">
-                  <p className="text-[10px] text-zinc-600 uppercase tracking-widest mb-4 text-center">{t('casino_page.potential_wins')}</p>
-                  <div className="grid grid-cols-3 gap-4 text-center text-xs">
-                    <div className="text-zinc-400 font-mono tracking-widest">🍒🍒🍒<br/><span className="text-yellow-600/80 mt-2 block">× 10</span></div>
-                    <div className="text-zinc-400 font-mono tracking-widest">💎💎💎<br/><span className="text-yellow-600/80 mt-2 block">× 25</span></div>
-                    <div className="text-zinc-400 font-mono tracking-widest">🎰🎰🎰<br/><span className="text-yellow-600 font-bold mt-2 block">× 50</span></div>
+                {currentGameType === 'coin' && (
+                  <div className="flex flex-col items-center gap-10 mb-12 relative z-10">
+                     <div className={clsx(
+                       "w-32 h-32 rounded-full bg-white/5 border-4 border-yellow-500/50 flex items-center justify-center text-6xl shadow-[0_0_40px_rgba(234,179,8,0.2)] transition-all duration-700",
+                       spinning && "animate-spin border-yellow-500 scale-110"
+                     )}>
+                       {spinning ? '🪙' : (slotResult[0] || '🪙')}
+                     </div>
+                     <div className="grid grid-cols-2 gap-4 w-full max-w-md">
+                        {COIN_OPTIONS.map(opt => (
+                          <button
+                            key={opt.value}
+                            onClick={() => setGuess(opt.value)}
+                            className={clsx(
+                              'p-6 rounded-[24px] border-2 transition-all duration-300 text-center uppercase tracking-widest text-xs font-black',
+                              guess === opt.value
+                                ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400'
+                                : 'bg-white/5 border-white/10 text-discord-muted hover:border-white/30 hover:text-white hover:bg-white/10'
+                            )}
+                          >
+                            <span className="block mb-2 text-xl">{opt.label}</span>
+                            <span className="text-[10px] text-discord-success">Gains × 1.9</span>
+                          </button>
+                        ))}
+                     </div>
                   </div>
+                )}
+
+                {currentGameType === 'dice' && (
+                  <div className="flex flex-col items-center gap-10 mb-12 relative z-10">
+                     <div className={clsx(
+                       "w-32 h-32 bg-white/5 border-4 border-discord-blurple/50 rounded-[32px] flex items-center justify-center text-7xl shadow-[0_0_40px_rgba(88,101,242,0.2)] transition-all duration-300",
+                       spinning && "animate-pulse border-discord-blurple scale-110"
+                     )}>
+                       {spinning ? '🎲' : (slotResult[0] || '🎲')}
+                     </div>
+                     <div className="grid grid-cols-2 gap-4 w-full max-w-md">
+                        {DICE_OPTIONS.map(opt => (
+                          <button
+                            key={opt.value}
+                            onClick={() => setGuess(opt.value)}
+                            className={clsx(
+                              'p-6 rounded-[24px] border-2 transition-all duration-300 text-center uppercase tracking-widest text-xs font-black',
+                              guess === opt.value
+                                ? 'bg-discord-blurple/20 border-discord-blurple text-discord-blurple'
+                                : 'bg-white/5 border-white/10 text-discord-muted hover:border-white/30 hover:text-white hover:bg-white/10'
+                            )}
+                          >
+                            <span className="block mb-2 text-lg">{opt.label}</span>
+                            <span className="text-[10px] text-discord-success">Gains {opt.desc}</span>
+                          </button>
+                        ))}
+                     </div>
+                  </div>
+                )}
+
+                {currentGameType === 'roulette' && (
+                  <div className="flex flex-col items-center gap-10 mb-12 relative z-10">
+                     <div className={clsx(
+                       "w-40 h-40 rounded-full border-4 border-white/20 bg-black/50 flex items-center justify-center text-5xl relative transition-all duration-1000 shadow-2xl",
+                       spinning && "rotate-[720deg]"
+                     )}>
+                        <div className="absolute inset-4 border-4 border-dashed border-white/10 rounded-full" />
+                        {spinning ? '🎡' : '🎰'}
+                     </div>
+                     <div className="grid grid-cols-2 gap-4 w-full max-w-md">
+                        <button
+                          onClick={() => setGuess('red')}
+                          className={clsx('p-6 rounded-[24px] border-2 transition-all duration-300 text-center uppercase tracking-widest text-xs font-black',
+                            guess === 'red' ? 'bg-discord-error/20 border-discord-error text-discord-error' : 'bg-white/5 border-white/10 text-discord-muted hover:border-discord-error/50 hover:bg-discord-error/10')}
+                        >
+                          <span className="block mb-2 text-xl text-discord-error">ROUGE</span>
+                          <span className="text-[10px] text-discord-success">Gains × 1.9</span>
+                        </button>
+                        <button
+                          onClick={() => setGuess('black')}
+                          className={clsx('p-6 rounded-[24px] border-2 transition-all duration-300 text-center uppercase tracking-widest text-xs font-black',
+                            guess === 'black' ? 'bg-black/80 border-white/50 text-white' : 'bg-white/5 border-white/10 text-discord-muted hover:border-white/50 hover:bg-black/50')}
+                        >
+                          <span className="block mb-2 text-xl text-white">NOIR</span>
+                          <span className="text-[10px] text-discord-success">Gains × 1.9</span>
+                        </button>
+                     </div>
+                  </div>
+                )}
+
+                {currentGameType === 'blackjack' && (
+                  <div className="p-12 glass-card text-center mb-12 relative z-10">
+                    <p className="text-sm font-black uppercase tracking-[0.2em] text-discord-muted">{t('casino_page.blackjack_desc')}</p>
+                  </div>
+                )}
+
+                <div className="max-w-xl mx-auto w-full relative z-10 bg-black/40 p-6 md:p-8 rounded-[32px] border border-white/5">
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-xs font-black text-discord-muted uppercase tracking-widest">{t('casino_page.bet_amount')}</label>
+                      <span className="text-xs font-bold text-discord-success/80 font-mono bg-discord-success/10 px-3 py-1 rounded-full border border-discord-success/20">Limite: {selectedGame.min_bet}€ - {selectedGame.max_bet}€</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        placeholder="0"
+                        className="glass-input w-full px-6 py-6 text-center font-mono text-3xl font-black focus:border-yellow-500 transition-colors shadow-inner rounded-[24px]"
+                        value={bet}
+                        min={selectedGame.min_bet}
+                        max={Math.min(selectedGame.max_bet, profile?.balance || 0)}
+                        onChange={e => setBet(e.target.value)}
+                        disabled={spinning}
+                      />
+                      <div className="flex justify-center gap-3 mt-4">
+                        {[selectedGame.min_bet, Math.floor(selectedGame.max_bet / 2), selectedGame.max_bet].map(v => (
+                          <button
+                            key={v}
+                            onClick={() => setBet(Math.min(v, profile?.balance || 0).toString())}
+                            className="flex-1 py-3 text-xs font-black tracking-widest uppercase bg-white/5 hover:bg-white/10 text-discord-muted hover:text-white transition-colors rounded-xl border border-white/5"
+                          >{v}€</button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {message && (
+                    <div className={clsx(
+                      'p-4 rounded-xl text-sm font-black tracking-widest uppercase text-center mb-6 flex items-center justify-center gap-3 animate-fadeIn border',
+                      message.type === 'win'
+                        ? 'bg-discord-success/10 text-discord-success border-discord-success/30'
+                        : message.type === 'lose'
+                          ? 'bg-discord-error/10 text-discord-error border-discord-error/30'
+                          : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30'
+                    )}>
+                      {message.type === 'error' ? <AlertCircle className="w-5 h-5" /> : null}
+                      {message.text}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => handlePlay(currentGameType)}
+                    disabled={spinning || !bet}
+                    className="w-full btn bg-white hover:bg-gray-200 text-black py-6 rounded-[24px] flex items-center justify-center gap-3 transition-all disabled:opacity-50 shadow-[0_0_20px_rgba(255,255,255,0.2)] disabled:shadow-none"
+                    id="casino-play-btn"
+                  >
+                    <span className="font-black uppercase tracking-[0.2em] text-lg">
+                      {spinning ? t('casino_page.spinning') : (currentGameType === 'slots' ? t('casino_page.spin_slots') : t('casino_page.play'))}
+                    </span>
+                  </button>
                 </div>
-              )}
-            </div>
+
+                {currentGameType === 'slots' && (
+                  <div className="mt-12 pt-8 border-t border-white/5 relative z-10">
+                    <p className="text-xs font-black text-discord-muted uppercase tracking-widest mb-6 text-center">{t('casino_page.potential_wins')}</p>
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div className="glass-card py-4 font-mono tracking-widest text-lg bg-black/40">🍒🍒🍒<br/><span className="text-yellow-500 font-black mt-2 block text-sm">× 10</span></div>
+                      <div className="glass-card py-4 font-mono tracking-widest text-lg bg-black/40">💎💎💎<br/><span className="text-yellow-500 font-black mt-2 block text-sm">× 25</span></div>
+                      <div className="glass-card py-4 font-mono tracking-widest text-lg bg-black/40 border-yellow-500/30">🎰🎰🎰<br/><span className="text-yellow-500 font-black mt-2 block text-sm">× 50</span></div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

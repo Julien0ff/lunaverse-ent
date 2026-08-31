@@ -17,7 +17,7 @@ interface Inscription {
 
 export default function AdminInscriptionsPage() {
   const [inscriptions, setInscriptions] = useState<Inscription[]>([])
-  const [classes, setClasses] = useState<string[]>([])
+  const [classes, setClasses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -26,6 +26,7 @@ export default function AdminInscriptionsPage() {
   const [salonAdmin, setSalonAdmin] = useState('')
   const [salonReponses, setSalonReponses] = useState('')
   const [savingSettings, setSavingSettings] = useState(false)
+  const [deploying, setDeploying] = useState(false)
   
   // Modal state
   const [acceptModalOpen, setAcceptModalOpen] = useState(false)
@@ -86,6 +87,23 @@ export default function AdminInscriptionsPage() {
       showMsg('error', 'Erreur de connexion.')
     } finally {
       setSavingSettings(false)
+    }
+  }
+
+  const deployEmbed = async () => {
+    setDeploying(true)
+    try {
+      const res = await fetch('/api/admin/inscriptions/deploy', { method: 'POST' })
+      if (res.ok) {
+        showMsg('success', 'Embed déployé sur Discord !')
+      } else {
+        const err = await res.json()
+        showMsg('error', err.error || 'Erreur lors du déploiement.')
+      }
+    } catch (e) {
+      showMsg('error', 'Erreur de connexion.')
+    } finally {
+      setDeploying(false)
     }
   }
 
@@ -163,13 +181,20 @@ export default function AdminInscriptionsPage() {
             <p className="text-[10px] text-discord-muted">Où arrivent les demandes remplies par les joueurs.</p>
           </div>
         </div>
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex justify-end gap-3">
           <button
             onClick={saveSettings}
             disabled={savingSettings}
-            className="btn bg-discord-blurple hover:bg-discord-blurple/80 text-white px-6 py-2 font-bold rounded-xl transition-all"
+            className="btn bg-white/10 hover:bg-white/20 text-white px-6 py-2 font-bold rounded-xl transition-all"
           >
             {savingSettings ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Sauvegarder les salons'}
+          </button>
+          <button
+            onClick={deployEmbed}
+            disabled={deploying}
+            className="btn bg-[#5865F2] hover:bg-[#5865F2]/80 text-white px-6 py-2 font-bold rounded-xl transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(88,101,242,0.3)]"
+          >
+            {deploying ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Déployer sur Discord'}
           </button>
         </div>
       </div>
@@ -286,8 +311,8 @@ export default function AdminInscriptionsPage() {
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-discord-blurple"
                 >
                   <option value="" disabled>-- Sélectionner une classe --</option>
-                  {classes.map(c => (
-                    <option key={c} value={c}>{c}</option>
+                  {classes.map((c: any) => (
+                    <option key={c.name} value={c.name}>{c.name}</option>
                   ))}
                 </select>
               </div>

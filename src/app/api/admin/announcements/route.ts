@@ -151,86 +151,142 @@ async function updateDiscordInfoTraficEmbed(supabase: any) {
     .eq('status', 'sent')
     .order('created_at', { ascending: false })
 
-  const embeds = []
+  const infos = activeInfos || []
 
-  if (!activeInfos || activeInfos.length === 0) {
-    embeds.push({
-      title: '✅ INFO-TRAFIC : Trafic Normal',
-      description: 'Aucune perturbation n\'est signalée pour le moment.',
-      color: 0x57F287,
-      timestamp: new Date().toISOString(),
-      footer: { text: 'LunaVerse ENT — Administration' }
-    })
-  } else {
-    for (const info of activeInfos) {
-      const color = info.subject && SUBJECT_COLORS[info.subject] ? SUBJECT_COLORS[info.subject] : 0xED4245
-      const teacherName = info.teacher?.nickname_rp || info.teacher?.username || 'Non spécifié'
-      const replacerName = info.replacement?.nickname_rp || info.replacement?.username || 'Non spécifié'
-      
-      let classText = 'Général'
-      if (info.target_class === 'nova') classText = 'Classe Nova'
-      if (info.target_class === 'nebuleuse') classText = 'Classe Nébuleuse'
+  // Group by target class
+  const classInfos = new Map<string, any[]>()
+  classInfos.set('all', []) // Global
 
-      let desc = `**Matière:** ${info.subject || 'Non spécifiée'}\n**Classe:** ${classText}`
-      if (info.teacher_id) desc += `\n**Professeur concerné:** ${teacherName}`
-      if (info.info_status === 'remplace' && info.replacement_teacher_id) desc += `\n**Remplacé par:** ${replacerName}`
-      
-      if (info.start_time) {
-          const timeStr = new Date(info.start_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-          const dateStr = new Date(info.start_time).toLocaleDateString('fr-FR')
-          desc += `\n**Date / Heure:** ${dateStr} à ${timeStr}`
-      }
+  for (const info of infos) {
+    const target = info.target_class || 'all'
+    if (!classInfos.has(target)) classInfos.set(target, [])
+    classInfos.get(target)!.push(info)
+  }
 
-      if (info.info_text) desc += `\n\n**Information:**\n${info.info_text}`
+  // Get classes from settings
+  const { data: settingsData } = await supabase.from('server_settings').select('key, value').in('key', ['rp_classes', 'info_trafic_msg_id'])
+  const settings = (settingsData || []).reduce((acc: any, curr: any) => ({ ...acc, [curr.key]: curr.value }), {})
+  
+  let classes = []
+  try { classes = JSON.parse(settings.rp_classes || '[]') } catch (e) {}
 
-      let titleIcon = 'ℹ️'
-      if (info.info_status === 'supprime') titleIcon = '❌'
-      if (info.info_status === 'remplace') titleIcon = '🔄'
-      if (info.info_status === 'retard') titleIcon = '⏰'
-      if (info.info_status === 'deplace') titleIcon = '📅'
-
+  // Function to format embeds for a specific target
+  const getPayload = (targetInfos: any[], targetName: string) => {
+    const embeds = []
+    if (targetInfos.length === 0) {
       embeds.push({
-        title: `${titleIcon} INFO-TRAFIC : ${info.info_status ? info.info_status.toUpperCase() : 'INFORMATION'}`,
-        color: color,
-        description: desc,
-        timestamp: new Date(info.created_at).toISOString(),
+        title: '✅ INFO-TRAFIC : Trafic Normal',
+        description: 'Aucune perturbation n\'est signalée pour le moment.',
+        color: 0x57F287,
+        timestamp: new Date().toISOString(),
         footer: { text: 'LunaVerse ENT — Administration' }
       })
+    } else {
+      for (const info of targetInfos) {
+        const color = info.subject && SUBJECT_COLORS[info.subject] ? SUBJECT_COLORS[info.subject] : 0xED4245
+        const teacherName = info.teacher?.nickname_rp || info.teacher?.username || 'Non spécifié'
+        const replacerName = info.replacement?.nickname_rp || info.replacement?.username || 'Non spécifié'
+        
+        let desc = `**Matière:** ${info.subject || 'Non spécifiée'}\n**Classe:** ${targetName}`
+        if (info.teacher_id) desc += `\n**Professeur concerné:** ${teacherName}`
+        if (info.info_status === 'remplace' && info.replacement_teacher_id) desc += `\n**Remplacé par:** ${replacerName}`
+        
+        if (info.start_time) {
+            const timeStr = new Date(info.start_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+            const dateStr = new Date(info.start_time).toLocaleDateString('fr-FR')
+            desc += `\n**Date / Heure:** ${dateStr} à ${timeStr}`
+        }
+
+        if (info.info_text) desc += `\n\n**Information:**\n${info.info_text}`
+
+        let titleIcon = 'ℹ️'
+        if (info.info_status === 'supprime') titleIcon = '❌'
+        if (info.info_status === 'remplace') titleIcon = '🔄'
+        if (info.info_status === 'retard') titleIcon = '⏰'
+        if (info.info_status === 'deplace') titleIcon = '📅'
+
+        embeds.push({
+          title: `${titleIcon} INFO-TRAFIC : ${info.info_status ? info.info_status.toUpperCase() : 'INFORMATION'}`,
+          color: color,
+          description: desc,
+          timestamp: new Date(info.created_at).toISOString(),
+          footer: { text: 'LunaVerse ENT — Administration' }
+        })
+      }
+    }
+    
+    return {
+      content: targetName === 'Général' ? `<@&${ROLE_ELEVE}> — Tableau d'affichage des perturbations` : `Tableau d'affichage des perturbations — Classe ${targetName}`,
+      embeds: embeds.slice(0, 10)
     }
   }
 
-  // Get message ID from server_settings
-  const { data: setting } = await supabase.from('server_settings').select('value').eq('key', 'info_trafic_msg_id').maybeSingle()
-  const msgId = setting?.value
-
-  const payload = {
-    content: `<@&${ROLE_ELEVE}> — Tableau d'affichage des perturbations`,
-    embeds: embeds.slice(0, 10) // Discord limits to 10 embeds per message
-  }
-
+  // Update global channel (target: all)
+  const globalPayload = getPayload(classInfos.get('all') || [], 'Général')
+  const msgId = settings.info_trafic_msg_id
   try {
     if (msgId) {
-      // Try to PATCH
       const res = await fetch(`https://discord.com/api/v10/channels/${INFO_TRAFIC_CHANNEL}/messages/${msgId}`, {
         method: 'PATCH',
         headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(globalPayload)
       })
-      if (res.ok) return
-    }
-    
-    // If no msgId or PATCH failed (message deleted), POST a new one
-    const res = await fetch(`https://discord.com/api/v10/channels/${INFO_TRAFIC_CHANNEL}/messages`, {
-      method: 'POST',
-      headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    
-    if (res.ok) {
-      const data = await res.json()
-      await supabase.from('server_settings').upsert({ key: 'info_trafic_msg_id', value: data.id, updated_at: new Date().toISOString() })
+      if (!res.ok) throw new Error('PATCH failed')
+    } else {
+      throw new Error('No msgId')
     }
   } catch (err) {
-    console.error('Failed to update discord info trafic embed:', err)
+    try {
+      const res = await fetch(`https://discord.com/api/v10/channels/${INFO_TRAFIC_CHANNEL}/messages`, {
+        method: 'POST',
+        headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(globalPayload)
+      })
+      if (res.ok) {
+        const data = await res.json()
+        await supabase.from('server_settings').upsert({ key: 'info_trafic_msg_id', value: data.id, updated_at: new Date().toISOString() })
+      }
+    } catch (e) {
+      console.error('Failed to post to global info trafic:', e)
+    }
+  }
+
+  // Update class channels
+  for (const c of classes) {
+    if (!c.channelId) continue
+    const targetInfos = classInfos.get(c.name) || []
+    const payload = getPayload(targetInfos, c.name)
+    
+    const settingKey = `info_trafic_msg_id_${c.name}`
+    const { data: cSet } = await supabase.from('server_settings').select('value').eq('key', settingKey).maybeSingle()
+    const cMsgId = cSet?.value
+
+    try {
+      if (cMsgId) {
+        const res = await fetch(`https://discord.com/api/v10/channels/${c.channelId}/messages/${cMsgId}`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (!res.ok) throw new Error('PATCH failed')
+      } else {
+        throw new Error('No msgId')
+      }
+    } catch (err) {
+      try {
+        const res = await fetch(`https://discord.com/api/v10/channels/${c.channelId}/messages`, {
+          method: 'POST',
+          headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (res.ok) {
+          const data = await res.json()
+          await supabase.from('server_settings').upsert({ key: settingKey, value: data.id, updated_at: new Date().toISOString() })
+        }
+      } catch (e) {
+        console.error(`Failed to post to class ${c.name} info trafic:`, e)
+      }
+    }
   }
 }
+

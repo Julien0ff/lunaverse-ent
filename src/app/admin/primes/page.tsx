@@ -82,7 +82,7 @@ export default function AdminPrimesPage() {
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 placeholder="Ex: foxy123"
-                className="input-field"
+                className="glass-input w-full mt-1"
                 required
               />
             </div>
@@ -94,7 +94,7 @@ export default function AdminPrimesPage() {
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
                 placeholder="Ex: 500"
-                className="input-field"
+                className="glass-input w-full mt-1"
                 min="1"
                 required
               />
@@ -108,7 +108,7 @@ export default function AdminPrimesPage() {
               value={reason}
               onChange={e => setReason(e.target.value)}
               placeholder="Ex: Récompense événement"
-              className="input-field"
+              className="glass-input w-full mt-1"
             />
           </div>
 

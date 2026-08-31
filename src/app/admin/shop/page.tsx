@@ -153,7 +153,7 @@ export default function AdminShopPage() {
                 <input 
                   type="text" value={editingItem.name || ''} 
                   onChange={e => setEditingItem({...editingItem, name: e.target.value})} 
-                  className="input-field mt-1" required 
+                  className="glass-input w-full mt-1" required 
                 />
               </div>
               <div>
@@ -161,7 +161,7 @@ export default function AdminShopPage() {
                 <textarea 
                   value={editingItem.description || ''} 
                   onChange={e => setEditingItem({...editingItem, description: e.target.value})} 
-                  className="input-field mt-1 resize-none h-20" required 
+                  className="glass-input w-full mt-1 resize-none h-20" required 
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -170,7 +170,7 @@ export default function AdminShopPage() {
                   <input 
                     type="number" value={editingItem.price || 0} 
                     onChange={e => setEditingItem({...editingItem, price: Number(e.target.value)})} 
-                    className="input-field mt-1" required min="0" 
+                    className="glass-input w-full mt-1" required min="0" 
                   />
                 </div>
                 <div>
@@ -178,7 +178,7 @@ export default function AdminShopPage() {
                   <select 
                     value={editingItem.type || 'item'} 
                     onChange={e => setEditingItem({...editingItem, type: e.target.value})} 
-                    className="input-field mt-1"
+                    className="glass-input w-full mt-1"
                   >
                     <option value="item">Objet normal</option>
                     <option value="food">Nourriture / Boisson</option>
@@ -191,7 +191,7 @@ export default function AdminShopPage() {
                 <input 
                   type="url" value={editingItem.image_url || ''} 
                   onChange={e => setEditingItem({...editingItem, image_url: e.target.value})} 
-                  className="input-field mt-1" placeholder="https://..." 
+                  className="glass-input w-full mt-1" placeholder="https://..." 
                 />
               </div>
               
