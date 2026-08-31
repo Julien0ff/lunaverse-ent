@@ -67,6 +67,7 @@ export default function AdminRolesPage() {
   }
 
   return (
+    <>
     <div className="space-y-8 animate-fadeIn max-w-6xl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
@@ -127,10 +128,11 @@ export default function AdminRolesPage() {
           </div>
         </div>
       )}
+    </div>
 
       {/* Modal Edition */}
       {editingRole && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
           <div className="glass-card max-w-lg w-full relative animate-slideUp">
             <button 
               onClick={() => setEditingRole(null)}
@@ -147,12 +149,12 @@ export default function AdminRolesPage() {
             {errorMsg && <p className="text-discord-error text-sm font-bold bg-discord-error/10 p-3 rounded-lg mb-4">{errorMsg}</p>}
             
             <form onSubmit={handleSave} className="space-y-4">
-              <label className="flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition-colors">
+              <label className="flex items-center gap-3 cursor-pointer py-2">
                 <input
                   type="checkbox"
                   checked={editingRole.can_connect}
                   onChange={e => setEditingRole({...editingRole, can_connect: e.target.checked})}
-                  className="w-5 h-5 rounded border-white/20 text-discord-blurple focus:ring-discord-blurple focus:ring-offset-gray-900 bg-black/50"
+                  className="luna-checkbox"
                 />
                 <div>
                   <p className="font-bold text-white text-sm">Autoriser la connexion à l'ENT</p>
@@ -188,6 +190,6 @@ export default function AdminRolesPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }

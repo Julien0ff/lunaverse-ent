@@ -81,6 +81,7 @@ export default function AdminShopPage() {
   }
 
   return (
+    <>
     <div className="space-y-8 animate-fadeIn max-w-6xl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
@@ -132,10 +133,11 @@ export default function AdminShopPage() {
           ))}
         </div>
       )}
+    </div>
 
       {/* Modal Edition */}
       {editingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
           <div className="glass-card max-w-lg w-full relative animate-slideUp">
             <button 
               onClick={() => setEditingItem(null)}
@@ -204,6 +206,6 @@ export default function AdminShopPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }

@@ -142,6 +142,7 @@ export default function AdminAnnoncesPage() {
   }
 
   return (
+    <>
     <div className="space-y-8 animate-fadeIn max-w-6xl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
@@ -212,17 +213,19 @@ export default function AdminAnnoncesPage() {
           )}
         </div>
       )}
+    </div>
 
       {/* Modal Creation */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="glass-card max-w-lg w-full relative animate-slideUp">
-            <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 p-2 bg-white/5 hover:bg-white/10 rounded-lg text-discord-muted hover:text-white transition-colors">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="glass-card max-w-xl w-full relative animate-slideUp flex flex-col max-h-[90vh]">
+            <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 p-2 bg-white/5 hover:bg-white/10 rounded-lg text-discord-muted hover:text-white transition-colors z-10">
               <X className="w-5 h-5" />
             </button>
-            <h3 className="text-2xl font-black text-white mb-6">Créer un Info-Trafic</h3>
+            <h3 className="text-2xl font-black text-white mb-6 shrink-0">Créer un Info-Trafic</h3>
             
-            <form onSubmit={handleSave} className="space-y-4">
+            <div className="overflow-y-auto pr-2 custom-scrollbar">
+              <form onSubmit={handleSave} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Classe</label>
@@ -284,10 +287,11 @@ export default function AdminAnnoncesPage() {
                   {saving ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Créer le brouillon"}
                 </button>
               </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }

@@ -1,7 +1,7 @@
 import { config } from 'dotenv'
 config({ path: '.env.local' })
 
-import { Client, GatewayIntentBits, SlashCommandBuilder, REST, Routes, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, PermissionFlagsBits, ChannelType } from 'discord.js'
+import { Client, GatewayIntentBits, SlashCommandBuilder, REST, Routes, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, PermissionFlagsBits, ChannelType, TextChannel } from 'discord.js'
 import { createClient } from '@supabase/supabase-js'
 // Memory fallback for settings if table doesn't exist yet
 const memorySettings = new Map<string, any>()
@@ -1442,6 +1442,30 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
   }
 
   if (interaction.isButton()) {
+    if (interaction.customId.startsWith('rp_enroll_start|')) {
+      const parts = interaction.customId.split('|')
+      if (parts.length < 3) return
+      const adminId = parts[1]
+      const responsesId = parts[2]
+
+      const modal = new ModalBuilder()
+        .setCustomId(`rp_enroll_modal|${adminId}|${responsesId}`)
+        .setTitle('Inscription RP')
+
+      const tPrenom = new TextInputBuilder().setCustomId('prenom').setLabel('Prénom RP').setStyle(TextInputStyle.Short).setRequired(true)
+      const tNom = new TextInputBuilder().setCustomId('nom').setLabel('Nom RP').setStyle(TextInputStyle.Short).setRequired(true)
+      const tAge = new TextInputBuilder().setCustomId('age').setLabel('Date de naissance RP').setStyle(TextInputStyle.Short).setRequired(true)
+
+      modal.addComponents(
+        new ActionRowBuilder<TextInputBuilder>().addComponents(tPrenom),
+        new ActionRowBuilder<TextInputBuilder>().addComponents(tNom),
+        new ActionRowBuilder<TextInputBuilder>().addComponents(tAge)
+      )
+
+      await interaction.showModal(modal)
+      return
+    }
+
     if (interaction.customId === 'rp_reg_submit') {
       const reg = pendingRegistrations.get(interaction.user.id)
       if (!reg) return interaction.reply({ content: '❌ Session expirée.', ephemeral: true })
@@ -1791,10 +1815,32 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         await interaction.reply({ content: '❌ Erreur: Profil introuvable. Avez-vous un identifiant ENT ?', ephemeral: true })
         return
       }
+      
+      const { data: settings } = await supabase.from('server_settings').select('key, value').in('key', ['cantine_start_time', 'cantine_end_time'])
+      const startTime = settings?.find(s => s.key === 'cantine_start_time')?.value || '11:30'
+      const endTime = settings?.find(s => s.key === 'cantine_end_time')?.value || '13:30'
+
+      const now = new Date()
+      // Use french time
+      const formatter = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
+      const currentTime = formatter.format(now).replace('h', ':').replace(' ', '')
+      
+      if (currentTime < startTime || currentTime > endTime) {
+        await interaction.reply({ content: `❌ **La cantine est fermée**. Heures d'ouverture: ${startTime} - ${endTime}.`, ephemeral: true })
+        return
+      }
+
       if (targetProfile.canteen_subscription === 'weekly' || targetProfile.canteen_subscription === 'monthly') {
-        await interaction.reply({ content: '✅ **Accès Autorisé**. Votre abonnement cantine est valide. Bon appétit !', ephemeral: true })
+        try {
+          if (interaction.channel && !interaction.channel.isDMBased()) {
+            await (interaction.channel as TextChannel).permissionOverwrites.edit(interaction.user.id, { SendMessages: true })
+          }
+          await interaction.reply({ content: '✅ **Accès Autorisé**. Votre abonnement cantine est valide. Bon appétit ! (Vous pouvez maintenant écrire dans ce salon)', ephemeral: true })
+        } catch (e) {
+          await interaction.reply({ content: '✅ **Accès Autorisé**. (Erreur lors de la modification des permissions)', ephemeral: true })
+        }
       } else {
-        await interaction.reply({ content: '❌ **Accès Refusé**. Vous n\'avez pas d\'abonnement cantine. Scannez de nouveau ou rechargez votre Carte LunaVerse sur l\'ENT.', ephemeral: true })
+        await interaction.reply({ content: '❌ **Accès Refusé**. Vous n\'avez pas d\'abonnement cantine. Scannez de nouveau ou rechargez votre Carte sur l\'ENT.', ephemeral: true })
       }
       return
     }

@@ -17,9 +17,10 @@ export async function POST() {
     const { data: settingsData } = await supabase
       .from('server_settings')
       .select('key, value')
-      .in('key', ['discord_canteen_menu_channel_id'])
+      .in('key', ['discord_canteen_menu_channel_id', 'cantine_channel_id'])
 
     const menuChannelId = settingsData?.find(s => s.key === 'discord_canteen_menu_channel_id')?.value
+    const rpChannelId = settingsData?.find(s => s.key === 'cantine_channel_id')?.value
 
     if (!menuChannelId) {
       return NextResponse.json({ error: 'Veuillez configurer le salon menu.' }, { status: 400 })
@@ -96,7 +97,42 @@ export async function POST() {
     if (!res.ok) {
       const errText = await res.text()
       console.error('Discord deploy error:', errText)
-      return NextResponse.json({ error: 'Erreur Discord' }, { status: 500 })
+      return NextResponse.json({ error: 'Erreur Discord pour le menu' }, { status: 500 })
+    }
+
+    // 5. Send Scanner embed to RP Cantine Channel if configured
+    if (rpChannelId) {
+      const rpRes = await fetch(`https://discord.com/api/v10/channels/${rpChannelId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bot ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          embeds: [{
+            title: '💳 Scanner son Abonnement',
+            description: "Cliquez ci-dessous pour badger à la cantine. L'accès sera déverrouillé automatiquement si vous êtes abonné et que c'est l'heure du repas.",
+            color: 0x5865F2,
+          }],
+          components: [
+            {
+              type: 1,
+              components: [
+                {
+                  type: 2,
+                  style: 3, // Success
+                  label: "Badger à la cantine",
+                  custom_id: "cantine_scan",
+                  emoji: { name: "🎫" }
+                }
+              ]
+            }
+          ]
+        })
+      })
+      if (!rpRes.ok) {
+        console.error('Discord scanner deploy error:', await rpRes.text())
+      }
     }
 
     return NextResponse.json({ success: true })

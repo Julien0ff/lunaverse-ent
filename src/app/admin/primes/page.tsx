@@ -112,12 +112,12 @@ export default function AdminPrimesPage() {
             />
           </div>
 
-          <label className="flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition-colors">
+          <label className="flex items-center gap-3 cursor-pointer py-2">
             <input
               type="checkbox"
               checked={autoAdd}
               onChange={e => setAutoAdd(e.target.checked)}
-              className="w-5 h-5 rounded border-white/20 text-discord-blurple focus:ring-discord-blurple focus:ring-offset-gray-900 bg-black/50"
+              className="luna-checkbox"
             />
             <div>
               <p className="font-bold text-white text-sm">Ajout Direct</p>
