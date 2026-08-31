@@ -1898,7 +1898,6 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         nom,
         dob,
         options,
-        photo,
         status: 'pending',
         classe: 'À définir',
         responses_channel_id: responsesId

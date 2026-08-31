@@ -10,7 +10,7 @@ import {
   LayoutDashboard, Wallet, Globe, Dices,
   ShoppingCart, Shield, LogOut, Moon, Settings,
   ChevronRight, User, BookOpen, ExternalLink, MessageCircle, Heart, Utensils, Landmark, Menu, X, ShoppingBag, Calendar, Home,
-  Users, UserPlus, GraduationCap, Award, Megaphone, Bell
+  Users, UserPlus, GraduationCap, Award, Megaphone, Bell, Library
 } from 'lucide-react'
 import clsx from 'clsx'
 import SettingsModal from './SettingsModal'
@@ -35,7 +35,8 @@ const NAV = [
 const ADMIN_NAV = [
   { href: '/admin/users', icon: Users, label: 'Utilisateurs' },
   { href: '/admin/inscriptions', icon: UserPlus, label: 'Inscriptions' },
-  { href: '/admin/classes', icon: GraduationCap, label: 'Classes & Spécialités' },
+  { href: '/admin/classes', icon: GraduationCap, label: 'Classes' },
+  { href: '/admin/options', icon: Library, label: 'Spécialités & Clubs' },
   { href: '/admin/cantine', icon: Utensils, label: 'Cantine' },
   { href: '/admin/finances', icon: Wallet, label: 'Finances' },
   { href: '/admin/primes', icon: Award, label: 'Primes & Aides' },
