@@ -394,7 +394,7 @@ export default function Sidebar() {
           paddingBottom: 'env(safe-area-inset-bottom, 0px)'
         }}>
         
-        {NAV.slice(0, 4).map(item => {
+        {CATEGORIES.flatMap(c => c.items).filter(i => !i.isExternal).slice(0, 4).map(item => {
           const Icon = item.icon
           const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
           return (

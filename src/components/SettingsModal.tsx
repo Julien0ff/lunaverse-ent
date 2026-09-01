@@ -536,8 +536,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                        </div>
                     </div>
 
-
-
+                    <div className="space-y-4">
                        <div className="p-6 rounded-[32px] bg-white/5 border border-white/5">
                            <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-3">
