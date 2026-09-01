@@ -205,33 +205,7 @@ export default function Dashboard() {
 
       {/* Stats, Activity & Survival */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1 space-y-4">
-          <h3 className="text-xs font-black text-discord-muted uppercase tracking-[0.2em] px-2">{t('dashboard.survival_state')}</h3>
-          <div className="glass-card p-4 space-y-3">
-            {[
-              { id: 'health',  icon: '❤️', label: t('dashboard.stats.health'),       value: profile?.health  ?? 100, color: 'bg-discord-error' },
-              { id: 'hunger',  icon: '🍔', label: t('dashboard.stats.hunger'),        value: profile?.hunger  ?? 100, color: 'bg-orange-500' },
-              { id: 'thirst',  icon: '💧', label: t('dashboard.stats.thirst'),        value: profile?.thirst  ?? 100, color: 'bg-blue-400' },
-              { id: 'fatigue', icon: '😴', label: t('dashboard.stats.fatigue'),     value: profile?.fatigue ?? 100, color: 'bg-indigo-400' },
-              { id: 'hygiene', icon: '🧴', label: t('dashboard.stats.hygiene'),     value: profile?.hygiene ?? 100, color: 'bg-teal-400' },
-              { id: 'alcohol', icon: '🍺', label: t('dashboard.stats.alcohol'),  value: profile?.alcohol ?? 0,   color: 'bg-green-500', max: 100 }
-            ].map(stat => (
-              <div key={stat.id} className="space-y-1">
-                <div className="flex justify-between items-end">
-                  <span className="text-xs font-black text-white">{stat.icon} {stat.label}</span>
-                  <span className="text-[10px] font-bold text-discord-muted">{stat.value}/{stat.max || 100}</span>
-                </div>
-                <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full ${stat.color} transition-all duration-1000`} 
-                    style={{ width: `${Math.min(100, Math.max(0, (stat.value / (stat.max || 100)) * 100))}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] px-2 mt-8 mb-2 flex items-center gap-2">
+        <div className="lg:col-span-1 space-y-4">          <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] px-2 mt-8 mb-2 flex items-center gap-2">
             <Trophy className="w-4 h-4 text-[#FEE75C] drop-shadow-[0_0_5px_rgba(254,231,92,0.8)]" />
             {t('dashboard.leaderboard')}
           </h3>

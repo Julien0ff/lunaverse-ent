@@ -18,18 +18,34 @@ import SettingsModal from './SettingsModal'
 import { useLanguage } from '@/context/LanguageContext'
 import NotificationCenter from './NotificationCenter'
 
-const NAV = [
-  { href: '/dashboard', icon: LayoutDashboard, labelKey: 'nav.dashboard', emoji: '🏠' },
-  { href: '/bank', icon: Wallet, labelKey: 'nav.bank', emoji: '💰' },
-  { href: '/social', icon: Globe, labelKey: 'nav.social', emoji: '🌐' },
-  { href: '/messages', icon: MessageCircle, labelKey: 'nav.messages', emoji: '💬' },
-  { href: '/dating', icon: Heart, labelKey: 'nav.dating', emoji: '💖' },
-  { href: '/cantine', icon: Utensils, labelKey: 'nav.cantine', emoji: '🍱' },
-  { href: '/absences', icon: Calendar, labelKey: 'nav.absences', emoji: '📅' },
-  { href: '/maison', icon: Home, labelKey: 'nav.maison', emoji: '🏠' },
-  { href: '/impots', icon: Landmark, labelKey: 'nav.impots', emoji: '🧾' },
-  { href: '/casino', icon: Dices, labelKey: 'nav.casino', emoji: '🎰' },
-  { href: '/shop', icon: ShoppingCart, labelKey: 'nav.shop', emoji: '🛒' },
+const CATEGORIES = [
+  {
+    title: 'Scolarité au quotidien',
+    items: [
+      { href: '/dashboard', icon: LayoutDashboard, labelKey: 'nav.dashboard', emoji: '🏠' },
+      { href: 'PRONOTE', icon: BookOpen, labelKey: 'nav.pronote', emoji: '📚', isExternal: true },
+      { href: '/cantine', icon: Utensils, labelKey: 'nav.cantine', emoji: '🍱' },
+      { href: '/absences', icon: Calendar, labelKey: 'nav.absences', emoji: '📅' },
+      { href: '/maison', icon: Home, labelKey: 'nav.maison', emoji: '🏠' }
+    ]
+  },
+  {
+    title: 'Communauté RP',
+    items: [
+      { href: '/social', icon: Globe, labelKey: 'nav.social', emoji: '🌐' },
+      { href: '/messages', icon: MessageCircle, labelKey: 'nav.messages', emoji: '💬' },
+      { href: '/dating', icon: Heart, labelKey: 'nav.dating', emoji: '💖' },
+      { href: '/shop', icon: ShoppingCart, labelKey: 'nav.shop', emoji: '🛒' }
+    ]
+  },
+  {
+    title: 'Économie',
+    items: [
+      { href: '/bank', icon: Wallet, labelKey: 'nav.bank', emoji: '💰' },
+      { href: '/impots', icon: Landmark, labelKey: 'nav.impots', emoji: '🧾' },
+      { href: '/casino', icon: Dices, labelKey: 'nav.casino', emoji: '🎰' }
+    ]
+  }
 ]
 
 const ADMIN_NAV = [
@@ -162,64 +178,76 @@ export default function Sidebar() {
       <nav className="flex-1 overflow-y-auto px-3 py-2 custom-scrollbar no-scrollbar">
 
         {/* Main nav */}
-        <div className="space-y-0.5">
-          {NAV.map((item, i) => {
-            const Icon = item.icon
-            const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={clsx(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group relative',
-                  active
-                    ? 'text-white'
-                    : 'text-discord-muted hover:text-white'
-                )}
-                style={active ? {
-                  background: 'rgba(88,101,242,0.15)',
-                  color: 'white',
-                } : undefined}
-              >
-                {/* Active indicator */}
-                {active && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full"
-                    style={{ background: '#5865F2' }} />
-                )}
-                <div className={clsx(
-                  'w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors relative',
-                  active
-                    ? 'bg-discord-blurple/20'
-                    : 'bg-white/5 group-hover:bg-white/10'
-                )}>
-                  <Icon className="w-4 h-4" style={{ color: active ? '#5865F2' : 'inherit' }} />
-                  {item.href === '/messages' && unreadCount > 0 && (
-                    <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-discord-error rounded-full border-2 border-[#121316] animate-pulse" />
-                  )}
-                </div>
-                <span className="truncate">{t(item.labelKey)}</span>
-              </Link>
-            )
-          })}
-        </div>
+        <div className="space-y-4">
+          {CATEGORIES.map((category) => (
+            <div key={category.title}>
+              <p className="px-3 mb-1 text-[10px] font-black uppercase tracking-widest" style={{ color: '#8D9299' }}>
+                {category.title}
+              </p>
+              <div className="space-y-0.5">
+                {category.items.map((item) => {
+                  const Icon = item.icon
+                  const isPronote = item.href === 'PRONOTE'
+                  const active = !isPronote && (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/')))
+                  
+                  if (isPronote) {
+                    return (
+                      <a
+                        key={item.href}
+                        href={process.env.NEXT_PUBLIC_PRONOTE_URL || 'https://auth.rp.lunaverse.fr'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={clsx(
+                          'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all w-full group relative',
+                          'text-discord-muted hover:text-white'
+                        )}
+                      >
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/5 group-hover:bg-white/10 transition-colors">
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <span className="flex-1 text-left truncate">{t(item.labelKey) || 'Pronote'}</span>
+                        <ExternalLink className="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                      </a>
+                    )
+                  }
 
-        {/* PRONOTE direct link */}
-        <div className="mt-2">
-          <a
-            href={process.env.NEXT_PUBLIC_PRONOTE_URL || 'https://pronote.lunaverse.fr'}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={clsx(
-              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all w-full group',
-              'text-discord-muted hover:text-white'
-            )}
-          >
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/5 group-hover:bg-white/10 transition-colors">
-              <BookOpen className="w-4 h-4" />
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={clsx(
+                        'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group relative',
+                        active
+                          ? 'text-white'
+                          : 'text-discord-muted hover:text-white'
+                      )}
+                      style={active ? {
+                        background: 'rgba(88,101,242,0.15)',
+                        color: 'white',
+                      } : undefined}
+                    >
+                      {active && (
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full"
+                          style={{ background: '#5865F2' }} />
+                      )}
+                      <div className={clsx(
+                        'w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors relative',
+                        active
+                          ? 'bg-discord-blurple/20'
+                          : 'bg-white/5 group-hover:bg-white/10'
+                      )}>
+                        <Icon className="w-4 h-4" style={{ color: active ? '#5865F2' : 'inherit' }} />
+                        {item.href === '/messages' && unreadCount > 0 && (
+                          <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-discord-error rounded-full border-2 border-[#121316] animate-pulse" />
+                        )}
+                      </div>
+                      <span className="truncate">{t(item.labelKey)}</span>
+                    </Link>
+                  )
+                })}
+              </div>
             </div>
-            <span className="flex-1 text-left">Pronote</span>
-            <ExternalLink className="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-          </a>
+          ))}
         </div>
 
         {/* Admin section */}

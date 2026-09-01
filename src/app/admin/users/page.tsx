@@ -122,13 +122,12 @@ export default function AdminUsersPage() {
                 <th className="py-5 px-6 text-xs font-black text-discord-muted uppercase tracking-[0.2em]">Citoyen</th>
                 <th className="py-5 px-6 text-xs font-black text-discord-muted uppercase tracking-[0.2em] text-right">Patrimoine</th>
                 <th className="py-5 px-6 text-xs font-black text-discord-muted uppercase tracking-[0.2em] text-center">Statut RP / Accès</th>
-                <th className="py-5 px-6 text-xs font-black text-discord-muted uppercase tracking-[0.2em] text-center">Vitalité</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-16 text-center">
+                  <td colSpan={3} className="py-16 text-center">
                     <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
                       <User className="w-8 h-8 text-discord-muted" />
                     </div>
@@ -206,27 +205,6 @@ export default function AdminUsersPage() {
                         >
                           {u.first_connection ? 'CITOYEN ACTIF' : 'NOUVEAU (TUTO)'}
                         </button>
-                      </div>
-                    </td>
-                    
-                    <td className="py-4 px-6">
-                      <div className="flex flex-col items-center justify-center gap-1.5">
-                        <div className="flex items-center gap-3 bg-black/40 px-3 py-1.5 rounded-xl border border-white/5">
-                          <div className={clsx("flex items-center gap-1.5 text-xs font-bold", u.hunger < 30 ? "text-red-400" : "text-zinc-400")}>
-                            <span className="text-base drop-shadow-md">🍔</span>
-                            <span>{u.hunger}%</span>
-                          </div>
-                          <div className="w-px h-4 bg-white/10" />
-                          <div className={clsx("flex items-center gap-1.5 text-xs font-bold", u.thirst < 30 ? "text-red-400" : "text-zinc-400")}>
-                            <span className="text-base drop-shadow-md">💧</span>
-                            <span>{u.thirst}%</span>
-                          </div>
-                          <div className="w-px h-4 bg-white/10" />
-                          <div className={clsx("flex items-center gap-1.5 text-xs font-bold", u.fatigue < 30 ? "text-red-400" : "text-zinc-400")}>
-                            <span className="text-base drop-shadow-md">😴</span>
-                            <span>{u.fatigue}%</span>
-                          </div>
-                        </div>
                       </div>
                     </td>
                   </tr>

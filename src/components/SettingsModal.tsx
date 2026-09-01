@@ -536,31 +536,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                        </div>
                     </div>
 
-                    <div className="space-y-4">
-                       <div className="p-6 rounded-[32px] bg-white/5 border border-white/5">
-                          <div className="flex items-center justify-between mb-2">
-                             <div className="flex items-center gap-3">
-                                <Rocket className="text-discord-blurple" size={20} />
-                                <span className="font-bold text-white text-lg">Système de Survie Dynamique</span>
-                             </div>
-                             <div 
-                                onClick={!savingAdmin ? toggleDynamicStats : undefined}
-                                className={clsx(
-                                  "w-14 h-7 rounded-full relative p-1 transition-all cursor-pointer",
-                                  dynamicStatsEnabled ? "bg-discord-success" : "bg-white/10",
-                                  savingAdmin && "opacity-50"
-                                )}
-                             >
-                                <div className={clsx(
-                                  "w-5 h-5 bg-white rounded-full transition-all absolute top-1",
-                                  dynamicStatsEnabled ? "right-1 shadow-md shadow-black/20" : "left-1"
-                                )} />
-                             </div>
-                          </div>
-                          <p className="text-xs text-discord-muted leading-relaxed">
-                             Si activé, les joueurs perdront faim, soif et hygiène avec le temps. Si désactivé, tout le monde reste fixe à 100%.
-                          </p>
-                       </div>
+
 
                        <div className="p-6 rounded-[32px] bg-white/5 border border-white/5">
                            <div className="flex items-center justify-between mb-2">

@@ -193,8 +193,11 @@ const commands = [
     .setDescription('Voir votre profil RP ou celui d\'un autre utilisateur')
     .addUserOption(o => o.setName('utilisateur').setDescription('Profil à afficher').setRequired(false)),
 
-
-
+  new SlashCommandBuilder()
+    .setName('trade')
+    .setDescription('Échanger ou donner un objet à un autre joueur')
+    .addUserOption(o => o.setName('utilisateur').setDescription('La cible de votre échange').setRequired(true))
+    .addStringOption(o => o.setName('objet').setDescription('Le nom (ou ID) de l\'objet à donner').setRequired(true)),
 
 ]
 
@@ -1317,7 +1320,14 @@ client.on('interactionCreate', async (interaction) => {
 
       const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selOpts)
       
-      await interaction.reply({ content: 'Dernière étape : Choisissez votre spécialité !', components: [row], ephemeral: true })
+      const btnSkip = new ButtonBuilder()
+        .setCustomId('rp_enroll_skip_spe')
+        .setLabel('Terminer sans spécialité')
+        .setStyle(ButtonStyle.Secondary)
+        
+      const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(btnSkip)
+      
+      await interaction.reply({ content: 'Dernière étape : Choisissez votre spécialité (ou passez) !', components: [row, row2], ephemeral: true })
       return
     }
 
@@ -1874,6 +1884,38 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
       }
       return
     }
+    if (interaction.customId === 'rp_enroll_skip_spe') {
+      const pending = pendingRegistrations.get(interaction.user.id)
+      if (!pending) {
+        await interaction.reply({ content: '❌ Session expirée ou introuvable. Veuillez recommencer.', ephemeral: true })
+        return
+      }
+
+      const { prenom, nom, dob, adminId, responsesId } = pending
+      const photo = interaction.user.displayAvatarURL({ size: 512, extension: 'png' })
+      
+      const { error } = await supabase.from('inscriptions').insert({
+        discord_id: interaction.user.id,
+        prenom,
+        nom,
+        dob,
+        options: [], // No specialty
+        photo,
+        status: 'pending',
+        classe: 'À définir',
+        responses_channel_id: responsesId
+      })
+
+      if (error) {
+        console.error('Erreur inscription:', error)
+        await interaction.reply({ content: '❌ Erreur lors de l\'enregistrement.', ephemeral: true })
+        return
+      }
+      
+      pendingRegistrations.delete(interaction.user.id)
+      await interaction.update({ content: '✅ Votre inscription a été enregistrée (sans spécialité) ! L\'administration va la traiter.', components: [] })
+      return
+    }
 
   }
 
@@ -1983,6 +2025,61 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
   try {
     switch (commandName) {
 
+
+      case 'trade': {
+        const uTarget = interaction.options.getUser('utilisateur')
+        const itemQuery = interaction.options.getString('objet')?.toLowerCase()
+
+        if (!uTarget || !itemQuery) return
+
+        if (uTarget.id === user.id) {
+          await interaction.reply({ content: '❌ Vous ne pouvez pas vous échanger un objet à vous-même.', ephemeral: true })
+          return
+        }
+
+        const sourceProfile = await getProfile(user.id)
+        const targetProfile = await getProfile(uTarget.id)
+
+        if (!sourceProfile || !targetProfile) {
+          await interaction.reply({ content: '❌ L\'un des joueurs n\'est pas inscrit dans la base.', ephemeral: true })
+          return
+        }
+
+        // Fetch source user's inventory
+        const { data: inventory, error: invError } = await supabase
+          .from('purchases')
+          .select('id, item_id')
+          .eq('user_id', sourceProfile.id)
+          .is('used_at', null)
+          
+        if (invError || !inventory || inventory.length === 0) {
+          await interaction.reply({ content: '❌ Vous ne possédez aucun objet.', ephemeral: true })
+          return
+        }
+        
+        // Find matching item by ID
+        const matchedItem = inventory.find(i => i.item_id.toLowerCase().includes(itemQuery))
+
+        if (!matchedItem) {
+          await interaction.reply({ content: `❌ Vous ne possédez aucun objet correspondant à "${itemQuery}".`, ephemeral: true })
+          return
+        }
+
+        // Transfer the item
+        const { error: transferError } = await supabase
+          .from('purchases')
+          .update({ user_id: targetProfile.id })
+          .eq('id', matchedItem.id)
+
+        if (transferError) {
+          console.error(transferError)
+          await interaction.reply({ content: '❌ Erreur lors du transfert.', ephemeral: true })
+          return
+        }
+
+        await interaction.reply({ content: `✅ Vous avez donné **${matchedItem.item_id}** à <@${uTarget.id}> !` })
+        return
+      }
 
       case 'profil': {
         const uTarget = interaction.options.getUser('utilisateur') || user;

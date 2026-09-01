@@ -55,6 +55,55 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error
 
+    // --- Discord Integration ---
+    try {
+      const { data: settingsData } = await supabase
+        .from('server_settings')
+        .select('value')
+        .eq('key', 'social_feed_channel_id')
+        .single()
+      
+      const channelId = settingsData?.value
+      const token = process.env.DISCORD_BOT_TOKEN
+      
+      if (channelId && token) {
+        const authorName = newPost.user.rp_name || newPost.user.username
+        
+        await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bot ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            embeds: [{
+              author: {
+                name: authorName,
+                icon_url: newPost.user.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'
+              },
+              description: content.trim(),
+              image: image_url ? { url: image_url } : undefined,
+              color: 0x5865F2,
+              footer: { text: "Publié sur le réseau social de l'ENT" },
+              timestamp: new Date().toISOString()
+            }],
+            components: [{
+              type: 1,
+              components: [{
+                type: 2,
+                style: 5, // Link
+                label: 'Voir sur l\'ENT',
+                url: 'https://auth.rp.lunaverse.fr/social'
+              }]
+            }]
+          })
+        })
+      }
+    } catch (discordErr) {
+      console.error('Erreur diffusion Discord (Social):', discordErr)
+    }
+    // ---------------------------
+
     return NextResponse.json({ ...newPost, expand: { user: newPost.user } })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
