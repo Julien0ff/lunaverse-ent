@@ -72,24 +72,41 @@ export async function PATCH(request: Request) {
           }).catch(console.error)
         }
       } else if (status === 'accepted') {
-        // Fetch member
-        const memRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordId}`, {
-          headers: { 'Authorization': `Bot ${token}` }
-        })
-        if (memRes.ok) {
+        // Fetch member and roles in parallel
+        const [memRes, rolesRes] = await Promise.all([
+          fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordId}`, {
+            headers: { 'Authorization': `Bot ${token}` }
+          }),
+          fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, {
+            headers: { 'Authorization': `Bot ${token}` }
+          })
+        ])
+
+        if (memRes.ok && rolesRes.ok) {
           const memberData = await memRes.json()
+          const rolesData = await rolesRes.json()
+          
           const currentRoles = memberData.roles || []
-          
-          const ROLE_ELEVE = '1487571354323648582'
-          const ROLE_NOVA = '1487572001542508626'
-          const ROLE_NEBULEUSE = '1487571897364254841'
-          
           const newRoles = new Set(currentRoles)
-          newRoles.add(ROLE_ELEVE)
-          if (classe === 'NOV') newRoles.add(ROLE_NOVA)
-          if (classe === 'NÉB') newRoles.add(ROLE_NEBULEUSE)
           
-          const nick = `${inscription.prenom} ${inscription.nom.toUpperCase()}`
+          // Find "Élève" and class roles dynamically
+          const eleveRole = rolesData.find((r: any) => r.name.toLowerCase() === 'élève' || r.name.toLowerCase() === 'eleve')
+          const classRole = classe ? rolesData.find((r: any) => r.name.toLowerCase() === classe.toLowerCase()) : null
+
+          // Fallbacks for specific cases (for safety)
+          const ROLE_ELEVE = eleveRole ? eleveRole.id : '1487571354323648582'
+          
+          newRoles.add(ROLE_ELEVE)
+          if (classRole) {
+            newRoles.add(classRole.id)
+          }
+          
+          let nick = classe 
+            ? `${classe}・${inscription.prenom} ${inscription.nom.toUpperCase()}` 
+            : `${inscription.prenom} ${inscription.nom.toUpperCase()}`
+            
+          // Discord limits nicknames to 32 chars
+          if (nick.length > 32) nick = nick.substring(0, 32)
           
           await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordId}`, {
             method: 'PATCH',

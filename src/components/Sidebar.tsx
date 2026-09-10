@@ -194,7 +194,7 @@ export default function Sidebar() {
                     return (
                       <a
                         key={item.href}
-                        href={process.env.NEXT_PUBLIC_PRONOTE_URL || 'https://auth.rp.lunaverse.fr'}
+                        href={process.env.NEXT_PUBLIC_PRONOTE_URL || 'https://pronote.lunaverse.fr'}
                         target="_blank"
                         rel="noopener noreferrer"
                         className={clsx(
@@ -205,7 +205,7 @@ export default function Sidebar() {
                         <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/5 group-hover:bg-white/10 transition-colors">
                           <Icon className="w-4 h-4" />
                         </div>
-                        <span className="flex-1 text-left truncate">{t(item.labelKey) || 'Pronote'}</span>
+                        <span className="flex-1 text-left truncate">Pronote</span>
                         <ExternalLink className="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
                       </a>
                     )

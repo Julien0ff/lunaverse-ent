@@ -68,6 +68,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Erreur Discord' }, { status: 500 })
     }
 
+    // Update status to 'completed'
+    await supabase.from('inscriptions').update({ status: 'completed' }).eq('id', id)
+
     return NextResponse.json({ success: true })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

@@ -11,7 +11,7 @@ interface Inscription {
   nom: string
   dob: string
   options: string[]
-  status: 'pending' | 'accepted' | 'refused'
+  status: 'pending' | 'accepted' | 'refused' | 'completed'
   photo?: string
   created_at: string
 }
@@ -156,6 +156,7 @@ export default function AdminInscriptionsPage() {
         body: JSON.stringify({ id })
       })
       if (res.ok) {
+        setInscriptions(inscriptions.map(inc => inc.id === id ? { ...inc, status: 'completed' } : inc))
         showMsg('success', 'Notification envoyée avec succès sur Discord !')
       } else {
         const err = await res.json()
@@ -168,7 +169,11 @@ export default function AdminInscriptionsPage() {
     }
   }
 
-  const filtered = filter === 'all' ? inscriptions : inscriptions.filter(i => i.status === filter)
+  const filtered = filter === 'all' 
+    ? inscriptions 
+    : filter === 'accepted' 
+      ? inscriptions.filter(i => i.status === 'accepted' || i.status === 'completed')
+      : inscriptions.filter(i => i.status === filter)
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-10 h-10 animate-spin text-discord-blurple" /></div>
 
@@ -243,7 +248,7 @@ export default function AdminInscriptionsPage() {
             )}
           >
             {f === 'pending' && `En attente (${inscriptions.filter(i => i.status === 'pending').length})`}
-            {f === 'accepted' && `Acceptées (${inscriptions.filter(i => i.status === 'accepted').length})`}
+            {f === 'accepted' && `Acceptées (${inscriptions.filter(i => i.status === 'accepted' || i.status === 'completed').length})`}
             {f === 'refused' && `Refusées (${inscriptions.filter(i => i.status === 'refused').length})`}
             {f === 'all' && 'Toutes'}
           </button>
@@ -327,9 +332,9 @@ export default function AdminInscriptionsPage() {
                    <div className="flex flex-col justify-center items-center bg-white/5 rounded-xl border border-white/5 p-3">
                      <p className={clsx(
                        "text-sm font-black uppercase tracking-widest flex items-center gap-2",
-                       i.status === 'accepted' ? "text-discord-success" : "text-discord-error"
+                       (i.status === 'accepted' || i.status === 'completed') ? "text-discord-success" : "text-discord-error"
                      )}>
-                       {i.status === 'accepted' ? <><Check className="w-5 h-5"/> Acceptée</> : <><X className="w-5 h-5"/> Refusée</>}
+                       {(i.status === 'accepted' || i.status === 'completed') ? <><Check className="w-5 h-5"/> Acceptée</> : <><X className="w-5 h-5"/> Refusée</>}
                      </p>
                    </div>
                    {i.status === 'accepted' && (
