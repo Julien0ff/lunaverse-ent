@@ -963,10 +963,20 @@ client.on('ready', async () => {
                 if (guild) {
                   const member = await guild.members.fetch(newRec.discord_id).catch(() => null)
                   if (member) {
-                    const newNick = `${newRec.classe}・${newRec.prenom} ${newRec.nom.toUpperCase()}`.substring(0, 32)
+                    const newNick = newRec.classe
+                      ? `${newRec.classe}・${newRec.prenom} ${newRec.nom.toUpperCase()}`.substring(0, 32)
+                      : `${newRec.prenom} ${newRec.nom.toUpperCase()}`.substring(0, 32)
+                      
                     await member.setNickname(newNick).catch(() => null)
                     
-                    const rolesToAdd = [ROLE_ELEVE]
+                    const eleveRole = guild.roles.cache.find(r => r.name.toLowerCase() === 'élève' || r.name.toLowerCase() === 'eleve')
+                    const rolesToAdd = eleveRole ? [eleveRole.id] : [ROLE_ELEVE]
+                    
+                    if (newRec.classe) {
+                      const classRole = guild.roles.cache.find(r => r.name.toLowerCase() === newRec.classe.toLowerCase())
+                      if (classRole) rolesToAdd.push(classRole.id)
+                    }
+
                     // Add specialties (options) roles dynamically
                     if (newRec.options && Array.isArray(newRec.options) && newRec.options.length > 0) {
                       try {
@@ -1386,11 +1396,21 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
 
                 // --- Role automation ---
                 try {
-                  const rolesToAdd = [ROLE_ELEVE]
-                  if (fClasse === 'NOV') rolesToAdd.push(ROLE_NOVA)
-                  if (fClasse === 'NÉB') rolesToAdd.push(ROLE_NEBULEUSE)
+                  const guild = interaction.guild
+                  if (guild) {
+                    const eleveRole = guild.roles.cache.find(r => r.name.toLowerCase() === 'élève' || r.name.toLowerCase() === 'eleve')
+                    const rolesToAdd = eleveRole ? [eleveRole.id] : [ROLE_ELEVE]
+                    
+                    if (fClasse) {
+                      const classRole = guild.roles.cache.find(r => r.name.toLowerCase() === fClasse.toLowerCase())
+                      if (classRole) rolesToAdd.push(classRole.id)
+                    }
 
-                  await member.roles.add(rolesToAdd)
+                    // Get specialties from Supabase (assuming options exist on the inscription but we don't have newRec here easily, so we just add eleve + class)
+                    // (Actually we could fetch the inscription if needed, but this is the legacy fallback modal anyway)
+                    
+                    await member.roles.add(rolesToAdd)
+                  }
                 } catch (roleErr) {
                   console.error('Role addition issue:', roleErr)
                 }
