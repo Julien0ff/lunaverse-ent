@@ -32,28 +32,55 @@ Exemple:
   "drink": "Jus de pomme artisanal"
 }`
 
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${groqKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'mixtral-8x7b-32768',
-        messages: [{ role: 'user', content: prompt }],
-        response_format: { type: 'json_object' },
-        temperature: 0.7
-      })
-    })
+    const modelsToTry = [
+      'gemma2-9b-it',
+      'llama-3.2-3b-preview',
+      'llama-3.1-70b-versatile',
+      'llama3-70b-8192',
+      'gemma-7b-it',
+      'deepseek-r1-distill-llama-70b',
+      'deepseek-r1-distill-qwen-32b'
+    ]
 
-    if (!res.ok) {
-      const err = await res.text()
-      console.error('Groq API Error:', err)
-      throw new Error(`Erreur Groq: ${err}`)
+    let responseText = null
+    let lastError = null
+
+    for (const model of modelsToTry) {
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${groqKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [{ role: 'user', content: prompt }],
+            response_format: { type: 'json_object' },
+            temperature: 0.7
+          })
+        })
+
+        if (!res.ok) {
+          const err = await res.text()
+          lastError = err
+          console.error(`Groq API Error on model ${model}:`, err)
+          continue // Try next model
+        }
+
+        const data = await res.json()
+        responseText = data.choices[0].message.content
+        break // Success!
+      } catch (err: any) {
+        lastError = err.message
+        continue
+      }
     }
 
-    const data = await res.json()
-    const responseText = data.choices[0].message.content
+    if (!responseText) {
+      throw new Error(`Erreur Groq (tous les modèles ont échoué): ${lastError}`)
+    }
+
     const menu = JSON.parse(responseText)
 
     return NextResponse.json({
