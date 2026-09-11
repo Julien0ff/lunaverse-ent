@@ -74,3 +74,31 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: err.message }, { status: 500 })
     }
 }
+
+// DELETE: Delete a user and their auth account
+export async function DELETE(request: NextRequest) {
+    try {
+        const supabase = createSupabaseServer()
+        const admin = createSupabaseAdmin()
+        const user = await requireAdmin(supabase, admin)
+        if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+        const url = new URL(request.url)
+        const id = url.searchParams.get('id')
+        if (!id) return NextResponse.json({ error: 'ID requis' }, { status: 400 })
+
+        // Delete from auth.users (requires service role key)
+        const { error: authError } = await admin.auth.admin.deleteUser(id)
+        
+        if (authError) {
+          console.error("Auth delete error:", authError)
+          // If auth deletion fails (maybe due to lack of service role key), try deleting just the profile
+          const { error: profileError } = await admin.from('profiles').delete().eq('id', id)
+          if (profileError) throw profileError
+        }
+
+        return NextResponse.json({ success: true })
+    } catch (err: any) {
+        return NextResponse.json({ error: err.message }, { status: 500 })
+    }
+}

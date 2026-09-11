@@ -58,10 +58,13 @@ export async function POST(req: Request) {
 
     if (!type) return NextResponse.json({ error: 'Type is required' }, { status: 400 })
 
+    const tId = teacher_id || null
+    const rTid = replacement_teacher_id || null
+
     const { data: announcement, error: insertError } = await supabase
       .from('course_announcements')
       .insert({
-        type, target_class, subject, teacher_id, replacement_teacher_id,
+        type, target_class, subject, teacher_id: tId, replacement_teacher_id: rTid,
         start_time: start_time || null, end_time: end_time || null,
         info_status, info_text, status: 'pending' // ALWAYS pending initially
       })
@@ -91,6 +94,10 @@ export async function PUT(req: Request) {
 
     const updatePayload = { ...updates, updated_at: new Date().toISOString() }
     if (newStatus) updatePayload.status = newStatus
+    
+    // Fix empty strings for UUID fields
+    if (updatePayload.teacher_id === '') updatePayload.teacher_id = null
+    if (updatePayload.replacement_teacher_id === '') updatePayload.replacement_teacher_id = null
 
     const { data: announcement, error } = await supabase
       .from('course_announcements')

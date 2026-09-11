@@ -20,7 +20,7 @@ import NotificationCenter from './NotificationCenter'
 
 const CATEGORIES = [
   {
-    title: 'Scolarité au quotidien',
+    title: 'Scolarité et quotidien',
     items: [
       { href: '/dashboard', icon: LayoutDashboard, labelKey: 'nav.dashboard', emoji: '🏠' },
       { href: 'PRONOTE', icon: BookOpen, labelKey: 'nav.pronote', emoji: '📚', isExternal: true },
@@ -52,6 +52,7 @@ const ADMIN_NAV = [
   { href: '/admin/users', icon: Users, label: 'Utilisateurs' },
   { href: '/admin/inscriptions', icon: UserPlus, label: 'Inscriptions' },
   { href: '/admin/classes', icon: GraduationCap, label: 'Classes' },
+  { href: '/admin/effectifs', icon: GraduationCap, label: 'Effectifs & Profs' },
   { href: '/admin/options', icon: Library, label: 'Spécialités & Clubs' },
   { href: '/admin/cantine', icon: Utensils, label: 'Cantine' },
   { href: '/admin/finances', icon: Wallet, label: 'Finances' },
@@ -59,7 +60,6 @@ const ADMIN_NAV = [
   { href: '/admin/shop', icon: ShoppingCart, label: 'Boutique' },
   { href: '/admin/roles', icon: Shield, label: 'Rôles & Salaires' },
   { href: '/admin/declarations', icon: Megaphone, label: 'Déclarations' },
-  { href: '/admin/pronote', icon: BookOpen, label: 'Demandes Pronote' },
   { href: '/admin/annonces', icon: Bell, label: 'Annonces' }
 ]
 

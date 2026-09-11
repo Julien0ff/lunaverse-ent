@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import Image from 'next/image'
-import { Search, Loader2, User, Activity, AlertCircle, Download, ShieldCheck, HeartPulse } from 'lucide-react'
+import { Search, Loader2, User, Activity, AlertCircle, Download, ShieldCheck, HeartPulse, Trash2 } from 'lucide-react'
 import clsx from 'clsx'
 
 interface AdminUser {
@@ -20,6 +20,8 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true)
   const [users, setUsers] = useState<AdminUser[]>([])
   const [search, setSearch] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     loadUsers()
@@ -55,6 +57,24 @@ export default function AdminUsersPage() {
     }
   }
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/admin/users?id=${deleteTarget.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setUsers(users.filter(u => u.id !== deleteTarget.id))
+        setDeleteTarget(null)
+      } else {
+        alert("Erreur lors de la suppression")
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const handleDownloadPfp = async (e: React.MouseEvent, url: string, username: string) => {
     e.stopPropagation()
     try {
@@ -83,6 +103,7 @@ export default function AdminUsersPage() {
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-10 h-10 animate-spin text-discord-blurple" /></div>
 
   return (
+    <>
     <div className="space-y-8 animate-fadeIn">
       {/* Header Premium */}
       <div className="relative bg-black/40 border border-white/5 rounded-3xl p-8 overflow-hidden">
@@ -122,6 +143,7 @@ export default function AdminUsersPage() {
                 <th className="py-5 px-6 text-xs font-black text-discord-muted uppercase tracking-[0.2em]">Citoyen</th>
                 <th className="py-5 px-6 text-xs font-black text-discord-muted uppercase tracking-[0.2em] text-right">Patrimoine</th>
                 <th className="py-5 px-6 text-xs font-black text-discord-muted uppercase tracking-[0.2em] text-center">Statut RP / Accès</th>
+                <th className="py-5 px-6 text-xs font-black text-discord-muted uppercase tracking-[0.2em] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -207,6 +229,15 @@ export default function AdminUsersPage() {
                         </button>
                       </div>
                     </td>
+                    <td className="py-4 px-6 text-right">
+                      <button
+                        onClick={() => setDeleteTarget(u)}
+                        className="p-2 rounded-xl bg-white/5 hover:bg-discord-error/20 text-discord-muted hover:text-discord-error transition-all"
+                        title="Supprimer le citoyen"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -215,5 +246,36 @@ export default function AdminUsersPage() {
         </div>
       </div>
     </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#2B2D31] rounded-2xl w-full max-w-md p-6 shadow-2xl border border-discord-error/20">
+            <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+              <AlertCircle className="w-6 h-6 text-discord-error" />
+              Suppression de profil
+            </h3>
+            <p className="text-discord-muted mb-6">
+              Êtes-vous sûr de vouloir supprimer définitivement le citoyen <span className="text-white font-bold">{deleteTarget.nickname_rp || deleteTarget.username}</span> ? Cette action détruira l'accès Auth Supabase ainsi que toutes les données associées.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="px-4 py-2 rounded-xl text-white font-bold hover:bg-white/5 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="px-6 py-2 rounded-xl bg-discord-error hover:bg-discord-error/80 text-white font-bold transition-all disabled:opacity-50"
+              >
+                {deleting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Supprimer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

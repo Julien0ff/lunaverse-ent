@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Clock, Send, Utensils, Info, CheckCircle2, Loader2, Save, Trash2, CalendarDays } from 'lucide-react'
+import { Clock, Send, Utensils, Info, CheckCircle2, Loader2, Save, Trash2, CalendarDays, Sparkles } from 'lucide-react'
 import clsx from 'clsx'
 
 export default function AdminCantinePage() {
@@ -21,7 +21,9 @@ export default function AdminCantinePage() {
   const [main, setMain] = useState('')
   const [side, setSide] = useState('')
   const [dessert, setDessert] = useState('')
+  const [drink, setDrink] = useState('')
   const [addingMenu, setAddingMenu] = useState(false)
+  const [generating, setGenerating] = useState(false)
 
   useEffect(() => {
     loadSettings()
@@ -95,7 +97,7 @@ export default function AdminCantinePage() {
           menu_date: menuDate,
           time_start: startTime,
           time_end: endTime,
-          starter, main, side, dessert
+          starter, main, side, dessert, drink
         })
       })
       if (res.ok) {
@@ -105,6 +107,7 @@ export default function AdminCantinePage() {
         setMain('')
         setSide('')
         setDessert('')
+        setDrink('')
         loadMenus()
       } else {
         const err = await res.json()
@@ -114,6 +117,29 @@ export default function AdminCantinePage() {
       showFeedback('❌ Erreur de connexion.')
     } finally {
       setAddingMenu(false)
+    }
+  }
+
+  const generateAI = async () => {
+    setGenerating(true)
+    showFeedback('⏳ Génération en cours...')
+    try {
+      const res = await fetch('/api/admin/cantine/ai')
+      if (res.ok) {
+        const data = await res.json()
+        setStarter(data.starter || '')
+        setMain(data.main || '')
+        setSide(data.side || '')
+        setDessert(data.dessert || '')
+        setDrink(data.drink || '')
+        showFeedback('✨ Menu généré avec succès !')
+      } else {
+        showFeedback('❌ Erreur lors de la génération.')
+      }
+    } catch (e) {
+      showFeedback('❌ Erreur de connexion au service IA.')
+    } finally {
+      setGenerating(false)
     }
   }
 
@@ -237,9 +263,21 @@ export default function AdminCantinePage() {
           </div>
 
           <div className="glass-card p-6">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-6">
-              <CalendarDays className="w-5 h-5 text-discord-success" /> Ajouter un menu
-            </h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <CalendarDays className="w-5 h-5 text-discord-success" /> Ajouter un menu
+              </h3>
+              <button
+                type="button"
+                onClick={generateAI}
+                disabled={generating}
+                className="btn bg-discord-blurple hover:bg-discord-blurple/80 text-white text-sm px-3 py-1.5 flex items-center gap-2 rounded-lg"
+                title="Générer avec l'IA"
+              >
+                {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                IA
+              </button>
+            </div>
             <form onSubmit={addMenu} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Date</label>
@@ -254,12 +292,16 @@ export default function AdminCantinePage() {
                 <input type="text" value={main} onChange={e => setMain(e.target.value)} className="glass-input w-full" placeholder="Poulet frites..." required />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Laitage / Fromage</label>
-                <input type="text" value={side} onChange={e => setSide(e.target.value)} className="glass-input w-full" placeholder="Camembert..." />
+                <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Plat secondaire / Accompagnement</label>
+                <input type="text" value={side} onChange={e => setSide(e.target.value)} className="glass-input w-full" placeholder="Riz, Pâtes, ou Camembert..." />
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Dessert</label>
                 <input type="text" value={dessert} onChange={e => setDessert(e.target.value)} className="glass-input w-full" placeholder="Tarte aux pommes..." />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Boisson</label>
+                <input type="text" value={drink} onChange={e => setDrink(e.target.value)} className="glass-input w-full" placeholder="Eau de source, Jus d'orange..." />
               </div>
               <button type="submit" disabled={addingMenu} className="btn bg-discord-success hover:bg-discord-success/80 text-black w-full py-3 font-bold flex justify-center mt-2">
                 {addingMenu ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Ajouter au planning'}
