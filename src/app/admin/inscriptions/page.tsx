@@ -178,6 +178,7 @@ export default function AdminInscriptionsPage() {
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-10 h-10 animate-spin text-discord-blurple" /></div>
 
   return (
+    <>
     <div className="space-y-6 animate-fadeIn">
       <div>
         <h2 className="text-3xl font-black text-white">Inscriptions RP</h2>
@@ -353,9 +354,10 @@ export default function AdminInscriptionsPage() {
           ))
         )}
       </div>
+    </div>
 
       {acceptModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
           <div className="bg-[#1e1e24] border border-white/10 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
             <div className="p-6 border-b border-white/10">
               <h3 className="text-xl font-black text-white">Validation de l'inscription</h3>
@@ -395,6 +397,6 @@ export default function AdminInscriptionsPage() {
         </div>
       )}
 
-    </div>
+    </>
   )
 }

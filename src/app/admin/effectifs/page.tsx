@@ -214,22 +214,22 @@ export default function AdminEffectifsPage() {
           <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
             {personnel.length === 0 && <p className="text-discord-muted italic text-center py-4">Aucun personnel enregistré.</p>}
             {personnel.map(p => (
-              <div key={p.id} className="flex gap-3 items-center bg-black/20 p-2 rounded-xl border border-white/5">
+              <div key={p.id} className="flex gap-2 items-center bg-black/20 p-2 rounded-xl border border-white/5">
                 <input 
                   type="text" 
                   value={p.name} 
                   onChange={e => updatePersonnel(p.id, 'name', e.target.value)}
-                  className="glass-input flex-1 bg-transparent border-none"
+                  className="glass-input flex-1"
                   placeholder="Nom du rôle"
                 />
                 <input 
                   type="number" 
                   value={p.capacity} 
                   onChange={e => updatePersonnel(p.id, 'capacity', parseInt(e.target.value) || 0)}
-                  className="glass-input w-24 text-center font-mono bg-white/5"
+                  className="glass-input w-16 text-center font-mono px-2"
                   min="0"
                 />
-                <button onClick={() => removePersonnel(p.id)} className="p-2 text-discord-error hover:bg-discord-error/20 rounded-lg">
+                <button onClick={() => removePersonnel(p.id)} className="p-2 text-discord-error hover:bg-discord-error/20 rounded-lg shrink-0">
                   <Trash2 className="w-5 h-5" />
                 </button>
               </div>
@@ -251,22 +251,22 @@ export default function AdminEffectifsPage() {
           <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
             {classiques.length === 0 && <p className="text-discord-muted italic text-center py-4">Aucune matière enregistrée.</p>}
             {classiques.map(c => (
-              <div key={c.id} className="flex gap-3 items-center bg-black/20 p-2 rounded-xl border border-white/5">
+              <div key={c.id} className="flex gap-2 items-center bg-black/20 p-2 rounded-xl border border-white/5">
                 <input 
                   type="text" 
                   value={c.name} 
                   onChange={e => updateClassique(c.id, 'name', e.target.value)}
-                  className="glass-input flex-1 bg-transparent border-none"
+                  className="glass-input flex-1"
                   placeholder="Nom de la matière"
                 />
                 <input 
                   type="number" 
                   value={c.capacity} 
                   onChange={e => updateClassique(c.id, 'capacity', parseInt(e.target.value) || 0)}
-                  className="glass-input w-20 text-center font-mono bg-white/5"
+                  className="glass-input w-16 text-center font-mono px-2"
                   min="0"
                 />
-                <button onClick={() => removeClassique(c.id)} className="p-2 text-discord-error hover:bg-discord-error/20 rounded-lg">
+                <button onClick={() => removeClassique(c.id)} className="p-2 text-discord-error hover:bg-discord-error/20 rounded-lg shrink-0">
                   <Trash2 className="w-5 h-5" />
                 </button>
               </div>
