@@ -53,8 +53,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const checkAdminStatus = useCallback(async () => {
     if (!profile) return
-    const { data: adminData } = await supabase.from('admins').select('id').eq('profile_id', profile.id).maybeSingle()
-    setIsAdminUser(!!adminData)
+    const { data: rolesData } = await supabase.from('user_roles').select('role:roles(name)').eq('user_id', profile.id)
+    const isAdmin = (rolesData || []).some((ur: any) => ur.role?.name === 'admin')
+    setIsAdminUser(isAdmin)
   }, [profile, supabase])
 
   const fetchAdminSettings = useCallback(async () => {

@@ -17,9 +17,12 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   themeColor: '#5865F2',
   appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
     title: 'LunaVerse',
+    statusBarStyle: 'default',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes',
   },
 }
 
