@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CalendarX2, CheckCircle2, XCircle, Loader2, Search } from 'lucide-react'
+import { CalendarX2, CheckCircle2, XCircle, Loader2, Search, Trash2 } from 'lucide-react'
 import clsx from 'clsx'
 import Image from 'next/image'
 
@@ -56,6 +56,27 @@ export default function AdminAbsencesPage() {
         fetchAbsences()
       } else {
         alert('Erreur lors de la mise à jour.')
+      }
+    } catch (e) {
+      alert('Erreur réseau.')
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Voulez-vous vraiment supprimer cette absence ?')) return
+    setProcessingId(id)
+    try {
+      const res = await fetch('/api/absences/update', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      })
+      if (res.ok) {
+        fetchAbsences()
+      } else {
+        alert('Erreur lors de la suppression.')
       }
     } catch (e) {
       alert('Erreur réseau.')
@@ -163,6 +184,17 @@ export default function AdminAbsencesPage() {
                     )}>
                       {absence.status === 'accepted' ? 'Validée' : 'Refusée'}
                     </span>
+                  )}
+                  
+                  {absence.status !== 'pending' && (
+                    <button 
+                      onClick={() => handleDelete(absence.id)}
+                      disabled={processingId === absence.id}
+                      className="mt-2 p-1.5 text-discord-error hover:bg-discord-error/20 rounded-lg transition-colors flex items-center justify-center"
+                      title="Supprimer l'absence"
+                    >
+                      {processingId === absence.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    </button>
                   )}
                 </div>
               </div>

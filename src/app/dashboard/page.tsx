@@ -99,8 +99,8 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 relative z-10">
         <div className="animate-slideIn">
-          <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 tracking-tight leading-none drop-shadow-sm">
-            {t('dashboard.greeting')}{profile?.username ? <>, <span className="text-transparent bg-clip-text bg-gradient-to-r from-discord-blurple to-fuchsia-500 drop-shadow-[0_0_10px_rgba(88,101,242,0.5)]">{profile.username}</span></> : ''} !
+          <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none drop-shadow-sm">
+            {t('dashboard.greeting')}{profile?.nickname_rp || profile?.username ? <>, <span className="text-discord-blurple drop-shadow-[0_0_10px_rgba(88,101,242,0.5)]">{profile.nickname_rp || profile.username}</span></> : ''} !
           </h1>
           <p className="text-discord-muted mt-2 font-medium text-lg tracking-wide uppercase">{t('dashboard.welcome_back')}</p>
         </div>

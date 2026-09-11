@@ -1283,9 +1283,9 @@ client.on('interactionCreate', async (interaction) => {
 
       const selOpts = new StringSelectMenuBuilder()
         .setCustomId('rp_enroll_spe')
-        .setPlaceholder('Sélectionnez votre spécialité')
+        .setPlaceholder('Sélectionnez vos spécialités')
         .setMinValues(1)
-        .setMaxValues(1)
+        .setMaxValues(opts.length > 0 ? opts.length : 1)
         .addOptions(opts.map((o: string) => new StringSelectMenuOptionBuilder().setLabel(o).setValue(o)))
 
       const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selOpts)
@@ -1909,8 +1909,7 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
       }
 
       const { prenom, nom, dob, adminId, responsesId } = pending
-      const spe = interaction.values[0]
-      const options = [spe]
+      const options = interaction.values
       
       const photo = interaction.user.displayAvatarURL({ size: 512, extension: 'png' })
       

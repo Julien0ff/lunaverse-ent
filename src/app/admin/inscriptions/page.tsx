@@ -147,6 +147,29 @@ export default function AdminInscriptionsPage() {
     setAcceptModalOpen(true)
   }
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Voulez-vous vraiment supprimer cette inscription ?')) return
+    setActionLoading(id)
+    try {
+      const res = await fetch('/api/admin/inscriptions', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      })
+      if (res.ok) {
+        showMsg('success', 'Inscription supprimée.')
+        loadData()
+      } else {
+        const err = await res.json()
+        showMsg('error', err.error || 'Erreur lors de la suppression')
+      }
+    } catch (e) {
+      showMsg('error', 'Erreur de connexion')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   const handleFait = async (id: string) => {
     setActionLoading(id)
     try {

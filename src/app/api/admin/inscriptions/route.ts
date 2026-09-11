@@ -116,7 +116,33 @@ export async function PATCH(request: Request) {
         }
       }
     }
-    // ---------------------------
+    // ----------------------------------------------------
+
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  const supabase = createSupabaseServer()
+  const { data: userRoles } = await supabase.from('user_roles')
+    .select('role_id, roles(name)')
+    .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+
+  const isAdmin = userRoles?.some(r => (r.roles as any)?.name === 'admin')
+  if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+
+  try {
+    const { id } = await request.json()
+    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+
+    const { error } = await supabase
+      .from('inscriptions')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
 
     return NextResponse.json({ success: true })
   } catch (err: any) {
