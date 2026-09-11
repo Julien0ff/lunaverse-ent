@@ -428,6 +428,8 @@
     "rejected": "Demande Refusée",
     "rejected_desc": "Votre demande pour la maison \"{name}\" a été refusée par l'administration.",
     "retry": "Refaire une demande",
+    "maintenance_title": "En Maintenance",
+    "maintenance_desc": "Le système de maisons est actuellement désactivé. Une refonte complète de la fonctionnalité est en cours de préparation.",
     "become_owner": "Devenez Propriétaire",
     "become_desc": "Faites une demande pour obtenir votre propre maison privée sur LunaVerse. Une fois validée, un salon Discord vous sera dédié.",
     "tab_info": "Info",
@@ -506,9 +508,5 @@
     "no_comments": "Aucun commentaire pour le moment.",
     "post_error": "Erreur lors de la création du post.",
     "nothing_preview": "_Rien à prévisualiser_"
-  },
-  "maison_page": {
-    "maintenance_title": "En Maintenance",
-    "maintenance_desc": "Le système de maisons est actuellement désactivé. Une refonte complète de la fonctionnalité est en cours de préparation."
   }
 }

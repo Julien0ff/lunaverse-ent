@@ -16,6 +16,7 @@ export interface Profile {
   fatigue:  number; // 0-100, fatigue
   hygiene:  number; // 0-100, hygiène
   alcohol:  number; // 0-100, alcoolémie
+  nickname_rp: string | null;
   // Dating fields
   dating_photo_url: string | null;
   dating_bio: string | null;

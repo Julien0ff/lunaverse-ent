@@ -19,6 +19,7 @@ interface Profile {
   fatigue?: number
   hygiene?: number
   alcohol?: number
+  nickname_rp?: string | null
   // Dating
   dating_photo_url?: string | null
   dating_bio?: string | null
