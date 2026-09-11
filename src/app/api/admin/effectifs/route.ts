@@ -59,6 +59,11 @@ export async function PATCH(req: Request) {
     if (body.salon_effectifs !== undefined) {
       await admin.from('server_settings').upsert({ key: 'salon_effectifs', value: body.salon_effectifs })
     }
+    
+    // Save options data (specialites)
+    if (body.options) {
+      await admin.from('server_settings').upsert({ key: 'rp_options', value: body.options })
+    }
 
     return NextResponse.json({ success: true })
   } catch (err: any) {

@@ -71,6 +71,7 @@ export default function AdminEffectifsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           effectifs: effectifsData,
+          options: specialites,
           salon_effectifs: salonDiscord
         })
       })
@@ -219,14 +220,14 @@ export default function AdminEffectifsPage() {
                   type="text" 
                   value={p.name} 
                   onChange={e => updatePersonnel(p.id, 'name', e.target.value)}
-                  className="glass-input flex-1"
+                  className="glass-input flex-1 min-w-0"
                   placeholder="Nom du rôle"
                 />
                 <input 
                   type="number" 
                   value={p.capacity} 
                   onChange={e => updatePersonnel(p.id, 'capacity', parseInt(e.target.value) || 0)}
-                  className="glass-input w-16 text-center font-mono px-2"
+                  className="glass-input w-20 shrink-0 text-center font-mono px-2"
                   min="0"
                 />
                 <button onClick={() => removePersonnel(p.id)} className="p-2 text-discord-error hover:bg-discord-error/20 rounded-lg shrink-0">
@@ -256,14 +257,14 @@ export default function AdminEffectifsPage() {
                   type="text" 
                   value={c.name} 
                   onChange={e => updateClassique(c.id, 'name', e.target.value)}
-                  className="glass-input flex-1"
+                  className="glass-input flex-1 min-w-0"
                   placeholder="Nom de la matière"
                 />
                 <input 
                   type="number" 
                   value={c.capacity} 
                   onChange={e => updateClassique(c.id, 'capacity', parseInt(e.target.value) || 0)}
-                  className="glass-input w-16 text-center font-mono px-2"
+                  className="glass-input w-20 shrink-0 text-center font-mono px-2"
                   min="0"
                 />
                 <button onClick={() => removeClassique(c.id)} className="p-2 text-discord-error hover:bg-discord-error/20 rounded-lg shrink-0">
