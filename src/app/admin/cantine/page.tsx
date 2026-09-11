@@ -134,7 +134,8 @@ export default function AdminCantinePage() {
         setDrink(data.drink || '')
         showFeedback('✨ Menu généré avec succès !')
       } else {
-        showFeedback('❌ Erreur lors de la génération.')
+        const errData = await res.json().catch(() => ({}))
+        showFeedback(`❌ Erreur : ${errData.error || 'lors de la génération.'}`)
       }
     } catch (e) {
       showFeedback('❌ Erreur de connexion au service IA.')
