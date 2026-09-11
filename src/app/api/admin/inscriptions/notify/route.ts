@@ -68,6 +68,77 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Erreur Discord' }, { status: 500 })
     }
 
+    // --- Discord Member Automation (Nickname & Roles) ---
+    try {
+      const guildId = '1216443076168515724'
+      
+      // Fetch classes from settings to get the role ID
+      const { data: classesData } = await supabase
+        .from('server_settings')
+        .select('value')
+        .eq('key', 'rp_classes')
+        .single()
+      
+      let classRoleId = null
+      if (classesData?.value && Array.isArray(classesData.value)) {
+        const classeDef = classesData.value.find((c: any) => c.name === inscription.classe)
+        if (classeDef && classeDef.roleId) {
+          classRoleId = classeDef.roleId
+        }
+      }
+
+      // Fetch member and roles
+      const [memRes, rolesRes] = await Promise.all([
+        fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${targetUserId}`, {
+          headers: { 'Authorization': `Bot ${token}` }
+        }),
+        fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, {
+          headers: { 'Authorization': `Bot ${token}` }
+        })
+      ])
+
+      if (memRes.ok && rolesRes.ok) {
+        const memberData = await memRes.json()
+        const rolesData = await rolesRes.json()
+        
+        const currentRoles = memberData.roles || []
+        const newRoles = new Set<string>(currentRoles)
+        
+        const eleveRole = rolesData.find((r: any) => r.name.toLowerCase() === 'élève' || r.name.toLowerCase() === 'eleve')
+        const ROLE_ELEVE = eleveRole ? eleveRole.id : '1487571354323648582'
+        
+        newRoles.add(ROLE_ELEVE)
+        if (classRoleId) {
+          newRoles.add(classRoleId)
+        }
+        
+        // Add option roles
+        if (inscription.options && Array.isArray(inscription.options) && inscription.options.length > 0) {
+          const { data: dbRoles } = await supabase.from('roles').select('discord_role_id').in('name', inscription.options)
+          if (dbRoles) {
+            dbRoles.forEach(r => {
+              if (r.discord_role_id) newRoles.add(r.discord_role_id)
+            })
+          }
+        }
+
+        const nick = inscription.classe 
+          ? `${inscription.classe}・${inscription.prenom} ${inscription.nom.toUpperCase()}`
+          : `${inscription.prenom} ${inscription.nom.toUpperCase()}`
+          
+        let finalNick = nick.substring(0, 32)
+        
+        await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${targetUserId}`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `Bot ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roles: Array.from(newRoles), nick: finalNick })
+        })
+      }
+    } catch (err) {
+      console.error('Discord automation error:', err)
+    }
+    // ----------------------------------------------------
+
     // Update status to 'completed'
     await supabase.from('inscriptions').update({ status: 'completed' }).eq('id', id)
 

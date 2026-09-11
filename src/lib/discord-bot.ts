@@ -958,47 +958,7 @@ client.on('ready', async () => {
 
                 await (rChan as any).send({ content: `<@${newRec.discord_id}>`, embeds: [infoEmbed], components: [row] })
                 
-                // --- Role automation ---
-                const guild = client.guilds.cache.first()
-                if (guild) {
-                  const member = await guild.members.fetch(newRec.discord_id).catch(() => null)
-                  if (member) {
-                    const newNick = newRec.classe
-                      ? `${newRec.classe}・${newRec.prenom} ${newRec.nom.toUpperCase()}`.substring(0, 32)
-                      : `${newRec.prenom} ${newRec.nom.toUpperCase()}`.substring(0, 32)
-                      
-                    await member.setNickname(newNick).catch(() => null)
-                    
-                    const eleveRole = guild.roles.cache.find(r => r.name.toLowerCase() === 'élève' || r.name.toLowerCase() === 'eleve')
-                    const rolesToAdd = eleveRole ? [eleveRole.id] : [ROLE_ELEVE]
-                    
-                    if (newRec.classe) {
-                      const classRole = guild.roles.cache.find(r => r.name.toLowerCase() === newRec.classe.toLowerCase())
-                      if (classRole) rolesToAdd.push(classRole.id)
-                    }
-
-                    // Add specialties (options) roles dynamically
-                    if (newRec.options && Array.isArray(newRec.options) && newRec.options.length > 0) {
-                      try {
-                        const { data: dbRoles } = await supabase
-                          .from('roles')
-                          .select('discord_role_id')
-                          .in('name', newRec.options)
-                        
-                        if (dbRoles && dbRoles.length > 0) {
-                          for (const role of dbRoles) {
-                            if (role.discord_role_id) {
-                              rolesToAdd.push(role.discord_role_id)
-                            }
-                          }
-                        }
-                      } catch (err) {
-                        console.error('Error fetching option roles:', err)
-                      }
-                    }
-                    await member.roles.add(rolesToAdd).catch(() => null)
-                  }
-                }
+                // --- Removed: Role automation and renaming now happens when "Fait (Pronote)" is clicked via notify API ---
               } else {
                 // refused
                 const infoEmbed = new EmbedBuilder()
