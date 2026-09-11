@@ -227,7 +227,7 @@ export default function AdminEffectifsPage() {
                   type="number" 
                   value={p.capacity} 
                   onChange={e => updatePersonnel(p.id, 'capacity', parseInt(e.target.value) || 0)}
-                  className="glass-input w-20 shrink-0 text-center font-mono px-2"
+                  className="glass-input !w-16 !px-2 shrink-0 text-center font-mono"
                   min="0"
                 />
                 <button onClick={() => removePersonnel(p.id)} className="p-2 text-discord-error hover:bg-discord-error/20 rounded-lg shrink-0">
@@ -264,7 +264,7 @@ export default function AdminEffectifsPage() {
                   type="number" 
                   value={c.capacity} 
                   onChange={e => updateClassique(c.id, 'capacity', parseInt(e.target.value) || 0)}
-                  className="glass-input w-20 shrink-0 text-center font-mono px-2"
+                  className="glass-input !w-16 !px-2 shrink-0 text-center font-mono"
                   min="0"
                 />
                 <button onClick={() => removeClassique(c.id)} className="p-2 text-discord-error hover:bg-discord-error/20 rounded-lg shrink-0">
@@ -291,7 +291,7 @@ export default function AdminEffectifsPage() {
                   type="number" 
                   value={s.capacity} 
                   onChange={e => updateSpecialite(s.id, parseInt(e.target.value) || 0)}
-                  className="glass-input w-24 text-center font-mono bg-white/5"
+                  className="glass-input !w-20 !px-2 text-center font-mono bg-white/5 shrink-0"
                   min="0"
                   placeholder="Places"
                 />
