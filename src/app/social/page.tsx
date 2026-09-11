@@ -305,18 +305,18 @@ export default function SocialPage() {
   return (
     <div className="page-container">
       {/* Header */}
-      <div className="animate-slideIn">
-        <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-3">
-          <Globe className="w-10 h-10 text-discord-blurple" />
+      <div className="animate-slideIn mb-8">
+        <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-discord-blurple to-purple-500 tracking-tight flex items-center gap-3">
+          <Globe className="w-10 h-10 text-discord-blurple drop-shadow-md" />
           {t('social_page.title')}
         </h1>
-        <p className="text-discord-muted mt-1 font-medium">
+        <p className="text-discord-muted mt-2 font-medium max-w-2xl">
           {t('social_page.subtitle')}
         </p>
       </div>
 
       {/* ── Post editor ──────────────────────────────────────── */}
-      <div className="glass-card animate-fadeIn space-y-3">
+      <div className="glass-card animate-fadeIn space-y-4 p-5 shadow-lg shadow-black/20 border-white/10 hover:border-white/20 transition-colors">
         {/* Author row */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 relative rounded-full overflow-hidden ring-2 ring-discord-blurple/25 flex-shrink-0">

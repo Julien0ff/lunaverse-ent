@@ -148,35 +148,41 @@ export default function AdminRolesPage() {
 
             {errorMsg && <p className="text-discord-error text-sm font-bold bg-discord-error/10 p-3 rounded-lg mb-4">{errorMsg}</p>}
             
-            <form onSubmit={handleSave} className="space-y-4">
-              <label className="flex items-center gap-3 cursor-pointer py-2">
-                <input
-                  type="checkbox"
-                  checked={editingRole.can_connect}
-                  onChange={e => setEditingRole({...editingRole, can_connect: e.target.checked})}
-                  className="luna-checkbox"
-                />
-                <div>
-                  <p className="font-bold text-white text-sm">Autoriser la connexion à l'ENT</p>
-                  <p className="text-xs text-discord-muted">Si coché, les membres ayant ce rôle pourront se connecter au site.</p>
-                </div>
-              </label>
+            <form onSubmit={handleSave} className="space-y-6">
+              <div className="bg-black/20 border border-white/5 p-4 rounded-xl">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingRole.can_connect}
+                    onChange={e => setEditingRole({...editingRole, can_connect: e.target.checked})}
+                    className="mt-1 w-5 h-5 rounded border-gray-600 text-discord-blurple focus:ring-discord-blurple bg-black/50"
+                  />
+                  <div>
+                    <p className="font-bold text-white text-base">Autoriser la connexion à l'ENT</p>
+                    <p className="text-sm text-discord-muted mt-0.5">Si coché, les membres ayant ce rôle pourront se connecter au site avec leur compte Discord.</p>
+                  </div>
+                </label>
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Salaire/Jour (€)</label>
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest flex items-center gap-2">
+                    Salaire / Jour (€)
+                  </label>
                   <input 
                     type="number" value={editingRole.salary_amount} 
                     onChange={e => setEditingRole({...editingRole, salary_amount: Number(e.target.value)})} 
-                    className="input-field mt-1" min="0" 
+                    className="glass-input w-full font-mono text-lg" min="0" 
                   />
                 </div>
-                <div>
-                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Argent de poche/Jour (€)</label>
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest flex items-center gap-2">
+                    Argent de poche / Jour (€)
+                  </label>
                   <input 
                     type="number" value={editingRole.pocket_money} 
                     onChange={e => setEditingRole({...editingRole, pocket_money: Number(e.target.value)})} 
-                    className="input-field mt-1" min="0" 
+                    className="glass-input w-full font-mono text-lg" min="0" 
                   />
                 </div>
               </div>

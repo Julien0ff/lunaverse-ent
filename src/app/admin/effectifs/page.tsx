@@ -40,12 +40,14 @@ export default function AdminEffectifsPage() {
         }))
         setSpecialites(optionsList)
         
-        setClassiques(data.effectifs.classiques || [])
-        setPersonnel(data.effectifs.personnel || [
-          { id: '1', name: 'Infirmier(e)', capacity: 1 },
-          { id: '2', name: 'Psychologue', capacity: 1 },
-          { id: '3', name: 'Conseiller d\'orientation', capacity: 1 }
-        ])
+        const loadEffectifItems = (items: any[]) => items.map(item => ({...item, id: item.id || Math.random().toString()}))
+
+        setClassiques(loadEffectifItems(data.effectifs.classiques || []))
+        setPersonnel(loadEffectifItems(data.effectifs.personnel || [
+          { name: 'Infirmier(e)', capacity: 1 },
+          { name: 'Psychologue', capacity: 1 },
+          { name: 'Conseiller d\'orientation', capacity: 1 }
+        ]))
       }
     } catch (e) {
       console.error(e)
@@ -129,6 +131,12 @@ export default function AdminEffectifsPage() {
   const updatePersonnel = (id: string, field: 'name' | 'capacity', value: any) => {
     setPersonnel(personnel.map(c => c.id === id ? { ...c, [field]: value } : c))
   }
+  const addPersonnel = () => {
+    setPersonnel([...personnel, { id: Math.random().toString(), name: 'Nouveau Personnel', capacity: 0 }])
+  }
+  const removePersonnel = (id: string) => {
+    setPersonnel(personnel.filter(c => c.id !== id))
+  }
 
   const updateSpecialite = (id: string, value: number) => {
     setSpecialites(specialites.map(c => c.id === id ? { ...c, capacity: value } : c))
@@ -197,25 +205,33 @@ export default function AdminEffectifsPage() {
 
         {/* Personnel Scolaire */}
         <div className="glass-card p-6 space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between border-b border-white/5 pb-4">
             <h3 className="text-lg font-bold text-white">Personnel Scolaire</h3>
+            <button onClick={addPersonnel} className="p-2 rounded-xl bg-discord-success/20 text-discord-success hover:bg-discord-success/30 transition-colors">
+              <Plus className="w-5 h-5" />
+            </button>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+            {personnel.length === 0 && <p className="text-discord-muted italic text-center py-4">Aucun personnel enregistré.</p>}
             {personnel.map(p => (
-              <div key={p.id} className="flex gap-3 items-center">
+              <div key={p.id} className="flex gap-3 items-center bg-black/20 p-2 rounded-xl border border-white/5">
                 <input 
                   type="text" 
                   value={p.name} 
                   onChange={e => updatePersonnel(p.id, 'name', e.target.value)}
-                  className="glass-input flex-1"
+                  className="glass-input flex-1 bg-transparent border-none"
+                  placeholder="Nom du rôle"
                 />
                 <input 
                   type="number" 
                   value={p.capacity} 
                   onChange={e => updatePersonnel(p.id, 'capacity', parseInt(e.target.value) || 0)}
-                  className="glass-input w-24 text-center font-mono"
+                  className="glass-input w-24 text-center font-mono bg-white/5"
                   min="0"
                 />
+                <button onClick={() => removePersonnel(p.id)} className="p-2 text-discord-error hover:bg-discord-error/20 rounded-lg">
+                  <Trash2 className="w-5 h-5" />
+                </button>
               </div>
             ))}
           </div>

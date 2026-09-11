@@ -31,22 +31,14 @@ interface RpClass {
   channelId: string
 }
 
-const SUBJECTS = [
-  'ALLEMAND', 'ANGLAIS', 'ARTS PLASTIQUES', 'BRANLETTE COLLECTIVE', 'CLUB (au choix)',
-  'CRIMINOLOGIE', 'CUISINE', 'CYBERSÉCURITÉ', 'DROIT', 'DROIT CONSTITUTIONNEL DE LA VE RÉPUBLIQUE',
-  'ÉDUCATION MORALE ET CIVIQUE', 'ÉDUCATION MUSICALE', 'ÉDUCATION PHYSIQUE ET SPORTIVE',
-  'ESPAGNOL', 'EVENT', 'EXAMENS NATIONAUX', 'FORMATION HUMAINE', 'FRANÇAIS',
-  'Gestion Etab', 'HISTOIRE-GÉOGRAPHIE', 'HYMNE', 'INFIRMERIE', 'MATHÉMATIQUES',
-  'Matière non désignée', 'Permanence', 'PHYSIQUE-CHIMIE', 'PPMS', 'Prévention',
-  'Réservation de salle', 'SCIENCE DE LA VIE QUOTIDIENNE', 'SCIENCES DE LA VIE ET DE LA TERRE',
-  'SCIENCES ÉCONOMIQUES ET SOCIALES', 'SORTIE SCOLAIRE', 'TECHNOLOGIE', 'TP PHYSIQUE-CHIMIE',
-  'VIE POLITIQUE FRANÇAISE'
-]
+
 
 export default function AdminAnnoncesPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [classes, setClasses] = useState<RpClass[]>([])
+  const [subjects, setSubjects] = useState<string[]>([])
+  const [salonDiscord, setSalonDiscord] = useState('')
   const [loading, setLoading] = useState(true)
   
   const [showModal, setShowModal] = useState(false)
@@ -78,6 +70,11 @@ export default function AdminAnnoncesPage() {
       if (annRes.ok) {
         const d = await annRes.json()
         setAnnouncements(d.items || [])
+        setSalonDiscord(d.salon_annonces || '')
+        setSubjects(d.matieres || [])
+        if (d.matieres?.length > 0) {
+          setFormData(prev => ({...prev, subject: d.matieres[0]}))
+        }
       }
       if (usrRes.ok) {
         const u = await usrRes.json()
@@ -141,6 +138,19 @@ export default function AdminAnnoncesPage() {
     }
   }
 
+  const handleSaveSettings = async () => {
+    try {
+      await fetch('/api/admin/effectifs', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ salon_annonces: salonDiscord })
+      })
+      alert('✅ Salon sauvegardé')
+    } catch (e) {
+      alert('❌ Erreur de sauvegarde')
+    }
+  }
+
   return (
     <>
     <div className="space-y-8 animate-fadeIn max-w-6xl">
@@ -158,6 +168,22 @@ export default function AdminAnnoncesPage() {
         >
           <Plus className="w-5 h-5" /> Créer une annonce
         </button>
+      </div>
+
+      <div className="glass-card p-5 max-w-md">
+        <h3 className="text-sm font-bold text-white mb-3">Configuration Discord</h3>
+        <div className="flex gap-2">
+          <input 
+            type="text" 
+            value={salonDiscord} 
+            onChange={e => setSalonDiscord(e.target.value)} 
+            placeholder="ID du Salon Info-Trafic"
+            className="glass-input flex-1"
+          />
+          <button onClick={handleSaveSettings} className="btn bg-white/10 hover:bg-white/20 px-4">
+            <Save className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -251,7 +277,7 @@ export default function AdminAnnoncesPage() {
               <div>
                 <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Matière / Raison</label>
                 <select value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} className="glass-input w-full mt-1" required>
-                  {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                  {subjects.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
 

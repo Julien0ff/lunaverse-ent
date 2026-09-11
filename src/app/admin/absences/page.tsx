@@ -1,27 +1,40 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Calendar, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Paperclip } from 'lucide-react'
-import Image from 'next/image'
+import { CalendarX2, CheckCircle2, XCircle, Loader2, Search } from 'lucide-react'
 import clsx from 'clsx'
+import Image from 'next/image'
+
+interface Absence {
+  id: string
+  user_id: string
+  reason: string
+  duration: string
+  attachments: string
+  status: 'pending' | 'accepted' | 'rejected'
+  created_at: string
+  profile?: {
+    username: string
+    nickname_rp: string
+    avatar_url: string
+  }
+}
 
 export default function AdminAbsencesPage() {
-  const [absences, setAbsences] = useState<any[]>([])
+  const [absences, setAbsences] = useState<Absence[]>([])
   const [loading, setLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
-  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [filter, setFilter] = useState<'pending' | 'accepted' | 'refused' | 'all'>('pending')
+  const [processingId, setProcessingId] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
-    loadAbsences()
+    fetchAbsences()
   }, [])
 
-  const loadAbsences = async () => {
-    setLoading(true)
+  const fetchAbsences = async () => {
     try {
-      const r = await fetch('/api/admin/absences')
-      if (r.ok) {
-        const data = await r.json()
+      const res = await fetch('/api/absences')
+      if (res.ok) {
+        const data = await res.json()
         setAbsences(data.items || [])
       }
     } catch (e) {
@@ -31,158 +44,136 @@ export default function AdminAbsencesPage() {
     }
   }
 
-  const showMsg = (type: 'success'|'error', text: string) => {
-    setMsg({ type, text })
-    setTimeout(() => setMsg(null), 3000)
-  }
-
-  const handleAction = async (id: string, status: 'accepted' | 'refused') => {
-    setActionLoading(id)
+  const handleUpdate = async (id: string, status: 'accepted' | 'rejected') => {
+    setProcessingId(id)
     try {
-      const res = await fetch('/api/admin/absences', {
+      const res = await fetch('/api/absences/update', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, status })
       })
       if (res.ok) {
-        showMsg('success', `Absence ${status === 'accepted' ? 'acceptée' : 'refusée'} avec succès.`)
-        loadAbsences()
+        fetchAbsences()
       } else {
-        const err = await res.json()
-        showMsg('error', err.error || 'Erreur lors de l\'action')
+        alert('Erreur lors de la mise à jour.')
       }
     } catch (e) {
-      showMsg('error', 'Erreur de connexion')
+      alert('Erreur réseau.')
     } finally {
-      setActionLoading(null)
+      setProcessingId(null)
     }
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'accepted': return <CheckCircle2 className="w-5 h-5" />
-      case 'refused': return <XCircle className="w-5 h-5" />
-      default: return <Clock className="w-5 h-5" />
-    }
-  }
-
-  const filtered = filter === 'all' ? absences : absences.filter(a => a.status === filter)
-
-  if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-10 h-10 animate-spin text-discord-blurple" /></div>
+  const filtered = absences.filter(a => 
+    a.profile?.nickname_rp?.toLowerCase().includes(search.toLowerCase()) || 
+    a.profile?.username?.toLowerCase().includes(search.toLowerCase()) ||
+    a.reason.toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <div>
-        <h2 className="text-3xl font-black text-white">Gestion des Absences</h2>
-        <p className="text-discord-muted">Validez ou refusez les justifications d'absence des joueurs.</p>
+    <div className="space-y-8 animate-fadeIn max-w-6xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div>
+          <h2 className="text-3xl font-black text-white flex items-center gap-3">
+            <CalendarX2 className="text-discord-blurple w-8 h-8" />
+            Gestion des Absences
+          </h2>
+          <p className="text-discord-muted mt-2">Validez ou refusez les billets d'absences soumis par les citoyens.</p>
+        </div>
+        
+        <div className="relative w-full md:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-discord-muted" />
+          <input 
+            type="text" 
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher..."
+            className="glass-input pl-10 w-full"
+          />
+        </div>
       </div>
 
-      {msg && (
-        <div className={clsx("p-4 rounded-xl text-sm font-bold flex items-center gap-2", msg.type === 'success' ? "bg-discord-success/10 text-discord-success" : "bg-discord-error/10 text-discord-error")}>
-          <AlertCircle className="w-5 h-5" /> {msg.text}
+      {loading ? (
+        <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-discord-blurple" /></div>
+      ) : (
+        <div className="space-y-4">
+          {filtered.length > 0 ? filtered.map(absence => (
+            <div key={absence.id} className={clsx(
+              "glass-card p-5 border-l-4 transition-colors",
+              absence.status === 'accepted' ? "border-discord-success" : 
+              absence.status === 'rejected' ? "border-discord-error" : "border-yellow-500"
+            )}>
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="flex items-center gap-4">
+                  {absence.profile?.avatar_url ? (
+                    <Image src={absence.profile.avatar_url} alt="avatar" width={48} height={48} className="rounded-full shadow-lg" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-discord-blurple flex items-center justify-center font-bold text-white shadow-lg">
+                      {absence.profile?.nickname_rp?.[0] || '?'}
+                    </div>
+                  )}
+                  
+                  <div>
+                    <h3 className="font-bold text-white text-lg">
+                      {absence.profile?.nickname_rp || absence.profile?.username || 'Utilisateur inconnu'}
+                    </h3>
+                    <p className="text-sm text-discord-muted">
+                      Durée : <span className="font-bold text-white">{absence.duration}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex-1 bg-black/20 p-4 rounded-xl border border-white/5 mx-4 max-w-2xl">
+                  <p className="text-sm text-gray-300 italic">"{absence.reason}"</p>
+                  {absence.attachments && (
+                    <a href={absence.attachments} target="_blank" rel="noreferrer" className="text-discord-blurple text-xs font-bold mt-2 inline-block hover:underline">
+                      🔗 Voir le justificatif
+                    </a>
+                  )}
+                </div>
+
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <div className="text-xs text-gray-400 mb-1">
+                    {new Date(absence.created_at).toLocaleDateString('fr-FR')} à {new Date(absence.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  
+                  {absence.status === 'pending' ? (
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleUpdate(absence.id, 'accepted')} 
+                        disabled={processingId === absence.id}
+                        className="p-2 bg-discord-success/10 hover:bg-discord-success/20 text-discord-success rounded-xl flex items-center gap-2 font-bold text-sm transition-colors"
+                      >
+                        {processingId === absence.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                        Valider
+                      </button>
+                      <button 
+                        onClick={() => handleUpdate(absence.id, 'rejected')} 
+                        disabled={processingId === absence.id}
+                        className="p-2 bg-discord-error/10 hover:bg-discord-error/20 text-discord-error rounded-xl flex items-center gap-2 font-bold text-sm transition-colors"
+                      >
+                        {processingId === absence.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                        Refuser
+                      </button>
+                    </div>
+                  ) : (
+                    <span className={clsx(
+                      "px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest",
+                      absence.status === 'accepted' ? "bg-discord-success text-black" : "bg-discord-error text-white"
+                    )}>
+                      {absence.status === 'accepted' ? 'Validée' : 'Refusée'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )) : (
+            <div className="p-12 text-center glass-card">
+              <p className="text-discord-muted font-medium">Aucune absence trouvée.</p>
+            </div>
+          )}
         </div>
       )}
-
-      <div className="flex gap-2">
-        {(['pending', 'accepted', 'refused', 'all'] as const).map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={clsx(
-              "px-4 py-2 rounded-xl text-sm font-bold transition-all border",
-              filter === f 
-                ? "bg-white/10 text-white border-white/20" 
-                : "bg-transparent text-discord-muted border-transparent hover:bg-white/5 hover:text-white"
-            )}
-          >
-            {f === 'pending' && `En attente (${absences.filter(i => i.status === 'pending').length})`}
-            {f === 'accepted' && `Acceptées (${absences.filter(i => i.status === 'accepted').length})`}
-            {f === 'refused' && `Refusées (${absences.filter(i => i.status === 'refused').length})`}
-            {f === 'all' && 'Toutes'}
-          </button>
-        ))}
-      </div>
-
-      <div className="space-y-4">
-        {filtered.length === 0 ? (
-          <div className="glass-card text-center py-12 text-discord-muted">
-            <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Aucune absence trouvée pour ce filtre.</p>
-          </div>
-        ) : (
-          filtered.map(abs => (
-            <div key={abs.id} className="glass-card flex flex-col md:flex-row justify-between gap-6 relative overflow-hidden group">
-              {abs.status === 'pending' && <div className="absolute top-0 left-0 w-1 h-full bg-discord-warning" />}
-              {abs.status === 'accepted' && <div className="absolute top-0 left-0 w-1 h-full bg-discord-success" />}
-              {abs.status === 'refused' && <div className="absolute top-0 left-0 w-1 h-full bg-discord-error" />}
-              
-              <div className="flex-1 space-y-4">
-                <div className="flex items-center gap-3">
-                   {abs.profile && (
-                     <div className="flex items-center gap-2 bg-white/5 px-2 py-1 rounded-lg border border-white/5">
-                        <div className="w-6 h-6 rounded-full overflow-hidden relative">
-                           <Image src={abs.profile.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} fill alt="" />
-                        </div>
-                        <span className="text-sm font-black text-discord-blurple uppercase tracking-widest">{abs.profile.nickname_rp || abs.profile.username}</span>
-                     </div>
-                   )}
-                   <span className="text-xs bg-white/5 text-discord-muted px-2 py-1 rounded-full font-mono flex items-center gap-1">
-                     <Calendar className="w-3 h-3" /> {new Date(abs.created_at).toLocaleDateString()}
-                   </span>
-                   <span className="text-xs bg-white/5 text-discord-muted px-2 py-1 rounded-full font-mono flex items-center gap-1">
-                     <Clock className="w-3 h-3" /> {abs.duration}
-                   </span>
-                </div>
-
-                <div className="bg-white/5 p-4 rounded-xl">
-                  <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-2">Motif de l'absence</p>
-                  <p className="text-sm text-white">{abs.reason}</p>
-                </div>
-                
-                {abs.attachments && (
-                  <div className="bg-white/5 p-3 rounded-xl border border-white/5 flex items-center gap-3">
-                    <Paperclip className="w-4 h-4 text-discord-muted" />
-                    <p className="text-xs text-discord-muted truncate">{abs.attachments}</p>
-                  </div>
-                )}
-              </div>
-
-              {abs.status === 'pending' && (
-                <div className="flex md:flex-col gap-2 shrink-0 md:w-48">
-                  <button 
-                    onClick={() => handleAction(abs.id, 'accepted')}
-                    disabled={actionLoading === abs.id}
-                    className="btn btn-success flex-1 flex items-center justify-center gap-2"
-                  >
-                    {actionLoading === abs.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                    Accepter
-                  </button>
-                  <button 
-                    onClick={() => handleAction(abs.id, 'refused')}
-                    disabled={actionLoading === abs.id}
-                    className="btn btn-error flex-1 flex items-center justify-center gap-2"
-                  >
-                    {actionLoading === abs.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                    Refuser
-                  </button>
-                </div>
-              )}
-              
-              {abs.status !== 'pending' && (
-                <div className="flex flex-col justify-center items-center shrink-0 md:w-48 bg-white/5 rounded-xl border border-white/5">
-                   <p className={clsx(
-                     "text-sm font-black uppercase tracking-widest flex items-center gap-2",
-                     abs.status === 'accepted' ? "text-discord-success" : "text-discord-error"
-                   )}>
-                     {getStatusIcon(abs.status)}
-                     {abs.status === 'accepted' ? 'Acceptée' : 'Refusée'}
-                   </p>
-                </div>
-              )}
-            </div>
-          ))
-        )}
-      </div>
     </div>
   )
 }

@@ -1,10 +1,10 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
-// Status emojis provided by user
-const EMOJI_AVAILABLE = '<:upall:1293639606599946251>' // Il y'a de la place
-const EMOJI_WARNING = '<:pertube:1303721617536323674>' // Attention (reste peu de places)
-const EMOJI_FULL = '<:down:1293639406892355645>' // Plus de place
+// Status emojis provided by user (Animated)
+const EMOJI_AVAILABLE = '<a:upall:1293639606599946251>' // Il y'a de la place
+const EMOJI_WARNING = '<a:pertube:1303721617536323674>' // Attention (reste peu de places)
+const EMOJI_FULL = '<a:down:1293639406892355645>' // Plus de place
 
 function getEmoji(capacity: number) {
   if (capacity >= 5) return EMOJI_AVAILABLE
@@ -38,15 +38,15 @@ export async function POST(req: Request) {
     const specialites = options || []
 
     let textClassiques = classiques.map((m: any) => 
-      `${getEmoji(m.capacity)} **${m.name}** : ${m.capacity} place(s) libre(s)`
+      `${getEmoji(m.capacity)} **${m.name}** : ${m.capacity} place${m.capacity > 1 ? 's' : ''} libre${m.capacity > 1 ? 's' : ''}`
     ).join('\n') || '*Aucune matière enregistrée.*'
 
     let textSpecialites = specialites.map((s: any) => 
-      `${getEmoji(s.capacity || 0)} **${s.name}** : ${s.capacity || 0} place(s) libre(s)`
+      `${getEmoji(s.capacity || 0)} **${s.name}** : ${s.capacity || 0} place${(s.capacity || 0) > 1 ? 's' : ''} libre${(s.capacity || 0) > 1 ? 's' : ''}`
     ).join('\n') || '*Aucune spécialité enregistrée.*'
 
     let textPersonnel = personnel.map((p: any) => 
-      `${getEmoji(p.capacity)} **${p.name}** : ${p.capacity} place(s) libre(s)`
+      `${getEmoji(p.capacity)} **${p.name}** : ${p.capacity} place${p.capacity > 1 ? 's' : ''} libre${p.capacity > 1 ? 's' : ''}`
     ).join('\n') || '*Aucun personnel enregistré.*'
 
     const embed = {

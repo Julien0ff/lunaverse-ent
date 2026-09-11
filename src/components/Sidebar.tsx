@@ -60,7 +60,8 @@ const ADMIN_NAV = [
   { href: '/admin/shop', icon: ShoppingCart, label: 'Boutique' },
   { href: '/admin/roles', icon: Shield, label: 'Rôles & Salaires' },
   { href: '/admin/declarations', icon: Megaphone, label: 'Déclarations' },
-  { href: '/admin/annonces', icon: Bell, label: 'Annonces' }
+  { href: '/admin/annonces', icon: Bell, label: 'Annonces' },
+  { href: '/admin/absences', icon: Calendar, label: 'Absences' }
 ]
 
 // Status dot color from discord_status

@@ -128,14 +128,21 @@ export async function POST(request: Request) {
           
         let finalNick = nick.substring(0, 32)
         
-        await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${targetUserId}`, {
+        const patchRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${targetUserId}`, {
           method: 'PATCH',
           headers: { 'Authorization': `Bot ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ roles: Array.from(newRoles), nick: finalNick })
         })
+
+        if (!patchRes.ok) {
+          const errText = await patchRes.text()
+          console.error('[Discord Automation] Failed to update member (Missing Permissions?):', errText)
+        }
+      } else {
+        console.error('[Discord Automation] Failed to fetch member or roles:', await memRes.text(), await rolesRes.text())
       }
     } catch (err) {
-      console.error('Discord automation error:', err)
+      console.error('[Discord Automation] Exception:', err)
     }
     // ----------------------------------------------------
 

@@ -34,13 +34,33 @@ export async function GET(req: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user || !(await getAdminStatus(supabase, user.id))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
-    const { data, error } = await supabase
-      .from('course_announcements')
-      .select('*, teacher:profiles!course_announcements_teacher_id_fkey(username, nickname_rp), replacement:profiles!course_announcements_replacement_teacher_id_fkey(username, nickname_rp)')
-      .order('created_at', { ascending: false })
+    const [annRes, settingsRes] = await Promise.all([
+      supabase
+        .from('course_announcements')
+        .select('*, teacher:profiles!course_announcements_teacher_id_fkey(username, nickname_rp), replacement:profiles!course_announcements_replacement_teacher_id_fkey(username, nickname_rp)')
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('server_settings')
+        .select('key, value')
+        .in('key', ['salon_annonces', 'effectifs_data'])
+    ])
 
-    if (error) throw error
-    return NextResponse.json({ items: data })
+    if (annRes.error) throw annRes.error
+
+    const settings = (settingsRes.data || []).reduce((acc: any, curr) => {
+      acc[curr.key] = curr.value
+      return acc
+    }, {})
+
+    // Extract subjects from effectifs_data
+    const classiques = settings.effectifs_data?.classiques || []
+    const matieres = classiques.map((c: any) => c.name)
+
+    return NextResponse.json({ 
+      items: annRes.data,
+      salon_annonces: settings.salon_annonces || '',
+      matieres: matieres.length > 0 ? matieres : Object.keys(SUBJECT_COLORS)
+    })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
@@ -171,11 +191,13 @@ async function updateDiscordInfoTraficEmbed(supabase: any) {
   }
 
   // Get classes from settings
-  const { data: settingsData } = await supabase.from('server_settings').select('key, value').in('key', ['rp_classes', 'info_trafic_msg_id'])
+  const { data: settingsData } = await supabase.from('server_settings').select('key, value').in('key', ['rp_classes', 'info_trafic_msg_id', 'salon_annonces'])
   const settings = (settingsData || []).reduce((acc: any, curr: any) => ({ ...acc, [curr.key]: curr.value }), {})
   
   let classes = []
   try { classes = JSON.parse(settings.rp_classes || '[]') } catch (e) {}
+
+  const annoncesChannel = settings.salon_annonces || INFO_TRAFIC_CHANNEL
 
   // Function to format embeds for a specific target
   const getPayload = (targetInfos: any[], targetName: string) => {
@@ -232,26 +254,28 @@ async function updateDiscordInfoTraficEmbed(supabase: any) {
   const globalPayload = getPayload(classInfos.get('all') || [], 'Général')
   const msgId = settings.info_trafic_msg_id
   try {
-    if (msgId) {
-      const res = await fetch(`https://discord.com/api/v10/channels/${INFO_TRAFIC_CHANNEL}/messages/${msgId}`, {
+    if (msgId && annoncesChannel) {
+      const res = await fetch(`https://discord.com/api/v10/channels/${annoncesChannel}/messages/${msgId}`, {
         method: 'PATCH',
         headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(globalPayload)
       })
       if (!res.ok) throw new Error('PATCH failed')
     } else {
-      throw new Error('No msgId')
+      throw new Error('No msgId or channel')
     }
   } catch (err) {
     try {
-      const res = await fetch(`https://discord.com/api/v10/channels/${INFO_TRAFIC_CHANNEL}/messages`, {
-        method: 'POST',
-        headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(globalPayload)
-      })
-      if (res.ok) {
-        const data = await res.json()
-        await supabase.from('server_settings').upsert({ key: 'info_trafic_msg_id', value: data.id, updated_at: new Date().toISOString() })
+      if (annoncesChannel) {
+        const res = await fetch(`https://discord.com/api/v10/channels/${annoncesChannel}/messages`, {
+          method: 'POST',
+          headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(globalPayload)
+        })
+        if (res.ok) {
+          const data = await res.json()
+          await supabase.from('server_settings').upsert({ key: 'info_trafic_msg_id', value: data.id, updated_at: new Date().toISOString() })
+        }
       }
     } catch (e) {
       console.error('Failed to post to global info trafic:', e)
