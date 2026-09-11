@@ -49,7 +49,7 @@ Exemple:
     if (!res.ok) {
       const err = await res.text()
       console.error('Groq API Error:', err)
-      throw new Error('Erreur lors de la génération avec Groq.')
+      throw new Error(`Erreur Groq: ${err}`)
     }
 
     const data = await res.json()
