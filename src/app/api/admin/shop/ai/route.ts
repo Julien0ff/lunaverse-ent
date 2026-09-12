@@ -51,22 +51,30 @@ Tu dois répondre UNIQUEMENT par un objet JSON valide avec ce format exact, sans
                     })
                 })
 
-                if (!res.ok) continue;
+                if (!res.ok) {
+                    const errTxt = await res.text()
+                    allErrors.push(`[${model} API Error] ` + errTxt)
+                    continue;
+                }
                 const data = await res.json()
                 const text = data.choices[0].message.content
                 const match = text.match(/\{[\s\S]*\}/)
                 if (match) {
                     const obj = JSON.parse(match[0])
-                    if (obj.name && obj.price) {
+                    if (obj.name && obj.price !== undefined) {
                         return NextResponse.json(obj)
+                    } else {
+                        allErrors.push(`[${model} Parse Error] Missing name or price in: ${match[0]}`)
                     }
+                } else {
+                    allErrors.push(`[${model} Parse Error] No JSON match in: ${text}`)
                 }
             } catch (err: any) {
-                allErrors.push(err.message)
+                allErrors.push(`[${model} Catch Error] ` + err.message)
             }
         }
         
-        throw new Error('Impossible de générer un objet valide avec les modèles disponibles.')
+        throw new Error('Échec tous modèles : ' + JSON.stringify(allErrors))
     } catch (err: any) {
         return NextResponse.json({ error: err.message }, { status: 500 })
     }
