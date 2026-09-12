@@ -244,16 +244,16 @@ export default function MessagesPage() {
         )}
 
         {/* ── App Layout ──────────────────────────────────── */}
-        <div className="flex flex-col h-full md:h-[calc(100vh-2rem)] bg-[#1e1f22] md:rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative">
+        <div className="flex h-full w-full overflow-hidden relative">
           
           {/* Left Sidebar (Contacts / Friends) */}
           <div className={clsx(
-            "w-full md:w-80 flex flex-col border-r border-white/5 bg-black/20 flex-shrink-0 transition-all duration-300",
+            "w-full md:w-80 flex flex-col bg-[#2b2d31] flex-shrink-0 transition-all duration-300",
             selectedFriend ? "hidden md:flex" : "flex"
           )}>
             
             {/* Header */}
-            <div className="p-4 border-b border-white/5 bg-black/10">
+            <div className="p-4 border-b border-[#1e1f22] bg-[#2b2d31]">
               <h2 className="text-xl font-black text-white flex items-center gap-2 mb-4">
                 <MessageCircle className="w-6 h-6 text-discord-blurple" />
                 {t('messages_page.title')}
@@ -388,7 +388,7 @@ export default function MessagesPage() {
 
           {/* Right Pane (Chat Area) */}
           <div className={clsx(
-            "flex-1 flex flex-col relative bg-black/40 transition-all duration-300",
+            "flex-1 flex flex-col relative bg-[#313338] transition-all duration-300",
             !selectedFriend ? "hidden md:flex" : "flex"
           )}>
             {activeTab !== 'chat' || !selectedFriend ? (
@@ -399,7 +399,7 @@ export default function MessagesPage() {
               </div>
             ) : (
               <>
-                <div className="h-16 flex items-center gap-3 px-4 sm:px-6 bg-discord-darker/60 backdrop-blur-md border-b border-white/5 flex-shrink-0 z-10 shadow-lg">
+                <div className="h-16 flex items-center gap-3 px-4 sm:px-6 bg-[#313338] border-b border-[#1e1f22] flex-shrink-0 z-10 shadow-sm">
                   <button 
                     onClick={() => setSelectedFriend(null)}
                     className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-white hover:bg-white/10 transition-colors mr-1"
@@ -468,8 +468,8 @@ export default function MessagesPage() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                <div className="p-3 sm:p-4 bg-black/60 border-t border-white/5 flex-shrink-0 pb-3 md:pb-4">
-                  <form onSubmit={sendMessage} className="flex items-center gap-2 sm:gap-3 bg-white/5 rounded-2xl p-2 border border-white/10 focus-within:border-discord-blurple/50 focus-within:bg-white/10 transition-all relative">
+                <div className="p-3 sm:p-4 bg-[#313338] flex-shrink-0 pb-3 md:pb-4">
+                  <form onSubmit={sendMessage} className="flex items-center gap-2 sm:gap-3 bg-[#383a40] rounded-2xl p-2 focus-within:bg-[#404249] transition-all relative">
                     <button 
                       type="button"
                       disabled={uploading}

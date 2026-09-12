@@ -24,15 +24,27 @@ Tu dois répondre UNIQUEMENT par un objet JSON valide avec ce format exact, sans
   "type": "item" ou "food" ou "role" (choisis judicieusement)
 }`
 
-        const models = [
-            'gemma2-9b-it',
-            'llama-3.2-3b-preview',
-            'llama-3.1-70b-versatile',
-            'gemma-7b-it',
-            'deepseek-r1-distill-llama-70b',
-            'deepseek-r1-distill-qwen-32b',
-            'mixtral-8x7b-32768'
+        let models = [
+          'llama-3.3-70b-versatile',
+          'llama-3.1-8b-instant'
         ]
+
+        try {
+          const modelsRes = await fetch('https://api.groq.com/openai/v1/models', {
+            headers: { 'Authorization': `Bearer ${groqKey}` }
+          })
+          if (modelsRes.ok) {
+            const modelsData = await modelsRes.json()
+            const available = modelsData.data
+              .map((m: any) => m.id)
+              .filter((id: string) => !id.includes('whisper') && !id.includes('guard'))
+            if (available.length > 0) {
+              models = available.slice(0, 4)
+            }
+          }
+        } catch (e) {
+          console.warn("Could not fetch models dynamically", e)
+        }
 
         let allErrors = []
         for (const model of models) {
