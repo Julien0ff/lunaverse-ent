@@ -403,12 +403,18 @@ export default function SocialPage() {
 
         {/* Attachments preview */}
         {attachments.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3 mt-2">
             {attachments.map((file, i) => (
-              <div key={i} className="relative flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/8 rounded-xl text-xs text-discord-muted">
-                {file.type.startsWith('image') ? <ImageIcon className="w-3.5 h-3.5" /> : <Film className="w-3.5 h-3.5" />}
-                <span className="max-w-[120px] truncate">{file.name}</span>
-                <button onClick={() => removeAttachment(i)} className="text-discord-error hover:text-red-400 ml-1">
+              <div key={i} className="relative group rounded-xl overflow-hidden border border-white/10 shadow-lg transition-transform hover:scale-105">
+                {file.type.startsWith('image') ? (
+                  <img src={URL.createObjectURL(file)} alt="preview" className="h-24 w-24 object-cover" />
+                ) : (
+                  <div className="h-24 w-24 bg-white/5 flex flex-col justify-center items-center gap-2 text-xs text-discord-muted p-2">
+                    <Film className="w-6 h-6" />
+                    <span className="w-full truncate text-center">{file.name}</span>
+                  </div>
+                )}
+                <button onClick={() => removeAttachment(i)} className="absolute top-1 right-1 bg-black/60 hover:bg-discord-error backdrop-blur-sm rounded-full p-1 text-white opacity-0 group-hover:opacity-100 transition-all shadow-md">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>

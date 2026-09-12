@@ -160,27 +160,28 @@ export default function AdminClassesPage() {
         {classes.length === 0 ? (
           <p className="text-discord-muted text-center p-4">Aucune classe configurée.</p>
         ) : (
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {classes.map(c => (
-              <div key={c.name} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white/5 border border-white/5 hover:border-white/10 rounded-2xl transition-all gap-4">
+              <div key={c.name} className="flex flex-col justify-between p-5 bg-white/5 border border-white/5 hover:border-white/10 rounded-3xl transition-all gap-4 group shadow-lg">
                 <div>
-                  <span className="font-black text-white text-lg">{c.name}</span>
-                  <div className="flex items-center gap-4 mt-2">
-                    <span className="flex items-center gap-1 text-xs text-discord-muted font-mono bg-black/20 px-2 py-1 rounded-md border border-white/5">
-                      <Hash className="w-3 h-3" /> Salon: {c.channelId || 'Non défini'}
+                  <span className="font-black text-white text-xl">{c.name}</span>
+                  <div className="flex flex-col gap-2 mt-3">
+                    <span className="flex items-center gap-2 text-xs text-discord-muted font-mono bg-black/20 px-3 py-1.5 rounded-lg border border-white/5">
+                      <Hash className="w-3.5 h-3.5" /> Salon: {c.channelId || 'Non défini'}
                     </span>
-                    <span className="flex items-center gap-1 text-xs text-discord-muted font-mono bg-black/20 px-2 py-1 rounded-md border border-white/5">
-                      <Hash className="w-3 h-3 text-discord-blurple" /> Rôle: {c.roleId || 'Non défini'}
+                    <span className="flex items-center gap-2 text-xs text-discord-muted font-mono bg-black/20 px-3 py-1.5 rounded-lg border border-white/5">
+                      <Hash className="w-3.5 h-3.5 text-discord-blurple" /> Rôle: {c.roleId || 'Non défini'}
                     </span>
                   </div>
                 </div>
                 <button 
                   onClick={() => removeClass(c.name)}
                   disabled={saving}
-                  className="p-3 bg-discord-error/10 text-discord-error hover:bg-discord-error hover:text-white rounded-xl transition-colors disabled:opacity-50"
+                  className="w-full mt-2 py-3 bg-discord-error/10 text-discord-error hover:bg-discord-error hover:text-white rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2 font-bold"
                   title="Supprimer la classe"
                 >
                   <Trash2 className="w-4 h-4" />
+                  Supprimer
                 </button>
               </div>
             ))}

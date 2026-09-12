@@ -149,19 +149,26 @@ export default function AdminRolesPage() {
             {errorMsg && <p className="text-discord-error text-sm font-bold bg-discord-error/10 p-3 rounded-lg mb-4">{errorMsg}</p>}
             
             <form onSubmit={handleSave} className="space-y-6">
-              <div className="bg-black/20 border border-white/5 p-4 rounded-xl">
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editingRole.can_connect}
-                    onChange={e => setEditingRole({...editingRole, can_connect: e.target.checked})}
-                    className="mt-1 w-5 h-5 rounded border-gray-600 text-discord-blurple focus:ring-discord-blurple bg-black/50"
+              <div className="bg-black/20 border border-white/5 p-4 rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-white text-base">Autoriser la connexion à l'ENT</p>
+                  <p className="text-sm text-discord-muted mt-0.5">Si activé, les membres ayant ce rôle pourront se connecter au site avec leur compte Discord.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingRole({...editingRole, can_connect: !editingRole.can_connect})}
+                  className={clsx(
+                    "relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-discord-blurple focus:ring-offset-2 focus:ring-offset-[#1e1e24] shrink-0",
+                    editingRole.can_connect ? 'bg-discord-success' : 'bg-white/10'
+                  )}
+                >
+                  <span
+                    className={clsx(
+                      "inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md",
+                      editingRole.can_connect ? 'translate-x-6' : 'translate-x-1'
+                    )}
                   />
-                  <div>
-                    <p className="font-bold text-white text-base">Autoriser la connexion à l'ENT</p>
-                    <p className="text-sm text-discord-muted mt-0.5">Si coché, les membres ayant ce rôle pourront se connecter au site avec leur compte Discord.</p>
-                  </div>
-                </label>
+                </button>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

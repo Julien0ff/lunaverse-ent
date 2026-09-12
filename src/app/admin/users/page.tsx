@@ -66,10 +66,12 @@ export default function AdminUsersPage() {
         setUsers(users.filter(u => u.id !== deleteTarget.id))
         setDeleteTarget(null)
       } else {
-        alert("Erreur lors de la suppression")
+        const errorData = await res.json().catch(() => ({}))
+        alert("Erreur lors de la suppression : " + (errorData.error || 'Erreur réseau/serveur'))
       }
     } catch (e) {
       console.error(e)
+      alert("Erreur lors de la requête de suppression.")
     } finally {
       setDeleting(false)
     }

@@ -146,7 +146,7 @@ export default function AdminEffectifsPage() {
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-10 h-10 animate-spin text-discord-blurple" /></div>
 
   return (
-    <div className="space-y-6 animate-fadeIn max-w-5xl">
+    <div className="space-y-6 animate-fadeIn w-full">
       <div>
         <h2 className="text-3xl font-black text-white flex items-center gap-3">
           <GraduationCap className="text-discord-blurple w-8 h-8" />

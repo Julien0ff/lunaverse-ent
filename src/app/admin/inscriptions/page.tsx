@@ -371,6 +371,14 @@ export default function AdminInscriptionsPage() {
                        Fait (Pronote)
                      </button>
                    )}
+                   <button
+                     onClick={() => handleDelete(i.id)}
+                     disabled={actionLoading === i.id}
+                     className="btn bg-transparent border border-discord-error/30 text-discord-error hover:bg-discord-error/10 flex items-center justify-center gap-2 font-bold w-full"
+                   >
+                     {actionLoading === i.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+                     Supprimer
+                   </button>
                 </div>
               )}
             </div>

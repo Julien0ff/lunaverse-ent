@@ -143,11 +143,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <main
                     className={clsx(
                         "flex-1 w-full md:ml-[280px] pt-16 md:pt-0",
-                        pathname === '/messages' ? "h-[calc(100dvh-125px-64px)] md:h-screen" : "min-h-[100dvh] pb-[125px] md:pb-0 overflow-y-auto"
+                        pathname === '/messages' ? "h-[calc(100dvh-125px-64px)] md:h-screen" : "min-h-[100dvh] pb-[125px] md:pb-0 overflow-y-auto overflow-x-hidden"
                     )}
                 >
                     <div className={clsx(
-                        pathname === '/messages' ? "w-full h-full" : "max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-8"
+                        pathname === '/messages' ? "w-full h-full" : 
+                        ['/dating', '/impots', '/casino'].some(p => pathname.startsWith(p)) ? "w-full max-w-7xl mx-auto px-0 sm:px-4 md:px-8 py-0 md:py-8" : 
+                        "max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-8"
                     )}>
                         {children}
                     </div>

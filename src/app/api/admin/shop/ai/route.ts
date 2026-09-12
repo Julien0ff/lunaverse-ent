@@ -1,0 +1,66 @@
+import { NextResponse } from 'next/server'
+import { createSupabaseServer } from '@/lib/supabase-server'
+import { createSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdmin } from '@/lib/auth-server'
+
+export async function POST(request: Request) {
+    try {
+        const supabase = createSupabaseServer()
+        const admin = createSupabaseAdmin()
+        if (!await requireAdmin(supabase, admin)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+        const { targetRole } = await request.json()
+        const groqKey = process.env.GROQ_API_KEY
+        if (!groqKey) return NextResponse.json({ error: 'La clé API Groq n\'est pas configurée.' }, { status: 500 })
+
+        const prompt = `Génère une idée d'objet, de service, ou de nourriture à vendre dans la boutique d'un serveur Roleplay Scolaire pour le rôle cible suivant : "${targetRole || 'Élève'}".
+Si le rôle est 'Proviseur' ou 'Admin', propose par exemple des fournitures de bureau premium, un café de luxe, un stylo en or, ou un badge.
+Si le rôle est 'Élève', propose de la nourriture de cantine, des antisèches (rp), un sac à dos stylé, une boisson énergisante, etc.
+Tu dois répondre UNIQUEMENT par un objet JSON valide avec ce format exact, sans aucun autre texte (pas de markdown \`\`\`json) :
+{
+  "name": "Nom de l'objet (max 30 chars)",
+  "description": "Description RP amusante (max 100 chars)",
+  "price": prix_entier_en_euros,
+  "type": "item" ou "food" ou "role" (choisis judicieusement)
+}`
+
+        const modelsRes = await fetch('https://api.groq.com/openai/v1/models', { headers: { 'Authorization': `Bearer ${groqKey}` } })
+        const modelsData = await modelsRes.json()
+        const models = modelsData.data?.map((m: any) => m.id).filter((id: string) => id.includes('llama') || id.includes('mixtral')) || ['llama3-8b-8192']
+
+        let allErrors = []
+        for (const model of models) {
+            try {
+                const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${groqKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: [{ role: 'user', content: prompt }],
+                        temperature: 0.8
+                    })
+                })
+
+                if (!res.ok) continue;
+                const data = await res.json()
+                const text = data.choices[0].message.content
+                const match = text.match(/\{[\s\S]*\}/)
+                if (match) {
+                    const obj = JSON.parse(match[0])
+                    if (obj.name && obj.price) {
+                        return NextResponse.json(obj)
+                    }
+                }
+            } catch (err: any) {
+                allErrors.push(err.message)
+            }
+        }
+        
+        throw new Error('Impossible de générer un objet valide avec les modèles disponibles.')
+    } catch (err: any) {
+        return NextResponse.json({ error: err.message }, { status: 500 })
+    }
+}

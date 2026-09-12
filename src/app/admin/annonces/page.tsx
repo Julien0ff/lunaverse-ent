@@ -243,77 +243,88 @@ export default function AdminAnnoncesPage() {
 
       {/* Modal Creation */}
       {showModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="glass-card max-w-xl w-full relative animate-slideUp flex flex-col max-h-[90vh]">
-            <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 p-2 bg-white/5 hover:bg-white/10 rounded-lg text-discord-muted hover:text-white transition-colors z-10">
-              <X className="w-5 h-5" />
-            </button>
-            <h3 className="text-2xl font-black text-white mb-6 shrink-0">Créer un Info-Trafic</h3>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="bg-[#1e1e24] border border-white/10 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh] animate-slideUp">
             
-            <div className="overflow-y-auto pr-2 custom-scrollbar">
-              <form onSubmit={handleSave} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Classe</label>
-                  <select value={formData.target_class} onChange={e => setFormData({...formData, target_class: e.target.value})} className="glass-input w-full mt-1" required>
-                    <option value="all">Toutes les classes</option>
-                    {classes.map(c => (
-                      <option key={c.name} value={c.name}>{c.name}</option>
-                    ))}
+            {/* Header */}
+            <div className="p-6 border-b border-white/5 flex items-center justify-between shrink-0 bg-white/5">
+              <div>
+                <h3 className="text-xl font-black text-white">Créer un Info-Trafic</h3>
+                <p className="text-sm text-discord-muted mt-1">Diffusez une annonce ciblée ou générale.</p>
+              </div>
+              <button onClick={() => setShowModal(false)} className="p-2 bg-black/20 hover:bg-black/40 rounded-xl text-discord-muted hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Body */}
+            <div className="p-6 overflow-y-auto custom-scrollbar bg-black/20">
+              <form id="annonce-form" onSubmit={handleSave} className="space-y-6">
+                <div className="grid grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Classe ciblée</label>
+                    <select value={formData.target_class} onChange={e => setFormData({...formData, target_class: e.target.value})} className="glass-input w-full bg-white/5 border-white/10" required>
+                      <option value="all">Toutes les classes</option>
+                      {classes.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Type de perturbation</label>
+                    <select value={formData.info_status} onChange={e => setFormData({...formData, info_status: e.target.value})} className="glass-input w-full bg-white/5 border-white/10" required>
+                      <option value="information">Information générale</option>
+                      <option value="supprime">Cours supprimé</option>
+                      <option value="remplace">Cours remplacé</option>
+                      <option value="retard">Professeur en retard</option>
+                      <option value="deplace">Cours déplacé</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Matière / Sujet</label>
+                  <select value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} className="glass-input w-full bg-white/5 border-white/10" required>
+                    {subjects.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Type Perturbation</label>
-                  <select value={formData.info_status} onChange={e => setFormData({...formData, info_status: e.target.value})} className="glass-input w-full mt-1" required>
-                    <option value="information">Information / Cours normal</option>
-                    <option value="supprime">Supprimé</option>
-                    <option value="remplace">Remplacé</option>
-                    <option value="retard">En retard</option>
-                    <option value="deplace">Déplacé</option>
-                  </select>
-                </div>
-              </div>
 
-              <div>
-                <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Matière / Raison</label>
-                <select value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} className="glass-input w-full mt-1" required>
-                  {subjects.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Professeur Concerné</label>
-                <select value={formData.teacher_id} onChange={e => setFormData({...formData, teacher_id: e.target.value})} className="glass-input w-full mt-1">
-                  <option value="">-- Aucun --</option>
-                  {users.map(u => <option key={u.id} value={u.id}>{u.nickname_rp || u.username}</option>)}
-                </select>
-              </div>
-
-              {formData.info_status === 'remplace' && (
-                <div>
-                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Professeur Remplaçant</label>
-                  <select value={formData.replacement_teacher_id} onChange={e => setFormData({...formData, replacement_teacher_id: e.target.value})} className="glass-input w-full mt-1">
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Professeur concerné</label>
+                  <select value={formData.teacher_id} onChange={e => setFormData({...formData, teacher_id: e.target.value})} className="glass-input w-full bg-white/5 border-white/10">
                     <option value="">-- Aucun --</option>
                     {users.map(u => <option key={u.id} value={u.id}>{u.nickname_rp || u.username}</option>)}
                   </select>
                 </div>
-              )}
 
-              <div>
-                <label className="text-xs font-black text-discord-muted uppercase tracking-widest">Informations Complémentaires</label>
-                <textarea 
-                  value={formData.info_text} 
-                  onChange={e => setFormData({...formData, info_text: e.target.value})} 
-                  className="glass-input w-full mt-1 resize-none h-20" placeholder="Ex: Devoir annulé..."
-                />
-              </div>
-              
-              <div className="pt-4">
-                <button type="submit" disabled={saving} className="btn btn-primary w-full">
-                  {saving ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Créer le brouillon"}
-                </button>
-              </div>
+                {formData.info_status === 'remplace' && (
+                  <div className="space-y-2 p-4 bg-discord-blurple/10 border border-discord-blurple/20 rounded-xl">
+                    <label className="text-xs font-black text-discord-blurple uppercase tracking-widest block">Professeur remplaçant</label>
+                    <select value={formData.replacement_teacher_id} onChange={e => setFormData({...formData, replacement_teacher_id: e.target.value})} className="glass-input w-full bg-black/40 border-discord-blurple/30">
+                      <option value="">-- Aucun --</option>
+                      {users.map(u => <option key={u.id} value={u.id}>{u.nickname_rp || u.username}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Informations supplémentaires</label>
+                  <textarea 
+                    value={formData.info_text} 
+                    onChange={e => setFormData({...formData, info_text: e.target.value})} 
+                    className="glass-input w-full bg-white/5 border-white/10 resize-none h-24" 
+                    placeholder="Précisez le motif, la salle, etc."
+                  />
+                </div>
               </form>
+            </div>
+            
+            {/* Footer */}
+            <div className="p-6 border-t border-white/5 bg-white/5 shrink-0 flex justify-end gap-3">
+              <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 rounded-xl font-bold text-discord-muted hover:text-white hover:bg-white/10 transition-colors">
+                Annuler
+              </button>
+              <button type="submit" form="annonce-form" disabled={saving} className="px-6 py-2.5 rounded-xl font-bold bg-discord-blurple hover:bg-discord-blurple/80 text-white transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-discord-blurple/20">
+                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5" /> Enregistrer le brouillon</>}
+              </button>
             </div>
           </div>
         </div>

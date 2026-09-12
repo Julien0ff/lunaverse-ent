@@ -87,6 +87,20 @@ export async function DELETE(request: NextRequest) {
         const id = url.searchParams.get('id')
         if (!id) return NextResponse.json({ error: 'ID requis' }, { status: 400 })
 
+        // Manually delete dependent records to avoid FK constraint errors if cascade is not set
+        const tablesToClearByUserId = [
+            'user_roles', 'posts', 'comments', 'post_likes', 'items_inventory',
+            'absences', 'inscriptions', 'properties'
+        ]
+        
+        for (const table of tablesToClearByUserId) {
+            try { await admin.from(table).delete().eq('user_id', id) } catch (e) {}
+        }
+
+        try { await admin.from('friends').delete().or(`user_id.eq.${id},friend_id.eq.${id}`) } catch (e) {}
+        try { await admin.from('messages').delete().or(`sender_id.eq.${id},receiver_id.eq.${id}`) } catch (e) {}
+        try { await admin.from('bank_transactions').delete().or(`sender_id.eq.${id},receiver_id.eq.${id}`) } catch (e) {}
+        
         // Delete from auth.users (requires service role key)
         const { error: authError } = await admin.auth.admin.deleteUser(id)
         
@@ -99,6 +113,7 @@ export async function DELETE(request: NextRequest) {
 
         return NextResponse.json({ success: true })
     } catch (err: any) {
+        console.error("DELETE user error:", err)
         return NextResponse.json({ error: err.message }, { status: 500 })
     }
 }

@@ -14,7 +14,10 @@ export async function GET() {
       return NextResponse.json({ error: 'La clé API Groq n\'est pas configurée.' }, { status: 500 })
     }
     
+    const salt = Math.random().toString(36).substring(7)
     const prompt = `Génère un menu de cantine scolaire française (collège/lycée) équilibré, varié et appétissant.
+IMPORTANT : Tu DOIS proposer un menu complètement inédit, original et différent des précédents (Graine aléatoire : ${salt}).
+Choisis aléatoirement des thèmes différents (ex: végétarien, cuisine du monde, classique, régional, etc.).
 Le menu doit inclure :
 - Une entrée (starter)
 - Un plat principal (main)
@@ -23,7 +26,7 @@ Le menu doit inclure :
 - Une boisson (drink)
 
 Renvoie UNIQUEMENT un objet JSON valide avec les clés suivantes en anglais, et les valeurs en français. Pas de texte avant ou après.
-Exemple:
+Exemple de structure:
 {
   "starter": "Salade piémontaise",
   "main": "Filet de poisson au citron",

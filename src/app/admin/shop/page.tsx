@@ -148,6 +148,60 @@ export default function AdminShopPage() {
             <h3 className="text-2xl font-black text-white mb-6">
               {editingItem.id ? 'Modifier un objet' : 'Créer un objet'}
             </h3>
+
+            {!editingItem.id && (
+              <div className="mb-6 p-4 bg-discord-blurple/10 border border-discord-blurple/20 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-discord-blurple flex items-center gap-2">
+                    ✨ Génération IA
+                  </h4>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    id="ai-role-input"
+                    placeholder="Pour quel rôle ? (ex: Proviseur, Élève...)"
+                    className="glass-input flex-1 bg-black/40 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const roleInput = (document.getElementById('ai-role-input') as HTMLInputElement)?.value || 'Élève';
+                      const btn = document.getElementById('ai-gen-btn');
+                      if (btn) btn.innerHTML = '<span class="animate-spin text-xl inline-block">↻</span>';
+                      try {
+                        const res = await fetch('/api/admin/shop/ai', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ targetRole: roleInput })
+                        });
+                        const data = await res.json();
+                        if (data.name) {
+                          setEditingItem({
+                            ...editingItem,
+                            name: data.name,
+                            description: data.description || '',
+                            price: data.price || 0,
+                            type: data.type || 'item'
+                          });
+                        } else {
+                          alert(data.error || 'Erreur lors de la génération');
+                        }
+                      } catch (e) {
+                        alert('Erreur réseau');
+                      } finally {
+                        if (btn) btn.innerHTML = 'Générer';
+                      }
+                    }}
+                    id="ai-gen-btn"
+                    className="px-4 py-2 bg-discord-blurple hover:bg-discord-blurple/80 text-white font-bold rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    Générer
+                  </button>
+                </div>
+                <p className="text-xs text-discord-muted">L'IA proposera un objet adapté au rôle renseigné.</p>
+              </div>
+            )}
             
             <form onSubmit={handleSave} className="space-y-4">
               <div>
