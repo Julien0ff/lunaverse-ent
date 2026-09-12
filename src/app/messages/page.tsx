@@ -244,7 +244,7 @@ export default function MessagesPage() {
         )}
 
         {/* ── App Layout ──────────────────────────────────── */}
-        <div className="flex-1 flex overflow-hidden border-t border-white/5 relative">
+        <div className="flex flex-col h-full md:h-[calc(100vh-2rem)] bg-[#1e1f22] md:rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative">
           
           {/* Left Sidebar (Contacts / Friends) */}
           <div className={clsx(
@@ -432,7 +432,7 @@ export default function MessagesPage() {
                       const prevDiff = i > 0 && messages[i - 1].sender_id === m.sender_id;
                       
                       return (
-                        <div key={m.id} className={clsx('flex gap-2 sm:gap-4 max-w-full sm:max-w-[85%] animate-slideUp', isMe ? 'ml-auto flex-row-reverse' : '')} style={{ animationDelay: `${i * 10}ms` }}>
+                        <div key={m.id} className={clsx('flex gap-2 sm:gap-4 max-w-[90%] sm:max-w-[85%] animate-slideUp', isMe ? 'ml-auto flex-row-reverse' : '')} style={{ animationDelay: `${i * 10}ms` }}>
                           {!prevDiff ? (
                              <div className="w-8 h-8 sm:w-9 sm:h-9 relative rounded-full overflow-hidden flex-shrink-0 mt-auto ring-2 ring-white/5 shadow-xl transition-transform hover:scale-110">
                                <Image src={isMe ? profile?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png' : selectedFriend.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} alt="" fill className="object-cover" />

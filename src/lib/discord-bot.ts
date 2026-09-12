@@ -1286,7 +1286,10 @@ client.on('interactionCreate', async (interaction) => {
         .setPlaceholder('Sélectionnez vos spécialités')
         .setMinValues(1)
         .setMaxValues(opts.length > 0 ? opts.length : 1)
-        .addOptions(opts.map((o: string) => new StringSelectMenuOptionBuilder().setLabel(o).setValue(o)))
+        .addOptions(opts.map((o: any) => {
+          const val = typeof o === 'string' ? o : (o.name || String(o.id || 'option'));
+          return new StringSelectMenuOptionBuilder().setLabel(val).setValue(val);
+        }))
 
       const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selOpts)
       
@@ -1430,9 +1433,9 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         .setCustomId(`rp_enroll_modal|${adminId}|${responsesId}`)
         .setTitle('Inscription RP')
 
-      const tPrenom = new TextInputBuilder().setCustomId('prenom').setLabel('Prénom RP').setStyle(TextInputStyle.Short).setRequired(true)
-      const tNom = new TextInputBuilder().setCustomId('nom').setLabel('Nom RP').setStyle(TextInputStyle.Short).setRequired(true)
-      const tAge = new TextInputBuilder().setCustomId('age').setLabel('Date de naissance RP').setStyle(TextInputStyle.Short).setRequired(true)
+      const tPrenom = new TextInputBuilder().setCustomId('prenom').setLabel('Prénom RP').setPlaceholder('Ex: Jean').setStyle(TextInputStyle.Short).setRequired(true)
+      const tNom = new TextInputBuilder().setCustomId('nom').setLabel('Nom RP').setPlaceholder('Ex: DUPONT').setStyle(TextInputStyle.Short).setRequired(true)
+      const tAge = new TextInputBuilder().setCustomId('age').setLabel('Date de naissance RP').setPlaceholder('Ex: 01/01/2005').setStyle(TextInputStyle.Short).setRequired(true)
 
       modal.addComponents(
         new ActionRowBuilder<TextInputBuilder>().addComponents(tPrenom),
@@ -1568,9 +1571,9 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
         .setCustomId(`rp_enroll_modal|${adminId}|${responsesId}`)
         .setTitle('Inscription RP')
 
-      const tPrenom = new TextInputBuilder().setCustomId('prenom').setLabel('Prénom RP').setStyle(TextInputStyle.Short).setRequired(true)
-      const tNom = new TextInputBuilder().setCustomId('nom').setLabel('Nom RP').setStyle(TextInputStyle.Short).setRequired(true)
-      const tAge = new TextInputBuilder().setCustomId('age').setLabel('Date de naissance RP').setStyle(TextInputStyle.Short).setRequired(true)
+      const tPrenom = new TextInputBuilder().setCustomId('prenom').setLabel('Prénom RP').setPlaceholder('Ex: Jean').setStyle(TextInputStyle.Short).setRequired(true)
+      const tNom = new TextInputBuilder().setCustomId('nom').setLabel('Nom RP').setPlaceholder('Ex: DUPONT').setStyle(TextInputStyle.Short).setRequired(true)
+      const tAge = new TextInputBuilder().setCustomId('age').setLabel('Date de naissance RP').setPlaceholder('Ex: 01/01/2005').setStyle(TextInputStyle.Short).setRequired(true)
 
       modal.addComponents(
         new ActionRowBuilder<TextInputBuilder>().addComponents(tPrenom),

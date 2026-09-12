@@ -6,7 +6,6 @@ import { AuthProvider } from '@/context/AuthContext'
 import { LanguageProvider } from '@/context/LanguageContext'
 import { NotificationProvider } from '@/context/NotificationContext'
 import AppShell from '@/components/AppShell'
-import RadioPlayer from '@/components/RadioPlayer'
 import ThemeApplier from '@/components/ThemeApplier'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -47,7 +46,6 @@ export default function RootLayout({
             <NotificationProvider>
               <AppShell>
                 {children}
-                <RadioPlayer />
               </AppShell>
             </NotificationProvider>
           </LanguageProvider>

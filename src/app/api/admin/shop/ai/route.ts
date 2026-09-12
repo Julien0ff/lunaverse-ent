@@ -24,9 +24,15 @@ Tu dois répondre UNIQUEMENT par un objet JSON valide avec ce format exact, sans
   "type": "item" ou "food" ou "role" (choisis judicieusement)
 }`
 
-        const modelsRes = await fetch('https://api.groq.com/openai/v1/models', { headers: { 'Authorization': `Bearer ${groqKey}` } })
-        const modelsData = await modelsRes.json()
-        const models = modelsData.data?.map((m: any) => m.id).filter((id: string) => id.includes('llama') || id.includes('mixtral')) || ['llama3-8b-8192']
+        const models = [
+            'gemma2-9b-it',
+            'llama-3.2-3b-preview',
+            'llama-3.1-70b-versatile',
+            'gemma-7b-it',
+            'deepseek-r1-distill-llama-70b',
+            'deepseek-r1-distill-qwen-32b',
+            'mixtral-8x7b-32768'
+        ]
 
         let allErrors = []
         for (const model of models) {
@@ -40,6 +46,7 @@ Tu dois répondre UNIQUEMENT par un objet JSON valide avec ce format exact, sans
                     body: JSON.stringify({
                         model: model,
                         messages: [{ role: 'user', content: prompt }],
+                        response_format: { type: 'json_object' },
                         temperature: 0.8
                     })
                 })
