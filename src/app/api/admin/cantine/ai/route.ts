@@ -32,12 +32,27 @@ Exemple:
   "drink": "Jus de pomme artisanal"
 }`
 
-    const modelsToTry = [
-      'llama3-8b-8192',
+    let modelsToTry = [
       'llama-3.1-8b-instant',
-      'llama-3.3-70b-versatile',
-      'mixtral-8x7b-32768'
+      'llama-3.3-70b-versatile'
     ]
+
+    try {
+      const modelsRes = await fetch('https://api.groq.com/openai/v1/models', {
+        headers: { 'Authorization': `Bearer ${groqKey}` }
+      })
+      if (modelsRes.ok) {
+        const modelsData = await modelsRes.json()
+        const available = modelsData.data
+          .map((m: any) => m.id)
+          .filter((id: string) => !id.includes('whisper') && !id.includes('guard'))
+        if (available.length > 0) {
+          modelsToTry = available.slice(0, 4) // On garde les 4 premiers modèles valides
+        }
+      }
+    } catch (e) {
+      console.warn("Could not fetch models dynamically", e)
+    }
 
     let responseText = null
     let allErrors = []
