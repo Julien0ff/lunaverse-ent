@@ -33,14 +33,14 @@ Exemple:
 }`
 
     const modelsToTry = [
-      'llama-3.3-70b-versatile',
+      'llama3-8b-8192',
       'llama-3.1-8b-instant',
-      'mixtral-8x7b-32768',
-      'gemma2-9b-it'
+      'llama-3.3-70b-versatile',
+      'mixtral-8x7b-32768'
     ]
 
     let responseText = null
-    let lastError = null
+    let allErrors = []
 
     for (const model of modelsToTry) {
       try {
@@ -53,14 +53,13 @@ Exemple:
           body: JSON.stringify({
             model: model,
             messages: [{ role: 'user', content: prompt }],
-            response_format: { type: 'json_object' },
             temperature: 0.7
           })
         })
 
         if (!res.ok) {
           const err = await res.text()
-          lastError = err
+          allErrors.push({ model, error: err })
           console.error(`Groq API Error on model ${model}:`, err)
           continue // Try next model
         }
@@ -69,16 +68,20 @@ Exemple:
         responseText = data.choices[0].message.content
         break // Success!
       } catch (err: any) {
-        lastError = err.message
+        allErrors.push({ model, error: err.message })
         continue
       }
     }
 
     if (!responseText) {
-      throw new Error(`Erreur Groq (tous les modèles ont échoué): ${lastError}`)
+      throw new Error(`Erreur Groq (tous les modèles ont échoué): ${JSON.stringify(allErrors)}`)
     }
 
-    const menu = JSON.parse(responseText)
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      throw new Error("La réponse de l'IA n'est pas un JSON valide.")
+    }
+    const menu = JSON.parse(jsonMatch[0])
 
     return NextResponse.json({
       starter: menu.starter || '',
