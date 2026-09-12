@@ -5,7 +5,7 @@ import { Plus, X, Loader2, AlertCircle, Trash2 } from 'lucide-react'
 import clsx from 'clsx'
 
 export default function AdminOptionsPage() {
-  const [options, setOptions] = useState<string[]>([])
+  const [options, setOptions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [newOption, setNewOption] = useState('')
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -21,7 +21,11 @@ export default function AdminOptionsPage() {
       const r = await fetch('/api/admin/options')
       if (r.ok) {
         const data = await r.json()
-        setOptions(data.options || [])
+        const normalizedOptions = (data.options || []).map((o: any) => {
+          if (typeof o === 'string') return { id: Math.random().toString(), name: o, capacity: 0 }
+          return o
+        })
+        setOptions(normalizedOptions)
       }
     } catch (e) {
       console.error(e)
@@ -35,7 +39,7 @@ export default function AdminOptionsPage() {
     setTimeout(() => setMsg(null), 3000)
   }
 
-  const saveOptions = async (newOptionsList: string[]) => {
+  const saveOptions = async (newOptionsList: any[]) => {
     setSaving(true)
     try {
       const r = await fetch('/api/admin/options', {
@@ -61,15 +65,16 @@ export default function AdminOptionsPage() {
   const addOption = () => {
     const trimmed = newOption.trim()
     if (!trimmed) return
-    if (options.includes(trimmed)) {
+    if (options.some(o => o.name.toLowerCase() === trimmed.toLowerCase())) {
       showMsg('error', 'Cette option existe déjà.')
       return
     }
-    saveOptions([...options, trimmed])
+    const newOptObj = { id: Math.random().toString(), name: trimmed, capacity: 0 }
+    saveOptions([...options, newOptObj])
   }
 
-  const removeOption = (optToRemove: string) => {
-    saveOptions(options.filter(o => o !== optToRemove))
+  const removeOption = (idToRemove: string) => {
+    saveOptions(options.filter(o => o.id !== idToRemove))
   }
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-10 h-10 animate-spin text-discord-blurple" /></div>
@@ -117,10 +122,10 @@ export default function AdminOptionsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {options.map(opt => (
-              <div key={opt} className="flex items-center justify-between p-4 bg-white/5 border border-white/5 hover:border-white/10 rounded-2xl transition-all">
-                <span className="font-bold text-white text-sm">{opt}</span>
+              <div key={opt.id} className="flex items-center justify-between p-4 bg-white/5 border border-white/5 hover:border-white/10 rounded-2xl transition-all">
+                <span className="font-bold text-white text-sm">{opt.name}</span>
                 <button 
-                  onClick={() => removeOption(opt)}
+                  onClick={() => removeOption(opt.id)}
                   disabled={saving}
                   className="p-2 text-discord-error hover:bg-discord-error/20 rounded-xl transition-colors disabled:opacity-50"
                 >
