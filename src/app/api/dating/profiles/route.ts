@@ -27,8 +27,7 @@ export async function GET() {
       let query = supabase
         .from('profiles')
         .select('id, username, avatar_url, discord_id, dating_photo_url, dating_bio, dating_photos')
-        .or('dating_photo_url.not.is.null, dating_photos.neq.[]')
-        .limit(15)
+        .limit(100)
 
       if (swipedIds.length > 0) {
         query = query.not('id', 'in', `(${swipedIds.join(',')})`)
@@ -38,11 +37,11 @@ export async function GET() {
       if (error) throw error
       profiles = data || []
     } catch {
-      // Fallback: dating columns may not exist yet — fetch all profiles without opt-in filter
+      // Fallback: dating columns may not exist yet — fetch all profiles
       let query = supabase
         .from('profiles')
         .select('id, username, avatar_url, discord_id')
-        .limit(15)
+        .limit(100)
 
       if (swipedIds.length > 0) {
         query = query.not('id', 'in', `(${swipedIds.join(',')})`)
@@ -51,6 +50,9 @@ export async function GET() {
       const { data } = await query
       profiles = data || []
     }
+
+    // Shuffle profiles so they appear in random order
+    profiles = profiles.sort(() => Math.random() - 0.5)
 
     return NextResponse.json({ items: profiles })
   } catch (error: any) {

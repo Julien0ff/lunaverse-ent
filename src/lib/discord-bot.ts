@@ -570,23 +570,6 @@ client.on('ready', async () => {
             health: s 
           }).eq('id', p.id);
 
-          // Critical state alerts (DM) - Only every 6 hours to avoid spam
-          if ((h <= 10 || t <= 10 || f <= 10 || s <= 20) && hour % 6 === 0) {
-            const member = await client.users.fetch(p.discord_id).catch(() => null);
-            if (member) {
-              const warnings = [];
-              if (h <= 10) warnings.push('⚠️ **Faim critique**, mangez quelque chose !');
-              if (t <= 10) warnings.push('⚠️ **Soif critique**, hydratez-vous !');
-              if (f <= 10) warnings.push('⚠️ **Fatigue extrême**, pensez à vous reposer.');
-              if (s <= 20) warnings.push('🆘 **Santé critique**, votre survie est en jeu !');
-              
-              if (warnings.length > 0) {
-                await member.send({ 
-                  embeds: [new EmbedBuilder().setTitle('❤️ État physique critique').setDescription(warnings.join('\n')).setColor(0xED4245)] 
-                }).catch(() => null);
-              }
-            }
-          }
         }
       } catch (err) { console.error('Error degrading physical stats', err); }
     }
