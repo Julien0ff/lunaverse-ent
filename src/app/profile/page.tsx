@@ -74,6 +74,7 @@ export default function ProfilePage() {
   const [editSocials, setEditSocials] = useState({
     twitter: '', instagram: '', github: '', website: ''
   })
+  const [editBanner, setEditBanner] = useState('')
   const [saving, setSaving] = useState(false)
 
   // Discord status from DB (updated by bot presenceUpdate)
@@ -88,6 +89,7 @@ export default function ProfilePage() {
       .finally(() => setLoading(false))
 
     setEditBio(p.bio || '')
+    setEditBanner(p.banner_url || '')
     setEditSocials({
       twitter: p.twitter_url || '',
       instagram: p.instagram_url || '',
@@ -104,6 +106,7 @@ export default function ProfilePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bio: editBio,
+          banner_url: editBanner,
           twitter_url: editSocials.twitter,
           instagram_url: editSocials.instagram,
           github_url: editSocials.github,
@@ -134,14 +137,28 @@ export default function ProfilePage() {
       </div>
 
       {/* Profile Card with Tilt & Banner */}
-      <TiltCard className="glass-card overflow-hidden relative group p-0 border-0 shadow-2xl" style={{ borderColor: 'rgba(88,101,242,0.15)' }}>
+      <TiltCard className="glass-card overflow-hidden relative group p-0 border-0 shadow-2xl rounded-3xl" style={{ borderColor: 'rgba(88,101,242,0.15)' }}>
         {/* Banner */}
-        <div className="h-32 md:h-48 w-full bg-gradient-to-r from-discord-blurple to-purple-600 relative overflow-hidden">
-           <div className="absolute inset-0 bg-black/20" />
-           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-30 mix-blend-overlay" />
+        <div 
+          className="h-32 md:h-48 w-full relative overflow-hidden rounded-t-3xl"
+          style={{
+            background: (profile as any)?.banner_url && (profile as any).banner_url.startsWith('linear-gradient')
+              ? (profile as any).banner_url
+              : (profile as any)?.banner_url
+                ? `url(${(profile as any).banner_url}) center/cover no-repeat`
+                : 'linear-gradient(90deg, #5865F2, #9333EA)'
+          }}
+        >
+           {/* Fallback pattern overlay if not an image */}
+           {!(profile as any)?.banner_url?.startsWith('/banners') && (
+             <>
+               <div className="absolute inset-0 bg-black/20" />
+               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-30 mix-blend-overlay" />
+             </>
+           )}
         </div>
 
-        <div className="absolute top-8 right-8 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity pointer-events-none">
+        <div className="absolute top-8 right-8 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity pointer-events-none z-0">
           <User className="w-40 h-40 text-white" />
         </div>
 
@@ -390,6 +407,30 @@ export default function ProfilePage() {
 
         {editing ? (
           <div className="space-y-6">
+            <div>
+              <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-2 block">Bannière (Image ou Dégradé)</label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                {[
+                  { id: 'grad1', type: 'gradient', value: 'linear-gradient(90deg, #5865F2, #9333EA)', label: 'Blurple' },
+                  { id: 'grad2', type: 'gradient', value: 'linear-gradient(90deg, #ED4245, #FEE75C)', label: 'Fire' },
+                  { id: 'grad3', type: 'gradient', value: 'linear-gradient(90deg, #2DD4BF, #5865F2)', label: 'Ocean' },
+                  { id: 'grad4', type: 'gradient', value: 'linear-gradient(90deg, #18191C, #2C2F33)', label: 'Dark' },
+                  { id: 'fox2', type: 'image', value: '/banners/fox_2.jpg', label: 'Renard Anime' }
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setEditBanner(opt.value)}
+                    className={clsx(
+                      "relative h-16 rounded-xl overflow-hidden border-2 transition-all",
+                      editBanner === opt.value ? "border-white scale-105 shadow-[0_0_15px_rgba(255,255,255,0.4)]" : "border-transparent hover:scale-105 opacity-70 hover:opacity-100"
+                    )}
+                    style={{ background: opt.type === 'gradient' ? opt.value : `url(${opt.value}) center/cover` }}
+                  >
+                    <span className="absolute bottom-1 left-1 bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded text-[9px] font-bold">{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
             <div>
               <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-2 block">{t('profile.bio_label')}</label>
               <textarea 
