@@ -51,6 +51,8 @@ const CATEGORIES = [
 const ADMIN_NAV = [
   { href: '/admin/users', icon: Users, label: 'Utilisateurs' },
   { href: '/admin/inscriptions', icon: UserPlus, label: 'Inscriptions' },
+  { href: '/admin/entretiens', icon: Users, label: 'Entretiens (Recrutement)' },
+  { href: '/admin/satisfaction', icon: MessageCircle, label: 'Questionnaires Sat.' },
   { href: '/admin/classes', icon: GraduationCap, label: 'Classes' },
   { href: '/admin/effectifs', icon: GraduationCap, label: 'Effectifs & Profs' },
   { href: '/admin/options', icon: Library, label: 'Spécialités & Clubs' },
