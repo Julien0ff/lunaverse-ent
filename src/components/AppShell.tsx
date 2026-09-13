@@ -13,7 +13,7 @@ import NotificationToast from '@/components/NotificationToast'
 import OnboardingTutorial from '@/components/OnboardingTutorial'
 import { supabase } from '@/lib/supabase'
 
-const PUBLIC_PATHS = ['/', '/unauthorized']
+const PUBLIC_PATHS = ['/', '/unauthorized', '/recrutement']
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
