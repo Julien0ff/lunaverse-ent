@@ -4,13 +4,45 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import Image from 'next/image'
-import { User, Wallet, Calendar, MessageCircle, ShoppingBag, Gamepad2, Trophy, Edit3, Save, Twitter, Instagram, Github, Link as LinkIcon, ExternalLink } from 'lucide-react'
+import { User, Wallet, Calendar, MessageCircle, ShoppingBag, Gamepad2, Trophy, Edit3, Save, Twitter, Instagram, Github, Link as LinkIcon, ExternalLink, Activity, Flame, Coffee, Droplets, Heart, Sparkles } from 'lucide-react'
 import clsx from 'clsx'
 
 interface Stats {
   posts: number; likesReceived: number; purchases: number
   casinoWins: number; totalWon: number; totalLost: number
   partnerName: string | null; coupleSince: string | null
+}
+
+function TiltCard({ children, className, style }: { children: React.ReactNode, className?: string, style?: React.CSSProperties }) {
+  const [transform, setTransform] = useState('perspective(1000px) rotateX(0deg) rotateY(0deg)')
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const centerX = rect.width / 2
+    const centerY = rect.height / 2
+    
+    const rotateX = ((y - centerY) / centerY) * -5 // Max 5 deg
+    const rotateY = ((x - centerX) / centerX) * 5
+    
+    setTransform(`perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`)
+  }
+
+  const handleMouseLeave = () => {
+    setTransform('perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)')
+  }
+
+  return (
+    <div 
+      className={clsx("transition-transform duration-300 ease-out", className)}
+      style={{ ...style, transform, transformStyle: 'preserve-3d' }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
+      {children}
+    </div>
+  )
 }
 
 interface DiscordStatus { label: string; color: string }
@@ -101,16 +133,22 @@ export default function ProfilePage() {
         <p className="text-discord-muted mt-1 font-medium">{t('profile.subtitle')}</p>
       </div>
 
-      {/* Profile Card */}
-      <div className="glass-card overflow-hidden relative group" style={{ borderColor: 'rgba(88,101,242,0.15)' }}>
-        <div className="absolute top-0 right-0 p-8 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity">
-          <User className="w-40 h-40 text-discord-blurple" />
+      {/* Profile Card with Tilt & Banner */}
+      <TiltCard className="glass-card overflow-hidden relative group p-0 border-0 shadow-2xl" style={{ borderColor: 'rgba(88,101,242,0.15)' }}>
+        {/* Banner */}
+        <div className="h-32 md:h-48 w-full bg-gradient-to-r from-discord-blurple to-purple-600 relative overflow-hidden">
+           <div className="absolute inset-0 bg-black/20" />
+           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-30 mix-blend-overlay" />
         </div>
 
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-8 relative z-10">
+        <div className="absolute top-8 right-8 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity pointer-events-none">
+          <User className="w-40 h-40 text-white" />
+        </div>
+
+        <div className="p-6 md:p-8 flex flex-col md:flex-row items-center md:items-start gap-8 relative z-10 -mt-16 md:-mt-24">
           {/* Avatar */}
           <div className="relative flex-shrink-0">
-            <div className="w-28 h-28 relative rounded-3xl overflow-hidden ring-4 ring-discord-blurple/30 shadow-2xl shadow-discord-blurple/20 transition-transform duration-500 group-hover:scale-105">
+            <div className="w-28 h-28 relative rounded-3xl overflow-hidden ring-4 ring-discord-dark shadow-2xl shadow-discord-blurple/20 transition-transform duration-500 group-hover:scale-105 bg-discord-dark">
               <Image
                 src={profile?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}
                 alt={profile?.username || 'Avatar'} fill sizes="112px" className="object-cover"
@@ -135,9 +173,9 @@ export default function ProfilePage() {
           </div>
 
           {/* Info */}
-          <div className="flex-1 text-center md:text-left mt-6 md:mt-0 min-w-0">
+          <div className="flex-1 text-center md:text-left mt-6 md:mt-16 min-w-0">
             <div className="flex flex-col md:flex-row md:items-center gap-2 mb-2">
-              <h2 className="text-4xl font-black text-white tracking-tight group-hover:text-discord-blurple transition-colors">
+              <h2 className="text-4xl font-black text-white tracking-tight group-hover:text-discord-blurple transition-colors" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
                 {profile?.username || '…'}
               </h2>
               {roles.some(r => r.name.toLowerCase().includes('élève') || r.name.toLowerCase().includes('eleve')) && (
@@ -182,7 +220,7 @@ export default function ProfilePage() {
               {roles.length > 0 ? roles.map(role => (
                 <span
                   key={role.id}
-                  className="px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider"
+                  className="px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all hover:scale-105"
                   style={{
                     background: `${role.color || '#5865F2'}22`,
                     color: role.color || '#5865F2',
@@ -207,14 +245,51 @@ export default function ProfilePage() {
           </div>
 
           {/* Balance */}
-          <div className="flex-shrink-0 text-center p-6 rounded-3xl border"
-            style={{ background: 'rgba(88,101,242,0.08)', borderColor: 'rgba(88,101,242,0.2)' }}>
-            <Wallet className="w-6 h-6 mx-auto mb-2" style={{ color: '#5865F2' }} />
+          <div className="flex-shrink-0 text-center p-6 rounded-3xl border mt-4 md:mt-16 bg-white/5 backdrop-blur-xl border-white/10 hover:bg-white/10 transition-colors cursor-default">
+            <Wallet className="w-6 h-6 mx-auto mb-2 text-discord-success" />
             <p className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-1">{t('profile.balance_card')}</p>
-            <p className="text-3xl font-black text-white">
-              {(profile?.balance ?? 0).toFixed(0)}<span className="text-lg ml-1" style={{ color: '#5865F2' }}>€</span>
+            <p className="text-3xl font-black text-white drop-shadow-md">
+              {(profile?.balance ?? 0).toFixed(0)}<span className="text-lg ml-1 text-discord-success">€</span>
             </p>
           </div>
+        </div>
+      </TiltCard>
+
+      {/* Survival Stats (Faim, Soif, Fatigue, Hygiène, Santé) */}
+      <div className="glass-card animate-fadeIn" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+        <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest mb-6 flex items-center gap-2">
+          <Activity className="w-4 h-4 text-discord-error" />
+          État Physique & Survie
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          {[
+            { label: 'Faim', value: (profile as any)?.hunger ?? 100, icon: Flame, color: '#FEE75C' },
+            { label: 'Soif', value: (profile as any)?.thirst ?? 100, icon: Droplets, color: '#5865F2' },
+            { label: 'Fatigue', value: (profile as any)?.fatigue ?? 100, icon: Coffee, color: '#A855F7' },
+            { label: 'Hygiène', value: (profile as any)?.hygiene ?? 100, icon: Sparkles, color: '#2DD4BF' },
+            { label: 'Santé', value: (profile as any)?.health ?? 100, icon: Heart, color: '#ED4245' }
+          ].map((stat, i) => (
+            <div key={i} className="flex flex-col gap-2 group">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-discord-muted flex items-center gap-1.5 uppercase tracking-wider">
+                  <stat.icon className="w-3.5 h-3.5 transition-transform group-hover:scale-125" style={{ color: stat.color }} />
+                  {stat.label}
+                </span>
+                <span className="text-xs font-black text-white">{stat.value}%</span>
+              </div>
+              <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden relative shadow-inner">
+                <div 
+                  className={clsx("absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out", stat.value <= 20 ? "animate-pulse" : "")}
+                  style={{ 
+                    width: `${Math.max(0, Math.min(100, stat.value))}%`,
+                    background: `linear-gradient(90deg, ${stat.color}88, ${stat.color})`,
+                    boxShadow: `0 0 10px ${stat.color}55`
+                  }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

@@ -450,7 +450,7 @@ export default function SocialPage() {
         {loading && (
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="post-card animate-pulse space-y-3">
+              <div key={i} className="glass-card animate-pulse space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-white/8" />
                   <div className="space-y-1.5">
@@ -476,7 +476,7 @@ export default function SocialPage() {
         {posts.map((post, i) => (
           <div
             key={post.id}
-            className="post-card animate-fadeIn"
+            className="glass-card animate-fadeIn group hover:shadow-[0_8px_30px_rgba(88,101,242,0.15)] transition-all duration-300 hover:-translate-y-1 border border-white/5 hover:border-discord-blurple/30"
             style={{ animationDelay: `${i * 50}ms` }}
           >
             {/* Post header */}

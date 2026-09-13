@@ -137,9 +137,10 @@ export default function Sidebar() {
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       )}
         style={{ 
-          background: 'var(--sidebar-bg, rgba(15, 16, 19, 0.95))', 
-          backdropFilter: 'blur(16px)',
-          borderRight: '1px solid rgba(255,255,255,0.08)' 
+          background: 'rgba(10, 10, 12, 0.65)', 
+          backdropFilter: 'blur(32px)',
+          WebkitBackdropFilter: 'blur(32px)',
+          borderRight: '1px solid rgba(255,255,255,0.1)' 
         }}>
 
       {/* ── Logo + Notifications ─────────────────────────────── */}
@@ -387,11 +388,13 @@ export default function Sidebar() {
     </aside>
 
       {/* --- MOBILE BOTTOM NAV --- */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] flex items-center justify-around px-2 py-1 gap-1"
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] flex items-center justify-around px-2 py-1 gap-1 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]"
         style={{ 
           height: 'calc(68px + env(safe-area-inset-bottom, 0px))',
-          background: 'rgba(18,19,22,0.98)', 
-          borderTop: '1px solid rgba(255,255,255,0.05)',
+          background: 'rgba(10, 10, 12, 0.7)', 
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          borderTop: '1px solid rgba(255,255,255,0.08)',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)'
         }}>
         

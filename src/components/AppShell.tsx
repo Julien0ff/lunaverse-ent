@@ -126,7 +126,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <Sidebar />
                 
                 {/* Mobile Top Header */}
-                <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-discord-dark/90 backdrop-blur-md border-b border-white/5 z-[80] flex items-center justify-between px-5 shadow-lg">
+                <header className="md:hidden fixed top-0 left-0 right-0 h-16 border-b border-white/10 z-[80] flex items-center justify-between px-5 shadow-lg"
+                        style={{ background: 'rgba(10, 10, 12, 0.6)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)' }}>
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 flex items-center justify-center flex-shrink-0 rounded-[14px] overflow-hidden">
                             <Image src="/logo.png" alt="Logo" width={40} height={40} className="w-full h-full object-cover rounded-[14px]" />
