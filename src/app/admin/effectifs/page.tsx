@@ -5,7 +5,6 @@ import { GraduationCap, Save, Loader2, Info, Send, Plus, Trash2, CheckCircle2 } 
 import clsx from 'clsx'
 
 interface Effectif {
-  total?: number;
   id: string;
   name: string;
   capacity: number;
