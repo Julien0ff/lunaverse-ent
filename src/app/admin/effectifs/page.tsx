@@ -5,9 +5,11 @@ import { GraduationCap, Save, Loader2, Info, Send, Plus, Trash2, CheckCircle2 } 
 import clsx from 'clsx'
 
 interface Effectif {
+  total?: number;
   id: string;
   name: string;
   capacity: number;
+  total?: number;
 }
 
 export default function AdminEffectifsPage() {
@@ -36,11 +38,12 @@ export default function AdminEffectifsPage() {
         const optionsList = (data.options || []).map((o: any) => ({
           id: o.id || Math.random().toString(),
           name: o.name || o,
-          capacity: o.capacity || 0
+          capacity: o.capacity || 0,
+          total: o.total || o.capacity || 0
         }))
         setSpecialites(optionsList)
         
-        const loadEffectifItems = (items: any[]) => items.map(item => ({...item, id: item.id || Math.random().toString()}))
+        const loadEffectifItems = (items: any[]) => items.map(item => ({...item, id: item.id || Math.random().toString(), total: item.total || item.capacity || 0}))
 
         setClassiques(loadEffectifItems(data.effectifs.classiques || []))
         setPersonnel(loadEffectifItems(data.effectifs.personnel || [
@@ -120,27 +123,27 @@ export default function AdminEffectifsPage() {
   }
 
   const addClassique = () => {
-    setClassiques([...classiques, { id: Math.random().toString(), name: 'Nouvelle Matière', capacity: 0 }])
+    setClassiques([...classiques, { id: Math.random().toString(), name: 'Nouvelle Matière', capacity: 0, total: 0 }])
   }
   const removeClassique = (id: string) => {
     setClassiques(classiques.filter(c => c.id !== id))
   }
-  const updateClassique = (id: string, field: 'name' | 'capacity', value: any) => {
+  const updateClassique = (id: string, field: 'name' | 'capacity' | 'total', value: any) => {
     setClassiques(classiques.map(c => c.id === id ? { ...c, [field]: value } : c))
   }
 
-  const updatePersonnel = (id: string, field: 'name' | 'capacity', value: any) => {
+  const updatePersonnel = (id: string, field: 'name' | 'capacity' | 'total', value: any) => {
     setPersonnel(personnel.map(c => c.id === id ? { ...c, [field]: value } : c))
   }
   const addPersonnel = () => {
-    setPersonnel([...personnel, { id: Math.random().toString(), name: 'Nouveau Personnel', capacity: 0 }])
+    setPersonnel([...personnel, { id: Math.random().toString(), name: 'Nouveau Personnel', capacity: 0, total: 0 }])
   }
   const removePersonnel = (id: string) => {
     setPersonnel(personnel.filter(c => c.id !== id))
   }
 
-  const updateSpecialite = (id: string, value: number) => {
-    setSpecialites(specialites.map(c => c.id === id ? { ...c, capacity: value } : c))
+  const updateSpecialite = (id: string, field: 'capacity' | 'total', value: number) => {
+    setSpecialites(specialites.map(c => c.id === id ? { ...c, [field]: value } : c))
   }
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-10 h-10 animate-spin text-discord-blurple" /></div>
@@ -223,13 +226,25 @@ export default function AdminEffectifsPage() {
                   className="glass-input flex-1 min-w-0"
                   placeholder="Nom du rôle"
                 />
-                <input 
-                  type="number" 
-                  value={p.capacity} 
-                  onChange={e => updatePersonnel(p.id, 'capacity', parseInt(e.target.value) || 0)}
-                  className="glass-input !w-16 !px-2 shrink-0 text-center font-mono"
-                  min="0"
-                />
+                <div className="flex items-center gap-1 shrink-0">
+                  <input 
+                    type="number" 
+                    value={p.capacity} 
+                    onChange={e => updatePersonnel(p.id, 'capacity', parseInt(e.target.value) || 0)}
+                    className="glass-input !w-14 !px-1 text-center font-mono"
+                    min="0"
+                    title="Places libres"
+                  />
+                  <span className="text-discord-muted font-bold text-sm">/</span>
+                  <input 
+                    type="number" 
+                    value={p.total} 
+                    onChange={e => updatePersonnel(p.id, 'total', parseInt(e.target.value) || 0)}
+                    className="glass-input !w-14 !px-1 text-center font-mono"
+                    min="0"
+                    title="Places totales"
+                  />
+                </div>
                 <button onClick={() => removePersonnel(p.id)} className="p-2 text-discord-error hover:bg-discord-error/20 rounded-lg shrink-0">
                   <Trash2 className="w-5 h-5" />
                 </button>
@@ -260,13 +275,25 @@ export default function AdminEffectifsPage() {
                   className="glass-input flex-1 min-w-0"
                   placeholder="Nom de la matière"
                 />
-                <input 
-                  type="number" 
-                  value={c.capacity} 
-                  onChange={e => updateClassique(c.id, 'capacity', parseInt(e.target.value) || 0)}
-                  className="glass-input !w-16 !px-2 shrink-0 text-center font-mono"
-                  min="0"
-                />
+                <div className="flex items-center gap-1 shrink-0">
+                  <input 
+                    type="number" 
+                    value={c.capacity} 
+                    onChange={e => updateClassique(c.id, 'capacity', parseInt(e.target.value) || 0)}
+                    className="glass-input !w-14 !px-1 text-center font-mono"
+                    min="0"
+                    title="Places libres"
+                  />
+                  <span className="text-discord-muted font-bold text-sm">/</span>
+                  <input 
+                    type="number" 
+                    value={c.total} 
+                    onChange={e => updateClassique(c.id, 'total', parseInt(e.target.value) || 0)}
+                    className="glass-input !w-14 !px-1 text-center font-mono"
+                    min="0"
+                    title="Places totales"
+                  />
+                </div>
                 <button onClick={() => removeClassique(c.id)} className="p-2 text-discord-error hover:bg-discord-error/20 rounded-lg shrink-0">
                   <Trash2 className="w-5 h-5" />
                 </button>
@@ -287,14 +314,25 @@ export default function AdminEffectifsPage() {
             {specialites.map(s => (
               <div key={s.id} className="flex gap-3 items-center bg-black/20 p-2 rounded-xl border border-white/5">
                 <div className="flex-1 px-3 text-white font-medium">{s.name}</div>
-                <input 
-                  type="number" 
-                  value={s.capacity} 
-                  onChange={e => updateSpecialite(s.id, parseInt(e.target.value) || 0)}
-                  className="glass-input !w-20 !px-2 text-center font-mono bg-white/5 shrink-0"
-                  min="0"
-                  placeholder="Places"
-                />
+                <div className="flex items-center gap-1 shrink-0">
+                  <input 
+                    type="number" 
+                    value={s.capacity} 
+                    onChange={e => updateSpecialite(s.id, 'capacity', parseInt(e.target.value) || 0)}
+                    className="glass-input !w-14 !px-1 text-center font-mono bg-white/5"
+                    min="0"
+                    title="Places libres"
+                  />
+                  <span className="text-discord-muted font-bold text-sm">/</span>
+                  <input 
+                    type="number" 
+                    value={s.total} 
+                    onChange={e => updateSpecialite(s.id, 'total', parseInt(e.target.value) || 0)}
+                    className="glass-input !w-14 !px-1 text-center font-mono bg-white/5"
+                    min="0"
+                    title="Places totales"
+                  />
+                </div>
               </div>
             ))}
             <p className="text-[10px] text-discord-warning text-center mt-4">⚠️ Pensez à "Sauvegarder" avant de déployer !</p>
