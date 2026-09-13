@@ -432,6 +432,16 @@ client.on('guildMemberAdd', async (member) => {
   }
 })
 
+// ── Role update sync ─────────────────────────────────────────────
+client.on('guildMemberUpdate', async (oldMember, newMember) => {
+  if (newMember.user.bot) return
+  // If roles changed, sync member
+  if (oldMember.roles.cache.size !== newMember.roles.cache.size || !oldMember.roles.cache.equals(newMember.roles.cache)) {
+    console.log(`🔄 Role change detected for ${newMember.user.username}, syncing...`)
+    await syncMember(newMember)
+  }
+})
+
 // Event handlers
 client.on('ready', async () => {
   console.log(`Bot logged in as ${client.user?.tag}`)
@@ -736,6 +746,21 @@ client.on('ready', async () => {
 
     supabase
       .channel('ent-global-sync')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, async (payload: any) => {
+        try {
+          const profile = payload.new
+          if (profile.discord_id) {
+            console.log(`🆕 New profile detected for Discord ID ${profile.discord_id}, attempting sync...`)
+            for (const guild of Array.from(client.guilds.cache.values())) {
+              const member = await guild.members.fetch(profile.discord_id).catch(() => null)
+              if (member) {
+                await syncMember(member)
+                break
+              }
+            }
+          }
+        } catch (err) { console.error('profile sync fail', err) }
+      })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, async (payload: any) => {
         try {
           const comment = payload.new

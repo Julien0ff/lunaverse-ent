@@ -142,8 +142,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 {/* Main content — offset by sidebar width on desktop. Bottom padding on mobile for navbar. */}
                 <main
                     className={clsx(
-                        "flex-1 w-full md:ml-[280px] pt-16 md:pt-0",
-                        pathname === '/messages' ? "h-[calc(100dvh-68px-64px)] md:h-screen" : "min-h-[100dvh] pb-[68px] md:pb-0 overflow-y-auto overflow-x-hidden"
+                        "flex-1 min-w-0 md:ml-[280px] pt-16 md:pt-0 overflow-x-hidden",
+                        pathname === '/messages' ? "h-[calc(100dvh-68px)] md:h-screen" : "min-h-[100dvh] pb-[68px] md:pb-0 overflow-y-auto"
                     )}
                 >
                     <div className={clsx(
