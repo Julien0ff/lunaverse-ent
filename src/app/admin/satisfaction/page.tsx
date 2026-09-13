@@ -42,6 +42,10 @@ export default function SatisfactionListPage() {
       if (res.ok) {
         const data = await res.json()
         window.location.href = `/admin/satisfaction/${data.form.id}`
+      } else {
+        const errText = await res.text()
+        console.error('[Satisfaction POST 500 Error]', errText)
+        alert('Erreur: ' + errText)
       }
     } catch (e) {
       console.error(e)

@@ -45,6 +45,10 @@ export default function EntretiensListPage() {
       if (res.ok) {
         const data = await res.json()
         window.location.href = `/admin/entretiens/${data.interview.id}`
+      } else {
+        const errText = await res.text()
+        console.error('[Interviews POST 500 Error]', errText)
+        alert('Erreur: ' + errText)
       }
     } catch (e) {
       console.error(e)

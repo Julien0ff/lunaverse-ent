@@ -113,9 +113,16 @@ export default function Sidebar() {
     const checkUnread = async () => {
       try {
         const res = await fetch('/api/messages/unread')
-        const data = await res.json()
-        setUnreadCount(data.count || 0)
-      } catch (e) {}
+        if (!res.ok) {
+          const errText = await res.text()
+          console.error('[Unread API 500 Error]', errText)
+        } else {
+          const data = await res.json()
+          setUnreadCount(data.count || 0)
+        }
+      } catch (e) {
+        console.error('[Unread Fetch Error]', e)
+      }
     }
     checkUnread()
     const int = setInterval(checkUnread, 30000)
