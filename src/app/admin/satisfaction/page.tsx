@@ -107,8 +107,8 @@ export default function SatisfactionListPage() {
   }
 
   return (
-    <div className="page-container max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-8 animate-slideIn">
+    <div className="page-container max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-slideIn">
         <div>
           <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-3">
             <ClipboardList className="w-10 h-10 text-discord-blurple drop-shadow-md" />
@@ -123,7 +123,7 @@ export default function SatisfactionListPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 mb-6">
+      <div className="flex flex-wrap gap-2 md:gap-4 mb-6">
         <button 
           onClick={() => setActiveTab('drafts')}
           className={clsx("px-4 py-2 rounded-lg font-bold transition-all flex items-center gap-2", 

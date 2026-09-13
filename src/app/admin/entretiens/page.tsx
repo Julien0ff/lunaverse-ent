@@ -70,8 +70,8 @@ export default function EntretiensListPage() {
   }
 
   return (
-    <div className="page-container">
-      <div className="flex items-center justify-between mb-8 animate-slideIn">
+    <div className="page-container px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-slideIn">
         <div>
           <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-3">
             <Users className="w-10 h-10 text-discord-blurple drop-shadow-md" />
@@ -103,7 +103,7 @@ export default function EntretiensListPage() {
                 className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-discord-blurple/30 transition-all group"
               >
                 <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <span className="text-lg font-black text-white">{inv.rp_firstname} {inv.rp_lastname}</span>
                     <span className="text-xs px-2 py-0.5 rounded-md bg-white/10 font-bold uppercase tracking-wider text-discord-muted">
                       {inv.target_role}

@@ -2,6 +2,8 @@ import { createSupabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 import { generateQuestionsForRole } from '@/lib/interview-questions'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: Request) {
     try {
         const supabase = createSupabaseServer()

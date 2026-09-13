@@ -110,9 +110,9 @@ export default function EntretienDetailPage() {
   const roleHasQuestions = ['Professeur', 'AED', 'Surveillant'].includes(interview.target_role)
 
   return (
-    <div className="page-container max-w-5xl mx-auto pb-32">
+    <div className="page-container max-w-5xl mx-auto pb-32 px-4 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8 animate-slideIn">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-slideIn">
         <div className="flex items-center gap-4">
           <Link href="/admin/entretiens" className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
             <ChevronLeft className="w-5 h-5 text-white" />
@@ -298,7 +298,7 @@ export default function EntretienDetailPage() {
           <div className="glass-card">
             <h3 className="text-sm font-black text-discord-muted uppercase tracking-widest mb-6">Bilan et Délibéré Final</h3>
             
-            <div className="grid grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
                 <label className="text-[10px] font-bold text-discord-muted uppercase tracking-widest block mb-2">Note Dossier (Coef 1)</label>
                 <input 
@@ -335,7 +335,7 @@ export default function EntretienDetailPage() {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-4">
+            <div className="flex flex-col md:flex-row gap-4">
               <button 
                 onClick={() => handleSave({ status: 'refused' })}
                 className="flex-1 btn bg-discord-error/20 text-discord-error hover:bg-discord-error/30 border border-discord-error/50"

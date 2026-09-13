@@ -85,8 +85,8 @@ export default function SatisfactionDetailPage() {
   if (!form) return <div className="p-20 text-center text-discord-error">Questionnaire introuvable</div>
 
   return (
-    <div className="page-container max-w-4xl mx-auto pb-32">
-      <div className="flex items-center justify-between mb-8 animate-slideIn">
+    <div className="page-container max-w-4xl mx-auto pb-32 px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-slideIn">
         <div className="flex items-center gap-4">
           <Link href="/admin/satisfaction" className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
             <ChevronLeft className="w-5 h-5 text-white" />
@@ -155,7 +155,7 @@ export default function SatisfactionDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
               <label className="text-xs font-bold text-discord-muted uppercase mb-3 block">Simplicité de l'inscription (1 à 10)</label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {[1,2,3,4,5,6,7,8,9,10].map(n => (
                   <button key={n}
                     onClick={() => setForm({...form, q_reg_simplicity: n})}
@@ -168,7 +168,7 @@ export default function SatisfactionDetailPage() {
             </div>
             <div>
               <label className="text-xs font-bold text-discord-muted uppercase mb-3 block">Rapidité des réponses (1 à 10)</label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {[1,2,3,4,5,6,7,8,9,10].map(n => (
                   <button key={n}
                     onClick={() => setForm({...form, q_reg_speed: n})}
@@ -189,7 +189,7 @@ export default function SatisfactionDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
             <div>
               <label className="text-xs font-bold text-discord-muted uppercase mb-3 block">Appareil Principal</label>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <button 
                   onClick={() => setForm({...form, q_pronote_device: 'PC'})}
                   className={clsx("flex-1 p-4 rounded-xl border-2 flex items-center justify-center gap-3 font-bold transition-all", 
@@ -211,7 +211,7 @@ export default function SatisfactionDetailPage() {
 
             <div>
               <label className="text-xs font-bold text-discord-muted uppercase mb-3 block">Connexion Réussie ?</label>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <button 
                   onClick={() => setForm({...form, q_pronote_worked: true})}
                   className={clsx("flex-1 p-4 rounded-xl border-2 flex items-center justify-center gap-3 font-bold transition-all", 
@@ -270,11 +270,11 @@ export default function SatisfactionDetailPage() {
         </div>
 
         {/* Final Actions */}
-        <div className="glass-card flex items-center justify-between">
+        <div className="glass-card flex flex-col md:flex-row md:items-center justify-between gap-4">
           <p className="text-discord-muted text-sm">N'oubliez pas d'enregistrer vos modifications.</p>
           <button 
             onClick={() => handleSave({ status: 'completed' })}
-            className="btn bg-discord-success/20 text-discord-success border border-discord-success/30 hover:bg-discord-success/30 px-8"
+            className="btn bg-discord-success/20 text-discord-success border border-discord-success/30 hover:bg-discord-success/30 px-8 w-full md:w-auto"
           >
             <Check className="w-5 h-5" />
             Clôturer et Archiver
