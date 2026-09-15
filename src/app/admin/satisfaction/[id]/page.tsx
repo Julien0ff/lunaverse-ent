@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ChevronLeft, Save, Search, User, Check, Smartphone, Monitor, Trash2 } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import clsx from 'clsx'
 
