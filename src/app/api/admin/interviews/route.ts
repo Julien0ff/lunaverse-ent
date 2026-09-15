@@ -1,6 +1,6 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-import { generateQuestionsForRole } from '@/lib/interview-questions'
+import { generateInterviewQuestions } from '@/lib/interview-questions'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
         const { candidate_discord_id, rp_firstname, rp_lastname, target_role, scheduled_at } = body
 
         // Generate questions based on role
-        const questions = generateQuestionsForRole(target_role)
+        const questions = generateInterviewQuestions(target_role)
         const questions_data = questions.map(q => ({
             ...q,
             note: null, // to be filled

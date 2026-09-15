@@ -32,8 +32,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         // If target_role is updated and we don't pass questions_data directly, regenerate them
         if (body.target_role && !body.questions_data) {
             // Need to import generateQuestionsForRole at top of file
-            const { generateQuestionsForRole } = require('@/lib/interview-questions')
-            const q = generateQuestionsForRole(body.target_role)
+            const { generateInterviewQuestions } = require('@/lib/interview-questions')
+            const q = generateInterviewQuestions(body.target_role)
             questions_data = q.map((question: any) => ({
                 ...question,
                 note: null,

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ChevronLeft, Save, Search, User, Check, X, Clock, BrainCircuit } from 'lucide-react'
+import { ChevronLeft, Save, Search, User, Check, X, Clock, BrainCircuit, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import clsx from 'clsx'
 import { useLanguage } from '@/context/LanguageContext'
@@ -77,11 +77,24 @@ export default function EntretienDetailPage() {
       if (res.ok) {
         const data = await res.json()
         setInterview(data.interview)
+        if (customUpdates?.status && customUpdates.status !== 'draft') {
+          router.push('/admin/entretiens')
+        }
       }
     } catch (e) {
       console.error(e)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cet entretien ?')) return
+    try {
+      const res = await fetch(`/api/admin/interviews/${id}`, { method: 'DELETE' })
+      if (res.ok) router.push('/admin/entretiens')
+    } catch (e) {
+      console.error(e)
     }
   }
 
@@ -132,10 +145,15 @@ export default function EntretienDetailPage() {
             <p className="text-discord-muted mt-1 font-medium">Créé le {new Date(interview.created_at).toLocaleString()}</p>
           </div>
         </div>
-        <button onClick={() => handleSave()} disabled={saving} className="btn btn-primary px-6 shadow-lg shadow-discord-blurple/20">
-          <Save className="w-5 h-5" />
-          {saving ? 'Sauvegarde...' : 'Sauvegarder Brouillon'}
-        </button>
+        <div className="flex gap-3">
+          <button onClick={handleDelete} className="btn bg-discord-error/10 text-discord-error hover:bg-discord-error/20 border border-discord-error/30 px-4">
+            <Trash2 className="w-5 h-5" />
+          </button>
+          <button onClick={() => handleSave()} disabled={saving} className="btn btn-primary px-6 shadow-lg shadow-discord-blurple/20">
+            <Save className="w-5 h-5" />
+            {saving ? 'Sauvegarde...' : 'Sauvegarder Brouillon'}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -251,13 +269,13 @@ export default function EntretienDetailPage() {
                 <div className="space-y-6">
                   {interview.questions_data.map((q: any, i: number) => (
                     <div key={q.id} className="p-4 rounded-xl bg-white/5 border border-white/5">
-                      <div className="flex justify-between gap-4 mb-3">
+                      <div className="flex flex-col sm:flex-row justify-between gap-4 mb-3">
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-widest text-discord-blurple">{q.category}</span>
                           <p className="text-white font-medium mt-1">{q.question}</p>
                         </div>
                         {q.isGraded && (
-                          <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center gap-2 shrink-0 self-start sm:self-center bg-black/20 p-1.5 rounded-lg border border-white/5">
                             <input
                               type="number"
                               min="0"
@@ -268,7 +286,7 @@ export default function EntretienDetailPage() {
                               className="glass-input w-20 text-center font-black text-lg py-1"
                               placeholder="-"
                             />
-                            <span className="text-discord-muted font-bold text-sm">/ {q.maxPoints}</span>
+                            <span className="text-discord-muted font-bold text-sm whitespace-nowrap pr-2">/ {q.maxPoints}</span>
                           </div>
                         )}
                         {!q.isGraded && (

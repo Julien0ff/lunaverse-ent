@@ -36,9 +36,9 @@ export default function EntretiensListPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          candidate_discord_id: 'À définir',
-          rp_firstname: 'Prénom',
-          rp_lastname: 'Nom',
+          candidate_discord_id: '',
+          rp_firstname: '',
+          rp_lastname: '',
           target_role: 'Professeur' // default
         })
       })

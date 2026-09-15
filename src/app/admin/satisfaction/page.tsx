@@ -36,7 +36,7 @@ export default function SatisfactionListPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          target_discord_id: 'À définir'
+          target_discord_id: ''
         })
       })
       if (res.ok) {
@@ -95,7 +95,7 @@ export default function SatisfactionListPage() {
           >
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-3">
-                <span className="text-lg font-black text-white">ID Candidat: {f.target_discord_id}</span>
+                <span className="text-lg font-black text-white">{f.target_username || f.target_discord_id || 'Nouveau Questionnaire'}</span>
               </div>
               <div className="text-xs text-discord-muted flex items-center gap-2">
                 <span>Créé le {new Date(f.created_at).toLocaleDateString()}</span>

@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { ChevronLeft, Save, Search, User, Check, Smartphone, Monitor } from 'lucide-react'
+import { ChevronLeft, Save, Search, User, Check, Smartphone, Monitor, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import clsx from 'clsx'
 
@@ -52,7 +51,8 @@ export default function SatisfactionDetailPage() {
     const username = member.user?.global_name || member.user?.username
     setForm((prev: any) => ({
       ...prev,
-      target_discord_id: member.user.id
+      target_discord_id: member.user.id,
+      target_username: username
     }))
     setSearchQuery(username)
     setSearchResults([])
@@ -81,6 +81,16 @@ export default function SatisfactionDetailPage() {
     }
   }
 
+  const handleDelete = async () => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce questionnaire ?')) return
+    try {
+      const res = await fetch(`/api/admin/satisfaction/${id}`, { method: 'DELETE' })
+      if (res.ok) router.push('/admin/satisfaction')
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   if (loading) return <div className="p-20 text-center animate-pulse">Chargement...</div>
   if (!form) return <div className="p-20 text-center text-discord-error">Questionnaire introuvable</div>
 
@@ -103,182 +113,195 @@ export default function SatisfactionDetailPage() {
             </h1>
           </div>
         </div>
-        <button onClick={() => handleSave()} disabled={saving} className="btn btn-primary px-6 shadow-lg shadow-discord-blurple/20">
-          <Save className="w-5 h-5" />
-          {saving ? 'Sauvegarde...' : 'Sauvegarder Brouillon'}
-        </button>
+        <div className="flex gap-3">
+          <button onClick={handleDelete} className="btn bg-discord-error/10 text-discord-error hover:bg-discord-error/20 border border-discord-error/30 px-4">
+            <Trash2 className="w-5 h-5" />
+          </button>
+          <button onClick={() => handleSave()} disabled={saving} className="btn btn-primary px-6 shadow-lg shadow-discord-blurple/20">
+            <Save className="w-5 h-5" />
+            {saving ? 'Sauvegarde...' : 'Sauvegarder Brouillon'}
+          </button>
+        </div>
       </div>
 
-      <div className="space-y-6">
-        {/* User Selection */}
-        <div className="glass-card">
-          <h3 className="text-sm font-black text-discord-muted uppercase tracking-widest mb-4 flex items-center gap-2">
-            <User className="w-4 h-4 text-discord-blurple" /> Utilisateur Concerné
-          </h3>
-          <div className="relative max-w-md">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-discord-muted" />
-            <input 
-              type="text" 
-              value={searchQuery || form.target_discord_id}
-              onChange={e => handleSearch(e.target.value)}
-              className="glass-input pl-10"
-              placeholder="Rechercher sur le Discord..."
-            />
-            {searchResults.length > 0 && (
-              <div className="absolute z-10 top-full left-0 right-0 mt-2 p-2 bg-[#1E1F22] rounded-xl border border-white/10 shadow-2xl max-h-60 overflow-y-auto">
-                {searchResults.map((m: any) => (
-                  <button
-                    key={m.user.id}
-                    onClick={() => selectCandidate(m)}
-                    className="w-full text-left p-2 rounded-lg hover:bg-white/5 flex items-center gap-3 transition-colors"
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column: Infos */}
+        <div className="space-y-6 lg:col-span-1">
+          <div className="glass-card">
+            <h3 className="text-sm font-black text-discord-muted uppercase tracking-widest mb-4 flex items-center gap-2">
+              <User className="w-4 h-4 text-discord-blurple" /> Utilisateur ciblé
+            </h3>
+            
+            {/* Candidate Search */}
+            <div className="mb-4 relative">
+              <label className="text-xs font-bold text-discord-muted uppercase mb-1 block">Rechercher un membre Discord</label>
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-discord-muted" />
+                <input 
+                  type="text" 
+                  value={searchQuery || form.target_discord_id}
+                  onChange={e => handleSearch(e.target.value)}
+                  className="glass-input pl-10"
+                  placeholder="Rechercher sur le Discord..."
+                />
+              </div>
+              {searchResults.length > 0 && (
+                <div className="absolute z-10 top-full left-0 right-0 mt-2 p-2 bg-[#1E1F22] rounded-xl border border-white/10 shadow-2xl max-h-60 overflow-y-auto">
+                  {searchResults.map((m: any) => (
+                    <button
+                      key={m.user.id}
+                      onClick={() => selectCandidate(m)}
+                      className="w-full text-left p-2 rounded-lg hover:bg-white/5 flex items-center gap-3 transition-colors"
+                    >
+                      {m.user.avatar ? (
+                        <img src={`https://cdn.discordapp.com/avatars/${m.user.id}/${m.user.avatar}.png`} className="w-8 h-8 rounded-full" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-discord-blurple flex items-center justify-center text-xs font-bold">?</div>
+                      )}
+                      <div>
+                        <div className="font-bold text-white text-sm">{m.user.global_name || m.user.username}</div>
+                        <div className="text-xs text-discord-muted">{m.user.username}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Questions */}
+        <div className="space-y-6 lg:col-span-2">
+          <div className="glass-card mb-6">
+            <h3 className="text-sm font-black text-discord-muted uppercase tracking-widest mb-6 border-b border-white/10 pb-4">1. Inscription & Arrivée</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <label className="text-xs font-bold text-discord-muted uppercase mb-3 block">Simplicité de l'inscription (1 à 10)</label>
+                <div className="flex flex-wrap gap-2">
+                  {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                    <button key={n}
+                      onClick={() => setForm({...form, q_reg_simplicity: n})}
+                      className={clsx("w-10 h-10 rounded-lg font-black transition-all",
+                        form.q_reg_simplicity === n ? "bg-discord-blurple text-white scale-110 shadow-lg shadow-discord-blurple/20" : "bg-white/5 text-discord-muted hover:bg-white/10"
+                      )}
+                    >{n}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-discord-muted uppercase mb-3 block">Accueil sur le Serveur Discord (1 à 10)</label>
+                <div className="flex flex-wrap gap-2">
+                  {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                    <button key={n}
+                      onClick={() => setForm({...form, q_reg_speed: n})}
+                      className={clsx("w-10 h-10 rounded-lg font-black transition-all",
+                        form.q_reg_speed === n ? "bg-discord-success text-white scale-110 shadow-lg shadow-discord-success/20" : "bg-white/5 text-discord-muted hover:bg-white/10"
+                      )}
+                    >{n}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-card mb-6">
+            <h3 className="text-sm font-black text-discord-muted uppercase tracking-widest mb-6 border-b border-white/10 pb-4">2. Expérience Pronote</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+              <div>
+                <label className="text-xs font-bold text-discord-muted uppercase mb-3 block">Appareil Principal</label>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button 
+                    onClick={() => setForm({...form, q_pronote_device: 'PC'})}
+                    className={clsx("flex-1 p-4 rounded-xl border-2 flex items-center justify-center gap-3 font-bold transition-all", 
+                      form.q_pronote_device === 'PC' ? "border-discord-blurple bg-discord-blurple/10 text-white" : "border-transparent bg-white/5 text-discord-muted hover:bg-white/10"
+                    )}
                   >
-                    {m.user.avatar ? (
-                      <img src={`https://cdn.discordapp.com/avatars/${m.user.id}/${m.user.avatar}.png`} className="w-8 h-8 rounded-full" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-discord-blurple flex items-center justify-center text-xs font-bold">?</div>
-                    )}
-                    <div>
-                      <div className="font-bold text-white text-sm">{m.user.global_name || m.user.username}</div>
-                      <div className="text-xs text-discord-muted">{m.user.username}</div>
-                    </div>
+                    <Monitor className="w-5 h-5" /> Ordinateur
                   </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Section 1: Inscription */}
-        <div className="glass-card">
-          <h3 className="text-sm font-black text-discord-muted uppercase tracking-widest mb-6 border-b border-white/5 pb-4">1. L'Inscription</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <label className="text-xs font-bold text-discord-muted uppercase mb-3 block">Simplicité de l'inscription (1 à 10)</label>
-              <div className="flex flex-wrap gap-2">
-                {[1,2,3,4,5,6,7,8,9,10].map(n => (
-                  <button key={n}
-                    onClick={() => setForm({...form, q_reg_simplicity: n})}
-                    className={clsx("w-10 h-10 rounded-lg font-black transition-all",
-                      form.q_reg_simplicity === n ? "bg-discord-blurple text-white scale-110 shadow-lg shadow-discord-blurple/20" : "bg-white/5 text-discord-muted hover:bg-white/10"
+                  <button 
+                    onClick={() => setForm({...form, q_pronote_device: 'Mobile'})}
+                    className={clsx("flex-1 p-4 rounded-xl border-2 flex items-center justify-center gap-3 font-bold transition-all", 
+                      form.q_pronote_device === 'Mobile' ? "border-discord-warning bg-discord-warning/10 text-white" : "border-transparent bg-white/5 text-discord-muted hover:bg-white/10"
                     )}
-                  >{n}</button>
-                ))}
+                  >
+                    <Smartphone className="w-5 h-5" /> Téléphone
+                  </button>
+                </div>
               </div>
-            </div>
-            <div>
-              <label className="text-xs font-bold text-discord-muted uppercase mb-3 block">Rapidité des réponses (1 à 10)</label>
-              <div className="flex flex-wrap gap-2">
-                {[1,2,3,4,5,6,7,8,9,10].map(n => (
-                  <button key={n}
-                    onClick={() => setForm({...form, q_reg_speed: n})}
-                    className={clsx("w-10 h-10 rounded-lg font-black transition-all",
-                      form.q_reg_speed === n ? "bg-discord-success text-white scale-110 shadow-lg shadow-discord-success/20" : "bg-white/5 text-discord-muted hover:bg-white/10"
+
+              <div>
+                <label className="text-xs font-bold text-discord-muted uppercase mb-3 block">Connexion Réussie ?</label>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button 
+                    onClick={() => setForm({...form, q_pronote_worked: true})}
+                    className={clsx("flex-1 p-4 rounded-xl border-2 flex items-center justify-center gap-3 font-bold transition-all", 
+                      form.q_pronote_worked === true ? "border-discord-success bg-discord-success/10 text-white" : "border-transparent bg-white/5 text-discord-muted hover:bg-white/10"
                     )}
-                  >{n}</button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Section 2: Pronote */}
-        <div className="glass-card">
-          <h3 className="text-sm font-black text-discord-muted uppercase tracking-widest mb-6 border-b border-white/5 pb-4">2. Expérience Pronote</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
-            <div>
-              <label className="text-xs font-bold text-discord-muted uppercase mb-3 block">Appareil Principal</label>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button 
-                  onClick={() => setForm({...form, q_pronote_device: 'PC'})}
-                  className={clsx("flex-1 p-4 rounded-xl border-2 flex items-center justify-center gap-3 font-bold transition-all", 
-                    form.q_pronote_device === 'PC' ? "border-discord-blurple bg-discord-blurple/10 text-white" : "border-transparent bg-white/5 text-discord-muted hover:bg-white/10"
-                  )}
-                >
-                  <Monitor className="w-5 h-5" /> Ordinateur
-                </button>
-                <button 
-                  onClick={() => setForm({...form, q_pronote_device: 'Mobile'})}
-                  className={clsx("flex-1 p-4 rounded-xl border-2 flex items-center justify-center gap-3 font-bold transition-all", 
-                    form.q_pronote_device === 'Mobile' ? "border-discord-warning bg-discord-warning/10 text-white" : "border-transparent bg-white/5 text-discord-muted hover:bg-white/10"
-                  )}
-                >
-                  <Smartphone className="w-5 h-5" /> Téléphone
-                </button>
+                  >
+                    Oui, ça marche
+                  </button>
+                  <button 
+                    onClick={() => setForm({...form, q_pronote_worked: false})}
+                    className={clsx("flex-1 p-4 rounded-xl border-2 flex items-center justify-center gap-3 font-bold transition-all", 
+                      form.q_pronote_worked === false ? "border-discord-error bg-discord-error/10 text-white" : "border-transparent bg-white/5 text-discord-muted hover:bg-white/10"
+                    )}
+                  >
+                    Non, ça bloque
+                  </button>
+                </div>
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-bold text-discord-muted uppercase mb-3 block">Connexion Réussie ?</label>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button 
-                  onClick={() => setForm({...form, q_pronote_worked: true})}
-                  className={clsx("flex-1 p-4 rounded-xl border-2 flex items-center justify-center gap-3 font-bold transition-all", 
-                    form.q_pronote_worked === true ? "border-discord-success bg-discord-success/10 text-white" : "border-transparent bg-white/5 text-discord-muted hover:bg-white/10"
-                  )}
-                >
-                  Oui, ça marche
-                </button>
-                <button 
-                  onClick={() => setForm({...form, q_pronote_worked: false})}
-                  className={clsx("flex-1 p-4 rounded-xl border-2 flex items-center justify-center gap-3 font-bold transition-all", 
-                    form.q_pronote_worked === false ? "border-discord-error bg-discord-error/10 text-white" : "border-transparent bg-white/5 text-discord-muted hover:bg-white/10"
-                  )}
-                >
-                  Non, ça bloque
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-discord-muted uppercase mb-2 block">Détails sur l'expérience Pronote</label>
-            <textarea 
-              value={form.q_pronote_exp || ''}
-              onChange={e => setForm({...form, q_pronote_exp: e.target.value})}
-              className="glass-input min-h-[80px]"
-              placeholder="Des difficultés rencontrées ? Des bugs ?"
-            />
-          </div>
-        </div>
-
-        {/* Section 3: L'ENT */}
-        <div className="glass-card">
-          <h3 className="text-sm font-black text-discord-muted uppercase tracking-widest mb-6 border-b border-white/5 pb-4">3. L'ENT (Espace Numérique)</h3>
-          
-          <div className="space-y-6">
-            <div>
-              <label className="text-xs font-bold text-discord-muted uppercase mb-2 block">Ce qu'il aime de manière générale</label>
+              <label className="text-xs font-bold text-discord-muted uppercase mb-2 block">Bugs ou suggestions sur Pronote</label>
               <textarea 
-                value={form.q_ent_likes || ''}
-                onChange={e => setForm({...form, q_ent_likes: e.target.value})}
+                value={form.q_pronote_exp || ''}
+                onChange={e => setForm({...form, q_pronote_exp: e.target.value})}
                 className="glass-input min-h-[100px]"
-                placeholder="Ex: Le design, la loterie, le profil..."
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-discord-muted uppercase mb-2 block">Les points à améliorer (Idées/Critiques)</label>
-              <textarea 
-                value={form.q_ent_improvements || ''}
-                onChange={e => setForm({...form, q_ent_improvements: e.target.value})}
-                className="glass-input min-h-[100px]"
-                placeholder="Ex: Ajouter plus de rôles, un marché noir..."
+                placeholder="Ressenti sur l'interface, problèmes rencontrés..."
               />
             </div>
           </div>
-        </div>
 
-        {/* Final Actions */}
-        <div className="glass-card flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <p className="text-discord-muted text-sm">N'oubliez pas d'enregistrer vos modifications.</p>
-          <button 
-            onClick={() => handleSave({ status: 'completed' })}
-            className="btn bg-discord-success/20 text-discord-success border border-discord-success/30 hover:bg-discord-success/30 px-8 w-full md:w-auto"
-          >
-            <Check className="w-5 h-5" />
-            Clôturer et Archiver
-          </button>
+          <div className="glass-card mb-6">
+            <h3 className="text-sm font-black text-discord-muted uppercase tracking-widest mb-6 border-b border-white/10 pb-4">3. L'ENT Global</h3>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="text-xs font-bold text-discord-muted uppercase mb-2 block">Ce qui vous plaît le plus</label>
+                <textarea 
+                  value={form.q_ent_likes || ''}
+                  onChange={e => setForm({...form, q_ent_likes: e.target.value})}
+                  className="glass-input min-h-[100px]"
+                  placeholder="Quelles sont vos fonctionnalités préférées ?"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-discord-muted uppercase mb-2 block">Ce qui manque / Améliorations possibles</label>
+                <textarea 
+                  value={form.q_ent_improvements || ''}
+                  onChange={e => setForm({...form, q_ent_improvements: e.target.value})}
+                  className="glass-input min-h-[100px]"
+                  placeholder="Qu'est-ce qu'on pourrait faire de mieux ? (Ressenti global libre...)"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Final Actions */}
+          <div className="glass-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <p className="text-discord-muted text-sm">N'oubliez pas d'enregistrer vos modifications.</p>
+            <button 
+              onClick={() => handleSave({ status: 'completed' })}
+              className="btn bg-discord-success/20 text-discord-success border border-discord-success/30 hover:bg-discord-success/30 px-8 w-full md:w-auto"
+            >
+              <Check className="w-5 h-5" />
+              Clôturer et Archiver
+            </button>
+          </div>
         </div>
       </div>
     </div>
