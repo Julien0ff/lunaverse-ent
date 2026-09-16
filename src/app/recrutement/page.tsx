@@ -448,7 +448,7 @@ export default function RecrutementPage() {
                               <textarea 
                                 value={motivation}
                                 onChange={e => setMotivation(e.target.value)}
-                                className="glass-input w-full min-h-[80px] py-2 text-sm" 
+                                className="glass-input w-full min-h-[120px] !resize-y py-2 text-sm" 
                                 placeholder="Expliquez pourquoi..."
                               />
                             </div>
