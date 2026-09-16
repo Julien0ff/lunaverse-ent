@@ -199,6 +199,14 @@ const commands = [
     .addUserOption(o => o.setName('utilisateur').setDescription('La cible de votre échange').setRequired(true))
     .addStringOption(o => o.setName('objet').setDescription('Le nom (ou ID) de l\'objet à donner').setRequired(true)),
 
+  new SlashCommandBuilder()
+    .setName('frigo')
+    .setDescription('Ouvrir le frigo de la maison (Doit être dans un salon de maison)'),
+    
+  new SlashCommandBuilder()
+    .setName('four')
+    .setDescription('Utiliser le four de la maison (Doit être dans un salon de maison)'),
+
 ]
 
 // Helper functions
@@ -1154,6 +1162,34 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
 })
 
 client.on('interactionCreate', async (interaction) => {
+  if (interaction.isCommand()) {
+    if (interaction.commandName === 'frigo' || interaction.commandName === 'four') {
+      const channelId = interaction.channelId
+      // Check if channel is a house room
+      const { data: room } = await supabase.from('house_rooms').select('house_id').eq('discord_channel_id', channelId).maybeSingle()
+      
+      if (!room) {
+        return interaction.reply({ content: '❌ Vous devez être dans un salon de maison pour utiliser cette commande.', ephemeral: true })
+      }
+      
+      // Check if house has the item
+      const itemToLookFor = interaction.commandName === 'frigo' ? 'frigo' : 'four'
+      const { data: hasItem } = await supabase.from('house_items').select('id').eq('house_id', room.house_id).ilike('item_id', `%${itemToLookFor}%`).maybeSingle()
+      
+      if (!hasItem) {
+        return interaction.reply({ content: `❌ Cette maison ne possède pas de ${itemToLookFor}. Il faut l'acheter depuis l'ENT !`, ephemeral: true })
+      }
+
+      // Show basic UI
+      const embed = new EmbedBuilder()
+        .setTitle(interaction.commandName === 'frigo' ? '❄️ Le Frigo' : '🔥 Le Four')
+        .setDescription(`Que voulez-vous faire avec le ${interaction.commandName} ? (Le système de stockage complet sera bientôt disponible)`)
+        .setColor(interaction.commandName === 'frigo' ? 0x5865F2 : 0xED4245)
+      
+      return interaction.reply({ embeds: [embed], ephemeral: true })
+    }
+  }
+
   if (interaction.isAutocomplete()) {
     const focusedValue = interaction.options.getFocused()
     if (interaction.commandName === 'buy' || interaction.commandName === 'utiliser') {

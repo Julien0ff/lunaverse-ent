@@ -98,3 +98,109 @@ export async function addDiscordMemberRole(discordId: string, roleId: string) {
     return false
   }
 }
+
+export async function createHouseDiscordChannels(ownerPseudo: string, ownerDiscordId: string) {
+  try {
+    const token = process.env.DISCORD_BOT_TOKEN
+    if (!token) return null
+    const guildId = await getFirstGuildId(token)
+    if (!guildId) return null
+
+    // Create Category (Type 4)
+    // Permission Overwrites:
+    // 0 = Role (everyone has same ID as guild)
+    // 1 = Member
+    const categoryRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/channels`, {
+      method: 'POST',
+      headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: `Maison de ${ownerPseudo}`,
+        type: 4, 
+        permission_overwrites: [
+          {
+            id: guildId, // @everyone
+            type: 0,
+            deny: "1024" // VIEW_CHANNEL
+          },
+          {
+            id: ownerDiscordId,
+            type: 1,
+            allow: "1024" // VIEW_CHANNEL
+          }
+        ]
+      })
+    })
+    if (!categoryRes.ok) throw new Error('Failed to create category')
+    const category = await categoryRes.json()
+    const categoryId = category.id
+
+    // Create default Text Channel (Type 0)
+    const textRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/channels`, {
+      method: 'POST',
+      headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: `🏠・salon`,
+        type: 0,
+        parent_id: categoryId
+      })
+    })
+    const textChannel = await textRes.json()
+
+    // Create default Voice Channel (Type 2)
+    const voiceRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/channels`, {
+      method: 'POST',
+      headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: `🔊・vocal`,
+        type: 2,
+        parent_id: categoryId
+      })
+    })
+    const voiceChannel = await voiceRes.json()
+
+    return {
+      categoryId,
+      textChannelId: textChannel.id,
+      voiceChannelId: voiceChannel.id
+    }
+  } catch (e) {
+    console.error('Failed to create house channels', e)
+    return null
+  }
+}
+
+export async function addMemberToDiscordChannel(channelId: string, memberDiscordId: string) {
+  try {
+    const token = process.env.DISCORD_BOT_TOKEN
+    if (!token) return false
+
+    // Put a permission overwrite for this member allowing VIEW_CHANNEL (1024)
+    const res = await fetch(`https://discord.com/api/v10/channels/${channelId}/permissions/${memberDiscordId}`, {
+      method: 'PUT',
+      headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 1, // Member
+        allow: "1024",
+        deny: "0"
+      })
+    })
+    return res.ok
+  } catch (e) {
+    console.error('Failed to add member to channel permissions', e)
+    return false
+  }
+}
+
+export async function deleteDiscordChannel(channelId: string) {
+  try {
+    const token = process.env.DISCORD_BOT_TOKEN
+    if (!token) return false
+    const res = await fetch(`https://discord.com/api/v10/channels/${channelId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bot ${token}` }
+    })
+    return res.ok
+  } catch (e) {
+    return false
+  }
+}
