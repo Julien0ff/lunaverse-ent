@@ -24,10 +24,6 @@ export async function GET(request: Request) {
       details: err.details,
       hint: err.hint
     })
-    return NextResponse.json({ 
-      error: err.message, 
-      code: err.code,
-      details: err.details 
-    }, { status: 500 })
+    return NextResponse.json({ count: 0 })
   }
 }

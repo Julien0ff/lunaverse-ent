@@ -1,4 +1,5 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { NextResponse } from 'next/server'
 import { createHouseDiscordChannels } from '@/lib/discord-api'
 
@@ -26,8 +27,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Vous possédez déjà une maison.' }, { status: 400 })
     }
 
-    // Get user wallet and profile
-    const { data: profile } = await supabase.from('profiles').select('wallet, discord_id, username, nickname_rp').eq('id', user.id).single()
+    // Get user wallet and profile using Admin to bypass RLS
+    const admin = createSupabaseAdmin()
+    const { data: profile } = await admin.from('profiles').select('wallet, discord_id, username, nickname_rp').eq('id', user.id).single()
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
     if ((profile.wallet || 0) < price) {
@@ -36,7 +38,7 @@ export async function POST(req: Request) {
 
     // 1. Deduct money
     const newWallet = (profile.wallet || 0) - price
-    const { error: walletError } = await supabase.from('profiles').update({ wallet: newWallet }).eq('id', user.id)
+    const { error: walletError } = await admin.from('profiles').update({ wallet: newWallet }).eq('id', user.id)
     if (walletError) throw walletError
 
     // 2. Create Discord Channels

@@ -19,7 +19,12 @@ export default function MaisonPage() {
   const [data, setData] = useState<any>(null)
   const [buying, setBuying] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [inviteUserId, setInviteUserId] = useState('')
+
+  // Modals
+  const [buyConfirm, setBuyConfirm] = useState<{type: string, price: number} | null>(null)
+  const [sellConfirm, setSellConfirm] = useState(false)
 
   useEffect(() => {
     if (user) fetchHouseData()
@@ -38,11 +43,14 @@ export default function MaisonPage() {
     }
   }
 
-  const buyHouse = async (type: string) => {
-    if (!confirm(`Voulez-vous vraiment acheter : ${type} ? L'argent sera débité de votre compte.`)) return
+  const executeBuy = async () => {
+    if (!buyConfirm) return
+    const { type } = buyConfirm
+    setBuyConfirm(null)
     
     setBuying(true)
     setError('')
+    setSuccess('')
     try {
       const res = await fetch('/api/maison/buy', {
         method: 'POST',
@@ -54,6 +62,7 @@ export default function MaisonPage() {
       if (!res.ok) {
         setError(result.error || 'Erreur lors de l\'achat')
       } else {
+        setSuccess(`Félicitations ! Vous êtes l'heureux propriétaire d'un ${type}.`)
         await fetchHouseData()
       }
     } catch (err: any) {
@@ -63,20 +72,28 @@ export default function MaisonPage() {
     }
   }
 
-  const sellHouse = async () => {
-    if (!confirm('Êtes-vous sûr de vouloir revendre votre maison ? Vous ne récupérerez que 50% de sa valeur en RP, et vos salons Discord seront supprimés.')) return
-    
+  const executeSell = async () => {
+    if (!sellConfirm) return
+    setSellConfirm(false)
+    setError('')
+    setSuccess('')
     try {
       const res = await fetch('/api/maison/sell', { method: 'DELETE' })
       if (!res.ok) throw new Error('Erreur lors de la revente')
+      setSuccess('Maison revendue avec succès.')
       await fetchHouseData()
     } catch (e: any) {
-      alert(e.message)
+      setError(e.message)
     }
   }
 
   const inviteMember = async () => {
-    if (!inviteUserId) return alert('Veuillez entrer un ID utilisateur.')
+    if (!inviteUserId) {
+      setError('Veuillez entrer un ID utilisateur.')
+      return
+    }
+    setError('')
+    setSuccess('')
     try {
       const res = await fetch('/api/maison/invite', {
         method: 'POST',
@@ -84,28 +101,32 @@ export default function MaisonPage() {
         body: JSON.stringify({ targetUserId: inviteUserId })
       })
       const result = await res.json()
-      if (!res.ok) alert(result.error)
-      else {
-        alert('Invitation envoyée !')
+      if (!res.ok) {
+        setError(result.error)
+      } else {
+        setSuccess('Invitation envoyée !')
         setInviteUserId('')
         fetchHouseData()
       }
     } catch (e: any) {
-      alert(e.message)
+      setError(e.message)
     }
   }
 
   const respondToInvite = async (houseId: string, accept: boolean) => {
+    setError('')
+    setSuccess('')
     try {
       const res = await fetch('/api/maison/invite/respond', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ houseId, accept })
       })
-      if (!res.ok) throw new Error('Erreur')
+      if (!res.ok) throw new Error('Erreur lors de la réponse à l\'invitation')
+      setSuccess(accept ? 'Invitation acceptée !' : 'Invitation refusée.')
       fetchHouseData()
     } catch (e: any) {
-      alert(e.message)
+      setError(e.message)
     }
   }
 
@@ -130,10 +151,10 @@ export default function MaisonPage() {
           <p className="text-discord-muted max-w-md">Un adulte vous a invité à rejoindre sa maison. Accepter l'invitation vous donnera accès aux salons Discord privés.</p>
         </div>
         <div className="flex gap-4">
-          <button onClick={() => respondToInvite(data.house_id, true)} className="glass-button bg-discord-green/20 text-discord-green hover:bg-discord-green/30">
+          <button onClick={() => respondToInvite(data.house_id, true)} className="flex items-center px-4 py-2 rounded-xl font-bold transition-colors bg-discord-green/20 text-discord-green hover:bg-discord-green/30">
             <CheckCircle2 className="w-5 h-5 mr-2" /> Accepter
           </button>
-          <button onClick={() => respondToInvite(data.house_id, false)} className="glass-button bg-discord-red/20 text-discord-red hover:bg-discord-red/30">
+          <button onClick={() => respondToInvite(data.house_id, false)} className="flex items-center px-4 py-2 rounded-xl font-bold transition-colors bg-discord-red/20 text-discord-red hover:bg-discord-red/30">
             <XCircle className="w-5 h-5 mr-2" /> Refuser
           </button>
         </div>
@@ -147,9 +168,10 @@ export default function MaisonPage() {
         <div className="text-center space-y-4 mb-12">
           <h1 className="text-4xl font-black text-white">Agence Immobilière</h1>
           <p className="text-discord-muted max-w-2xl mx-auto text-lg">
-            Devenez propriétaire ! Achetez votre propre logement sur l'ENT avec vos RP. L'achat génère instantanément vos salons privés sur Discord.
+            Devenez propriétaire ! Achetez votre propre logement sur l'ENT avec vos euros. L'achat génère instantanément vos salons privés sur Discord.
           </p>
           {error && <div className="text-discord-red font-bold p-4 bg-discord-red/10 rounded-xl max-w-md mx-auto">{error}</div>}
+          {success && <div className="text-discord-success font-bold p-4 bg-discord-success/10 rounded-xl max-w-md mx-auto">{success}</div>}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -166,10 +188,10 @@ export default function MaisonPage() {
               
               <div className="mt-auto">
                 <div className="text-3xl font-black text-white mb-4">
-                  {h.price.toLocaleString()} <span className="text-sm text-discord-muted">RP</span>
+                  {h.price.toLocaleString()} <span className="text-sm text-discord-muted">€</span>
                 </div>
                 <button 
-                  onClick={() => buyHouse(h.type)}
+                  onClick={() => setBuyConfirm({ type: h.type, price: h.price })}
                   disabled={buying}
                   className={`w-full py-3 rounded-xl font-bold flex justify-center items-center gap-2 text-white bg-${h.color} hover:bg-${h.color}/80 transition-colors disabled:opacity-50`}
                 >
@@ -180,6 +202,27 @@ export default function MaisonPage() {
             </div>
           ))}
         </div>
+
+        {/* Modal Buy Confirm */}
+        {buyConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+            <div className="bg-[#1e1f22] border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-scaleIn">
+              <h3 className="text-xl font-black text-white mb-2">Confirmer l'achat</h3>
+              <p className="text-discord-muted mb-6">
+                Voulez-vous vraiment acheter : <strong className="text-white">{buyConfirm.type}</strong> pour <strong className="text-discord-green">{buyConfirm.price} €</strong> ?<br/><br/>
+                L'argent sera débité de votre compte bancaire en jeu.
+              </p>
+              <div className="flex gap-4">
+                <button onClick={() => setBuyConfirm(null)} className="flex-1 py-2.5 rounded-xl font-bold text-white bg-white/5 hover:bg-white/10 transition-colors">
+                  Annuler
+                </button>
+                <button onClick={executeBuy} className="flex-1 py-2.5 rounded-xl font-bold text-white bg-discord-blurple hover:bg-discord-blurple/80 transition-colors">
+                  Confirmer
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -201,10 +244,10 @@ export default function MaisonPage() {
             </p>
           </div>
           <div className="hidden md:flex gap-4">
-            <button className="glass-button bg-discord-blurple/20 text-discord-blurple border-discord-blurple/30 hover:bg-discord-blurple/30">
+            <button className="flex items-center px-4 py-2 rounded-xl font-bold transition-colors bg-discord-blurple/20 text-discord-blurple border border-discord-blurple/30 hover:bg-discord-blurple/30">
               <Plus className="w-4 h-4 mr-2" /> Nouvelle Pièce
             </button>
-            <button className="glass-button">
+            <button className="flex items-center px-4 py-2 rounded-xl font-bold transition-colors bg-white/10 text-white hover:bg-white/20 border border-white/5">
               <ShoppingCart className="w-4 h-4 mr-2" /> Boutique Meubles
             </button>
           </div>
@@ -317,7 +360,7 @@ export default function MaisonPage() {
             
             {/* Admin Settings Button */}
             {user.id === house.owner_id && (
-              <button onClick={sellHouse} className="w-full glass-button text-discord-red hover:bg-discord-red/10 border border-discord-red/30">
+              <button onClick={executeSell} className="w-full py-3 rounded-xl font-bold transition-colors bg-discord-red/20 text-discord-red hover:bg-discord-red/30 border border-discord-red/30">
                 Revendre la propriété
               </button>
             )}

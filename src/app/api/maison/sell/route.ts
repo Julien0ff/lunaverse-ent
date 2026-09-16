@@ -1,4 +1,5 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { NextResponse } from 'next/server'
 import { deleteDiscordChannel } from '@/lib/discord-api'
 
@@ -24,10 +25,13 @@ export async function DELETE(req: Request) {
     const refund = Math.floor(price * 0.5) // 50% refund
 
     // Refund wallet
-    const { data: profile } = await supabase.from('profiles').select('wallet').eq('id', user.id).single()
-    if (profile) {
-      await supabase.from('profiles').update({ wallet: (profile.wallet || 0) + refund }).eq('id', user.id)
-    }
+    const admin = createSupabaseAdmin()
+
+    const { data: profile } = await admin.from('profiles').select('wallet').eq('id', user.id).single()
+    const currentWallet = profile?.wallet || 0
+    const newWallet = currentWallet + refund
+
+    await admin.from('profiles').update({ wallet: newWallet }).eq('id', user.id)
 
     // Delete Discord Category
     if (house.discord_category_id) {
