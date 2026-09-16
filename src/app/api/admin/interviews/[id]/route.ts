@@ -63,6 +63,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
         const updates = { ...body, global_note, ...(questions_data && { questions_data }) }
         
+        // Remove joined fields before updating
+        delete updates.inspector
+        
         const { data, error } = await supabase
             .from('interviews')
             .update(updates)

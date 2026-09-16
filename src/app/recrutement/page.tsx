@@ -368,7 +368,7 @@ export default function RecrutementPage() {
                           </div>
                         ) : (
                           <div className="space-y-4">
-                            <div className="grid grid-cols-1 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                 <label className="block text-xs font-bold text-discord-muted uppercase mb-1">Prénom RP *</label>
                                 <input 
