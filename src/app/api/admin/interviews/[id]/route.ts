@@ -1,5 +1,7 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
+import { generateInterviewQuestions } from '@/lib/interview-questions'
+import { sendDiscordDMByDiscordId, setDiscordMemberNickname, addDiscordMemberRole } from '@/lib/discord-api'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,7 +38,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         // If target_role is updated OR we transition to 'scheduled' without oral questions, generate them
         const isScheduling = body.status === 'scheduled' && oldData.status !== 'scheduled';
         if ((body.target_role && body.target_role !== oldData.target_role) || isScheduling) {
-            const { generateInterviewQuestions } = require('@/lib/interview-questions')
             const q = generateInterviewQuestions(body.target_role || oldData.target_role)
             const oralQuestions = q.map((question: any) => ({
                 ...question,
@@ -76,8 +77,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         if (error) throw error
 
         // --- DISCORD INTEGRATION ---
-        const { sendDiscordDMByDiscordId, setDiscordMemberNickname, addDiscordMemberRole } = require('@/lib/discord-api')
-
+        
         // 1. DM for Convocation
         if (
             (updates.scheduled_at && updates.scheduled_at !== oldData.scheduled_at) ||

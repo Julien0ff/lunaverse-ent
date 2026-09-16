@@ -9,6 +9,9 @@ ALTER TABLE houses DROP COLUMN IF EXISTS blacklist;
 ALTER TABLE houses DROP COLUMN IF EXISTS furnishings; -- Replaced by house_items
 ALTER TABLE houses DROP COLUMN IF EXISTS status; -- No more pending status, purchase is instant
 
+-- Add discord_category_id column for storing the created Discord category ID
+ALTER TABLE houses ADD COLUMN IF NOT EXISTS discord_category_id VARCHAR;
+
 -- 2. House Rooms Table
 CREATE TABLE IF NOT EXISTS house_rooms (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
