@@ -47,7 +47,7 @@ export default function RecrutementPage() {
   const [rpLastname, setRpLastname] = useState('')
   const [motivation, setMotivation] = useState('')
   const [disponibilites, setDisponibilites] = useState('')
-  const [selectedMatieres, setSelectedMatieres] = useState<string[]>([])
+  const [selectedMatiere, setSelectedMatiere] = useState<string>('')
   const [cvFile, setCvFile] = useState<File | null>(null)
   
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -145,18 +145,20 @@ export default function RecrutementPage() {
         }
       }
 
+      const payload = {
+        target_role: roleId,
+        rp_firstname: rpFirstname,
+        rp_lastname: rpLastname,
+        motivation,
+        disponibilites,
+        matieres: selectedMatiere ? [selectedMatiere] : [],
+        cv_url
+      }
+
       const res = await fetch('/api/recrutement/apply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          target_role: roleId,
-          rp_firstname: rpFirstname,
-          rp_lastname: rpLastname,
-          motivation,
-          disponibilites,
-          matieres: selectedMatieres,
-          cv_url
-        })
+        body: JSON.stringify(payload)
       })
 
       if (!res.ok) {
@@ -173,7 +175,7 @@ export default function RecrutementPage() {
       setRpLastname('')
       setMotivation('')
       setDisponibilites('')
-      setSelectedMatieres([])
+      setSelectedMatiere('')
       setCvFile(null)
     } catch (err: any) {
       setErrorMsg(err.message)
@@ -294,32 +296,57 @@ export default function RecrutementPage() {
               </button>
             )}
 
-            <div className="relative space-y-8 md:space-y-12 before:content-[''] before:absolute before:inset-0 before:ml-5 md:before:mx-auto md:before:translate-x-0 before:h-full before:w-1 before:bg-white/5">
-              
-              {/* Étape 1 : Candidature Envoyée (ou Formulaire) */}
-              <div className="relative flex flex-col md:flex-row items-start justify-between md:justify-normal md:even:flex-row-reverse group">
-                <div className={clsx("flex items-center justify-center w-10 h-10 rounded-full border-4 border-[var(--discord-dark)] shadow shrink-0 z-10 md:order-1 absolute left-0 md:left-1/2 md:-translate-x-1/2", 
-                  "bg-discord-blurple text-white"
-                )}>
-                  {myApplication ? <CheckCircle2 className="w-5 h-5" /> : <ClipboardCheck className="w-5 h-5" />}
+            {/* Horizontal Timeline (Top) */}
+            <div className="mb-12 relative max-w-3xl mx-auto">
+              <div className="hidden md:block absolute top-5 left-8 right-8 h-1 bg-white/10 z-0" />
+              <div className="flex flex-col md:flex-row justify-between relative z-10 gap-6 md:gap-0">
+                {/* Step 1: Formulaire / Envoyé */}
+                <div className="flex flex-col items-center flex-1">
+                  <div className={clsx("w-10 h-10 rounded-full border-4 border-[var(--discord-dark)] flex items-center justify-center shrink-0 shadow-lg", 
+                    "bg-discord-blurple text-white")}>
+                    {myApplication ? <CheckCircle2 className="w-5 h-5" /> : <ClipboardCheck className="w-5 h-5" />}
+                  </div>
+                  <div className="mt-2 text-center text-sm font-bold text-white">Candidature</div>
                 </div>
-                <div className={clsx("w-full pl-16 md:pl-0 md:w-[calc(50%-3rem)] transition-all",
-                  myApplication ? "opacity-100" : "opacity-100"
-                )}>
-                  <div className={clsx("p-6 rounded-2xl border shadow-xl", 
-                    myApplication ? "border-discord-blurple/30 bg-discord-blurple/10" : "border-white/10 bg-white/5"
-                  )}>
-                    <h3 className="font-bold text-lg text-discord-blurple mb-2">
-                      {myApplication ? 'Candidature Envoyée' : '1. Formulaire de Candidature'}
-                    </h3>
-                    
-                    {myApplication ? (
-                      <p className="text-sm text-discord-muted">
-                        Candidature soumise le <strong className="text-white">{new Date(myApplication.created_at).toLocaleDateString('fr-FR')}</strong>.
-                      </p>
-                    ) : (
-                      // The Application Form inside Step 1
-                      <div className="mt-6 space-y-4 text-left">
+
+                {/* Step 2: Planification */}
+                <div className="flex flex-col items-center flex-1">
+                  <div className={clsx("w-10 h-10 rounded-full border-4 border-[var(--discord-dark)] flex items-center justify-center shrink-0 shadow-lg", 
+                    myApplication?.scheduled_at ? "bg-discord-blurple text-white" : "bg-white/10 text-discord-muted")}>
+                    {myApplication?.scheduled_at ? <CheckCircle2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
+                  </div>
+                  <div className={clsx("mt-2 text-center text-sm font-bold", myApplication?.scheduled_at ? "text-white" : "text-discord-muted")}>Planification</div>
+                </div>
+
+                {/* Step 3: Convocation */}
+                <div className="flex flex-col items-center flex-1">
+                  <div className={clsx("w-10 h-10 rounded-full border-4 border-[var(--discord-dark)] flex items-center justify-center shrink-0 shadow-lg", 
+                    myApplication?.vocal_channel_name ? "bg-discord-blurple text-white" : "bg-white/10 text-discord-muted")}>
+                    {myApplication?.vocal_channel_name ? <CheckCircle2 className="w-5 h-5" /> : <Mic2 className="w-5 h-5" />}
+                  </div>
+                  <div className={clsx("mt-2 text-center text-sm font-bold", myApplication?.vocal_channel_name ? "text-white" : "text-discord-muted")}>Convocation</div>
+                </div>
+
+                {/* Step 4: Résultat */}
+                <div className="flex flex-col items-center flex-1">
+                  <div className={clsx("w-10 h-10 rounded-full border-4 border-[var(--discord-dark)] flex items-center justify-center shrink-0 shadow-lg", 
+                    myApplication?.status === 'accepted' ? "bg-discord-success text-white" : 
+                    myApplication?.status === 'refused' ? "bg-discord-error text-white" : "bg-white/10 text-discord-muted")}>
+                    {myApplication?.status === 'accepted' ? <CheckCircle2 className="w-5 h-5" /> : myApplication?.status === 'refused' ? <AlertCircle className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
+                  </div>
+                  <div className={clsx("mt-2 text-center text-sm font-bold", ['accepted', 'refused'].includes(myApplication?.status) ? "text-white" : "text-discord-muted")}>Résultat</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Active Content Area */}
+            <div className="max-w-3xl mx-auto w-full transition-all">
+              {!myApplication ? (
+                // -----------------------------
+                // ETAPE 1: LE FORMULAIRE
+                // -----------------------------
+                <div className="p-6 md:p-8 rounded-2xl border border-white/10 bg-white/5 shadow-xl">
+                  <h3 className="font-bold text-2xl text-white mb-6">Formulaire de Candidature</h3>
                         
                         {!ready || !profile ? (
                           <div className="text-center py-4">
@@ -368,7 +395,7 @@ export default function RecrutementPage() {
                                         onClick={() => toggleMatiere(subj.name)}
                                         className={clsx(
                                           "px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
-                                          selectedMatieres.includes(subj.name)
+                                          selectedMatiere === subj.name
                                             ? "bg-discord-blurple/20 text-discord-blurple border-discord-blurple/50"
                                             : "bg-white/5 text-discord-muted border-white/5 hover:bg-white/10"
                                         )}
@@ -384,7 +411,7 @@ export default function RecrutementPage() {
                             )}
 
                             <div>
-                              <label className="block text-xs font-bold text-discord-muted uppercase mb-1">Lettre de Motivation</label>
+                              <label className="block text-xs font-bold text-discord-muted uppercase mb-1">Lettre de Motivation *</label>
                               <textarea 
                                 value={motivation}
                                 onChange={e => setMotivation(e.target.value)}
@@ -394,7 +421,7 @@ export default function RecrutementPage() {
                             </div>
 
                             <div>
-                              <label className="block text-xs font-bold text-discord-muted uppercase mb-1">Vos Disponibilités</label>
+                              <label className="block text-xs font-bold text-discord-muted uppercase mb-1">Vos Disponibilités *</label>
                               <input 
                                 type="text" 
                                 value={disponibilites}
@@ -433,95 +460,53 @@ export default function RecrutementPage() {
                             </button>
                           </div>
                         )}
-                      </div>
                     )}
-                  </div>
-                </div>
-              </div>
+              ) : (
+                // -----------------------------
+                // ETAPE 2 à 4 : STATUT DE LA CANDIDATURE
+                // -----------------------------
+                <div className="space-y-6">
+                  {/* Résultat (if present) */}
+                  {['accepted', 'refused'].includes(myApplication.status) && (
+                    <div className={clsx("p-6 rounded-2xl border shadow-xl",
+                      myApplication.status === 'accepted' ? "border-discord-success/30 bg-discord-success/10" : "border-discord-error/30 bg-discord-error/10"
+                    )}>
+                      <h3 className={clsx("font-bold text-xl", myApplication.status === 'accepted' ? "text-discord-success" : "text-discord-error")}>
+                        {myApplication.status === 'accepted' ? "Candidature Acceptée !" : "Candidature Refusée"}
+                      </h3>
+                      <p className="text-discord-muted mt-2">
+                        {myApplication.status === 'accepted' ? "Félicitations, vous avez réussi l'entretien et êtes désormais intégré(e) à l'équipe éducative." : "Malheureusement, votre profil n'a pas été retenu suite à l'entretien. Vous pourrez retenter votre chance d'ici 7 jours."}
+                      </p>
+                    </div>
+                  )}
 
-              {/* Étape 2 : Analyse / Planification */}
-              <div className="relative flex items-center justify-between md:justify-normal md:even:flex-row-reverse group">
-                <div className={clsx("flex items-center justify-center w-8 h-8 rounded-full border-4 border-[var(--discord-dark)] shadow shrink-0 z-10 md:order-1 absolute left-1 md:left-1/2 md:-translate-x-1/2", 
-                  myApplication?.scheduled_at ? "bg-discord-blurple text-white" : "bg-white/10 text-discord-muted"
-                )}>
-                  {myApplication?.scheduled_at ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-2 h-2 rounded-full bg-white/30" />}
-                </div>
-                <div className={clsx("w-full pl-16 md:pl-0 md:w-[calc(50%-3rem)] transition-all",
-                  myApplication?.scheduled_at ? "opacity-100" : "opacity-50"
-                )}>
-                  <div className={clsx("p-4 rounded-xl border shadow-xl",
-                    myApplication?.scheduled_at ? "border-white/10 bg-white/5" : "border-transparent bg-white/[0.02]"
-                  )}>
-                    <h3 className={clsx("font-bold text-lg", myApplication?.scheduled_at ? "text-white" : "text-discord-muted")}>Planification de l'Entretien</h3>
-                    {myApplication?.scheduled_at ? (
-                       <p className="text-sm text-discord-muted mt-1">
-                         Un entretien est prévu le <strong className="text-white">{new Date(myApplication.scheduled_at).toLocaleString('fr-FR')}</strong>.
-                       </p>
-                    ) : (
-                       <p className="text-sm text-discord-muted mt-1 opacity-70">L'administration analyse votre profil et proposera une date d'entretien.</p>
-                    )}
-                  </div>
-                </div>
-              </div>
+                  {/* Convocation (if scheduled but not finished) */}
+                  {!['accepted', 'refused'].includes(myApplication.status) && myApplication.vocal_channel_name && (
+                    <div className="p-6 rounded-2xl border border-discord-blurple/30 bg-discord-blurple/10 shadow-xl">
+                      <h3 className="font-bold text-xl text-discord-blurple">Convocation à l'oral</h3>
+                      <p className="text-discord-muted mt-2">
+                        Veuillez vous rendre dans le salon vocal <strong className="text-white bg-black/30 px-2 py-0.5 rounded">#{myApplication.vocal_channel_name}</strong>.
+                      </p>
+                      {myApplication.scheduled_at && (
+                        <p className="text-discord-muted mt-2">
+                          Heure du rendez-vous : <strong className="text-white">{new Date(myApplication.scheduled_at).toLocaleString('fr-FR')}</strong>.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
-              {/* Étape 3 : Convocation (Salon) */}
-              <div className="relative flex items-center justify-between md:justify-normal md:even:flex-row-reverse group">
-                <div className={clsx("flex items-center justify-center w-8 h-8 rounded-full border-4 border-[var(--discord-dark)] shadow shrink-0 z-10 md:order-1 absolute left-1 md:left-1/2 md:-translate-x-1/2", 
-                  myApplication?.vocal_channel_name ? "bg-discord-blurple text-white" : "bg-white/10 text-discord-muted"
-                )}>
-                  {myApplication?.vocal_channel_name ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-2 h-2 rounded-full bg-white/30" />}
+                  {/* Pending/Analysis (if no vocal channel yet) */}
+                  {!['accepted', 'refused'].includes(myApplication.status) && !myApplication.vocal_channel_name && (
+                    <div className="p-6 rounded-2xl border border-white/10 bg-white/5 shadow-xl">
+                      <h3 className="font-bold text-xl text-white">Dossier en cours d'analyse</h3>
+                      <p className="text-discord-muted mt-2">
+                        Candidature soumise le <strong className="text-white">{new Date(myApplication.created_at).toLocaleDateString('fr-FR')}</strong>.<br />
+                        L'administration analyse votre profil et vous convoquera pour un oral si votre dossier est retenu. Gardez un œil sur cette page.
+                      </p>
+                    </div>
+                  )}
                 </div>
-                <div className={clsx("w-full pl-16 md:pl-0 md:w-[calc(50%-3rem)] transition-all",
-                  myApplication?.vocal_channel_name ? "opacity-100" : "opacity-50"
-                )}>
-                  <div className={clsx("p-4 rounded-xl border shadow-xl",
-                    myApplication?.vocal_channel_name ? "border-discord-blurple/30 bg-discord-blurple/10" : "border-transparent bg-white/[0.02]"
-                  )}>
-                    <h3 className={clsx("font-bold text-lg", myApplication?.vocal_channel_name ? "text-discord-blurple" : "text-discord-muted")}>Convocation</h3>
-                    {myApplication?.vocal_channel_name ? (
-                       <p className="text-sm text-discord-muted mt-1">
-                         Veuillez vous rendre dans le vocal <strong className="text-white bg-black/30 px-2 py-0.5 rounded">#{myApplication.vocal_channel_name}</strong> à l'heure prévue.
-                       </p>
-                    ) : (
-                       <p className="text-sm text-discord-muted mt-1 opacity-70">Le salon vocal vous sera communiqué peu avant l'entretien.</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Étape 4 : Résultat */}
-              <div className="relative flex items-center justify-between md:justify-normal md:even:flex-row-reverse group">
-                <div className={clsx("flex items-center justify-center w-8 h-8 rounded-full border-4 border-[var(--discord-dark)] shadow shrink-0 z-10 md:order-1 absolute left-1 md:left-1/2 md:-translate-x-1/2", 
-                  myApplication?.status === 'accepted' ? "bg-discord-success text-white" : 
-                  myApplication?.status === 'refused' ? "bg-discord-error text-white" : "bg-white/10 text-discord-muted"
-                )}>
-                  {myApplication && ['accepted', 'refused'].includes(myApplication.status) ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-2 h-2 rounded-full bg-white/30" />}
-                </div>
-                <div className={clsx("w-full pl-16 md:pl-0 md:w-[calc(50%-3rem)] transition-all",
-                  myApplication && ['accepted', 'refused'].includes(myApplication.status) ? "opacity-100" : "opacity-50"
-                )}>
-                  <div className={clsx("p-4 rounded-xl border shadow-xl",
-                    myApplication?.status === 'accepted' ? "border-discord-success/30 bg-discord-success/10" : 
-                    myApplication?.status === 'refused' ? "border-discord-error/30 bg-discord-error/10" : "border-transparent bg-white/[0.02]"
-                  )}>
-                    <h3 className={clsx("font-bold text-lg", 
-                      myApplication?.status === 'accepted' ? "text-discord-success" : 
-                      myApplication?.status === 'refused' ? "text-discord-error" : "text-discord-muted"
-                    )}>Résultat de la candidature</h3>
-                    {myApplication?.status === 'accepted' ? (
-                       <p className="text-sm text-white font-medium mt-1">
-                         Félicitations ! Vous êtes accepté au poste de {myApplication.target_role}. Vos rôles vous ont été attribués.
-                       </p>
-                    ) : myApplication?.status === 'refused' ? (
-                       <p className="text-sm text-discord-muted mt-1">
-                         Malheureusement, votre candidature n'a pas été retenue pour cette session.
-                       </p>
-                    ) : (
-                       <p className="text-sm text-discord-muted mt-1 opacity-70">En attente de la délibération finale.</p>
-                    )}
-                  </div>
-                </div>
-              </div>
+              )}
 
             </div>
             

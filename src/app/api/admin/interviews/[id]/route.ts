@@ -33,15 +33,24 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
         let questions_data = body.questions_data
         
-        // If target_role is updated and we don't pass questions_data directly, regenerate them
-        if (body.target_role && body.target_role !== oldData.target_role && !body.questions_data) {
+        // If target_role is updated OR we transition to 'scheduled' without oral questions, generate them
+        const isScheduling = body.status === 'scheduled' && oldData.status !== 'scheduled';
+        if ((body.target_role && body.target_role !== oldData.target_role) || isScheduling) {
             const { generateInterviewQuestions } = require('@/lib/interview-questions')
-            const q = generateInterviewQuestions(body.target_role)
-            questions_data = q.map((question: any) => ({
+            const q = generateInterviewQuestions(body.target_role || oldData.target_role)
+            const oralQuestions = q.map((question: any) => ({
                 ...question,
                 note: null,
-                response: ''
+                response: '',
+                isOral: true
             }))
+
+            if (isScheduling) {
+                // Keep existing (dossier) questions and append new oral ones
+                questions_data = [...(oldData.questions_data || []), ...oralQuestions]
+            } else {
+                questions_data = oralQuestions
+            }
         }
 
         // Auto calculate global note if we have dossier_note and interview_note

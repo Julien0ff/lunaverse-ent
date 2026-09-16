@@ -10,6 +10,7 @@ export default function EntretiensListPage() {
   const { t } = useLanguage()
   const [interviews, setInterviews] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'phase1' | 'phase2'>('phase1')
 
   const fetchInterviews = async () => {
     try {
@@ -59,6 +60,7 @@ export default function EntretiensListPage() {
     switch (status) {
       case 'accepted': return 'text-discord-success bg-discord-success/10 border-discord-success/30'
       case 'refused': return 'text-discord-error bg-discord-error/10 border-discord-error/30'
+      case 'scheduled': return 'text-discord-blurple bg-discord-blurple/10 border-discord-blurple/30'
       case 'pending': return 'text-discord-warning bg-discord-warning/10 border-discord-warning/30'
       default: return 'text-discord-muted bg-white/5 border-white/10'
     }
@@ -68,10 +70,16 @@ export default function EntretiensListPage() {
     switch (status) {
       case 'accepted': return 'Accepté'
       case 'refused': return 'Refusé'
-      case 'pending': return 'En attente'
+      case 'scheduled': return 'Planifié'
+      case 'pending': return 'À analyser'
       default: return 'Brouillon'
     }
   }
+
+  const phase1Interviews = interviews.filter(i => ['pending', 'draft'].includes(i.status))
+  const phase2Interviews = interviews.filter(i => ['scheduled', 'accepted', 'refused'].includes(i.status))
+  
+  const displayedInterviews = activeTab === 'phase1' ? phase1Interviews : phase2Interviews
 
   return (
     <div className="page-container px-4 sm:px-6 lg:px-8">
@@ -89,18 +97,38 @@ export default function EntretiensListPage() {
         </button>
       </div>
 
+      <div className="flex gap-4 mb-6">
+        <button 
+          onClick={() => setActiveTab('phase1')}
+          className={clsx(
+            "flex-1 py-3 px-4 rounded-xl font-bold text-center border transition-all",
+            activeTab === 'phase1' ? "bg-discord-blurple/20 text-discord-blurple border-discord-blurple/50 shadow-lg" : "bg-white/5 text-discord-muted border-transparent hover:bg-white/10"
+          )}
+        >
+          Phase 1 : Dossiers à analyser ({phase1Interviews.length})
+        </button>
+        <button 
+          onClick={() => setActiveTab('phase2')}
+          className={clsx(
+            "flex-1 py-3 px-4 rounded-xl font-bold text-center border transition-all",
+            activeTab === 'phase2' ? "bg-discord-blurple/20 text-discord-blurple border-discord-blurple/50 shadow-lg" : "bg-white/5 text-discord-muted border-transparent hover:bg-white/10"
+          )}
+        >
+          Phase 2 : Entretiens Oraux ({phase2Interviews.length})
+        </button>
+      </div>
+
       <div className="glass-card p-2 animate-fadeIn border border-white/5 shadow-2xl">
         {loading ? (
           <div className="p-8 text-center text-discord-muted animate-pulse font-bold">Chargement...</div>
-        ) : interviews.length === 0 ? (
+        ) : displayedInterviews.length === 0 ? (
           <div className="p-16 text-center">
             <Users className="w-16 h-16 text-white/10 mx-auto mb-4" />
-            <p className="text-white font-bold text-lg">Aucun entretien trouvé</p>
-            <p className="text-discord-muted text-sm mt-1">Créez le premier entretien pour commencer le recrutement.</p>
+            <p className="text-white font-bold text-lg">Aucun dossier dans cette phase</p>
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {interviews.map(inv => (
+            {displayedInterviews.map(inv => (
               <Link 
                 key={inv.id} 
                 href={`/admin/entretiens/${inv.id}`}
@@ -118,8 +146,11 @@ export default function EntretiensListPage() {
                   </div>
                   <div className="text-xs text-discord-muted flex items-center gap-2">
                     <span>Créé le {new Date(inv.created_at).toLocaleDateString()}</span>
-                    •
-                    <span>Note Globale : {inv.global_note ? `${inv.global_note}/20` : '—'}</span>
+                    {inv.scheduled_at && (
+                      <>
+                        • <span className="text-discord-blurple">RDV le {new Date(inv.scheduled_at).toLocaleString()}</span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-discord-blurple group-hover:text-white transition-colors">

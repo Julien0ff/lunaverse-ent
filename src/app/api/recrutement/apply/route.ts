@@ -72,6 +72,28 @@ export async function POST(req: Request) {
 
     if (error) throw error
 
+    // Send Discord Webhook
+    if (process.env.DISCORD_RECRUTEMENT_WEBHOOK) {
+      const embed = {
+        title: `Nouvelle Candidature : ${target_role}`,
+        description: `**Candidat**: ${rp_firstname} ${rp_lastname} (<@${user.user_metadata.provider_id || user.id}>)\n**Matière(s)**: ${matieres && matieres.length > 0 ? matieres.join(', ') : 'N/A'}\n**Disponibilités**: ${disponibilites}\n\n[🔍 Voir le Dossier dans l'ENT](https://lunaverse-ent.vercel.app/admin/entretiens/${interview.id})`,
+        color: 5814783
+      }
+      
+      try {
+        await fetch(process.env.DISCORD_RECRUTEMENT_WEBHOOK, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: `🔔 Un nouveau dossier de recrutement a été déposé.`,
+            embeds: [embed]
+          })
+        })
+      } catch (webhookErr) {
+        console.error('Failed to send discord webhook', webhookErr)
+      }
+    }
+
     return NextResponse.json({ success: true, interview })
   } catch (err: any) {
     console.error('[Apply Error]', err)
