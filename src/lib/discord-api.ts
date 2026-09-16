@@ -48,3 +48,53 @@ export async function sendDiscordDM(userId: string, embedData: any) {
     return false
   }
 }
+
+export async function getFirstGuildId(token: string): Promise<string | null> {
+  try {
+    const res = await fetch('https://discord.com/api/v10/users/@me/guilds', {
+      headers: { Authorization: `Bot ${token}` }
+    })
+    if (!res.ok) return null
+    const guilds = await res.json()
+    return guilds[0]?.id || null
+  } catch {
+    return null
+  }
+}
+
+export async function setDiscordMemberNickname(discordId: string, nickname: string) {
+  try {
+    const token = process.env.DISCORD_BOT_TOKEN
+    if (!token) return false
+    const guildId = await getFirstGuildId(token)
+    if (!guildId) return false
+
+    const res = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordId}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nick: nickname })
+    })
+    return res.ok
+  } catch (e) {
+    console.error('Failed to set nickname', e)
+    return false
+  }
+}
+
+export async function addDiscordMemberRole(discordId: string, roleId: string) {
+  try {
+    const token = process.env.DISCORD_BOT_TOKEN
+    if (!token) return false
+    const guildId = await getFirstGuildId(token)
+    if (!guildId) return false
+
+    const res = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordId}/roles/${roleId}`, {
+      method: 'PUT',
+      headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }
+    })
+    return res.ok
+  } catch (e) {
+    console.error('Failed to add role', e)
+    return false
+  }
+}

@@ -95,7 +95,14 @@ export default function SatisfactionListPage() {
           >
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-3">
-                <span className="text-lg font-black text-white">{f.target_username || f.target_discord_id || 'Nouveau Questionnaire'}</span>
+                {f.profile?.avatar_url ? (
+                  <img src={f.profile.avatar_url} alt="" className="w-8 h-8 rounded-full" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-discord-blurple flex items-center justify-center text-xs font-bold text-white">
+                    {f.target_username?.[0] || f.profile?.username?.[0] || '?'}
+                  </div>
+                )}
+                <span className="text-lg font-black text-white">{f.profile?.nickname_rp || f.profile?.username || f.target_username || f.target_discord_id || 'Nouveau Questionnaire'}</span>
               </div>
               <div className="text-xs text-discord-muted flex items-center gap-2">
                 <span>Créé le {new Date(f.created_at).toLocaleDateString()}</span>

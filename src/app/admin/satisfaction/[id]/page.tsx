@@ -132,6 +132,22 @@ export default function SatisfactionDetailPage() {
             <h3 className="text-sm font-black text-discord-muted uppercase tracking-widest mb-4 flex items-center gap-2">
               <User className="w-4 h-4 text-discord-blurple" /> Utilisateur ciblé
             </h3>
+
+            {form.profile && (
+              <div className="flex items-center gap-4 mb-6 p-4 rounded-xl bg-white/5 border border-white/10">
+                {form.profile.avatar_url ? (
+                  <img src={form.profile.avatar_url} alt="" className="w-12 h-12 rounded-full shadow-lg" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-discord-blurple flex items-center justify-center text-xl font-bold shadow-lg">
+                    {form.profile.username?.[0] || '?'}
+                  </div>
+                )}
+                <div>
+                  <div className="font-black text-white text-lg">{form.profile.nickname_rp || form.profile.username}</div>
+                  <div className="text-sm text-discord-muted">@{form.profile.username}</div>
+                </div>
+              </div>
+            )}
             
             {/* Candidate Search */}
             <div className="mb-4 relative">

@@ -240,14 +240,26 @@ export default function EntretienDetailPage() {
               </select>
             </div>
 
-            <div>
-              <label className="text-xs font-bold text-discord-muted uppercase mb-1 block">Date prévue (Optionnel)</label>
-              <input 
-                type="datetime-local" 
-                value={interview.scheduled_at ? new Date(interview.scheduled_at).toISOString().slice(0, 16) : ''}
-                onChange={e => setInterview({...interview, scheduled_at: e.target.value})}
-                className="glass-input"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold text-discord-muted uppercase mb-1 block">Date prévue (Optionnel)</label>
+                <input 
+                  type="datetime-local" 
+                  value={interview.scheduled_at ? new Date(new Date(interview.scheduled_at).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
+                  onChange={e => setInterview({...interview, scheduled_at: e.target.value})}
+                  className="glass-input"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-discord-muted uppercase mb-1 block">Salon Vocal (Convocation)</label>
+                <input 
+                  type="text" 
+                  value={interview.vocal_channel_name || ''}
+                  onChange={e => setInterview({...interview, vocal_channel_name: e.target.value})}
+                  className="glass-input"
+                  placeholder="ex: ✨・Secrétariat"
+                />
+              </div>
             </div>
           </div>
         </div>

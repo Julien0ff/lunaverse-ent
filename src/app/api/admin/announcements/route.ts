@@ -260,7 +260,11 @@ async function updateDiscordInfoTraficEmbed(supabase: any) {
         headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(globalPayload)
       })
-      if (!res.ok) throw new Error('PATCH failed')
+      if (!res.ok) {
+        const errText = await res.text()
+        console.error('Info-Trafic PATCH failed:', errText)
+        throw new Error('PATCH failed')
+      }
     } else {
       throw new Error('No msgId or channel')
     }
@@ -275,10 +279,17 @@ async function updateDiscordInfoTraficEmbed(supabase: any) {
         if (res.ok) {
           const data = await res.json()
           await supabase.from('server_settings').upsert({ key: 'info_trafic_msg_id', value: data.id, updated_at: new Date().toISOString() })
+        } else {
+          const errText = await res.text()
+          console.error('Info-Trafic POST failed:', errText)
+          throw new Error(`Discord API error: ${errText}`)
         }
+      } else {
+        console.error('No annoncesChannel defined for global info-trafic')
       }
     } catch (e) {
       console.error('Failed to post to global info trafic:', e)
+      throw e // Bubble up to let the client know Discord failed
     }
   }
 

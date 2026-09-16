@@ -16,7 +16,17 @@ export async function GET(req: Request) {
 
         if (error) throw error
 
-        return NextResponse.json({ forms })
+        // Fetch profiles to attach username and avatar
+        const discordIds = forms.map(f => f.target_discord_id).filter(Boolean)
+        const { data: profiles } = await supabase.from('profiles').select('discord_id, username, avatar_url, nickname_rp').in('discord_id', discordIds)
+        const profileMap = new Map((profiles || []).map(p => [p.discord_id, p]))
+        
+        const enrichedForms = forms.map(f => ({
+            ...f,
+            profile: f.target_discord_id ? profileMap.get(f.target_discord_id) : null
+        }))
+
+        return NextResponse.json({ forms: enrichedForms })
     } catch (err: any) {
         return NextResponse.json({ error: err.message }, { status: 500 })
     }
