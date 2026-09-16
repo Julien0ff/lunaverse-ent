@@ -12,11 +12,7 @@ export default function LoadingScreen() {
   const pathname = usePathname()
   const router = useRouter()
 
-  useEffect(() => {
-    if (!loading && !user && pathname !== '/') {
-      router.push('/')
-    }
-  }, [loading, user, pathname, router])
+  // Redirects are handled by middleware.ts and AppShell.tsx
 
   if (!loading) return null
 
