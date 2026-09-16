@@ -30,17 +30,17 @@ export async function POST(req: Request) {
     // We use Admin to bypass RLS for fetching the profile and updating the wallet
     const admin = createSupabaseAdmin()
 
-    // Get user wallet and profile
-    const { data: profile, error: profileError } = await admin.from('profiles').select('wallet, discord_id, username, nickname_rp').eq('id', user.id).single()
+    // Get user balance and profile
+    const { data: profile, error: profileError } = await admin.from('profiles').select('balance, discord_id, username, nickname_rp').eq('id', user.id).single()
     if (!profile) return NextResponse.json({ error: 'Profile not found: ' + (profileError?.message || 'No profile data') }, { status: 404 })
 
-    if ((profile.wallet || 0) < price) {
+    if ((profile.balance || 0) < price) {
       return NextResponse.json({ error: 'Fonds insuffisants' }, { status: 400 })
     }
 
     // 1. Deduct money
-    const newWallet = (profile.wallet || 0) - price
-    const { error: walletError } = await admin.from('profiles').update({ wallet: newWallet }).eq('id', user.id)
+    const newBalance = (profile.balance || 0) - price
+    const { error: walletError } = await admin.from('profiles').update({ balance: newBalance }).eq('id', user.id)
     if (walletError) throw walletError
 
     // 2. Create Discord Channels

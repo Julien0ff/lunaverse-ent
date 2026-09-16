@@ -47,7 +47,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
             if (isScheduling) {
                 // Keep existing (dossier) questions and append new oral ones
-                questions_data = [...(oldData.questions_data || []), ...oralQuestions]
+                questions_data = [...(body.questions_data || oldData.questions_data || []), ...oralQuestions]
             } else {
                 questions_data = oralQuestions
             }

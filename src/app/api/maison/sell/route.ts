@@ -24,14 +24,14 @@ export async function DELETE(req: Request) {
     const price = PRICES[house.type as keyof typeof PRICES] || 0
     const refund = Math.floor(price * 0.5) // 50% refund
 
-    // Refund wallet
+    // Refund balance
     const admin = createSupabaseAdmin()
 
-    const { data: profile } = await admin.from('profiles').select('wallet').eq('id', user.id).single()
-    const currentWallet = profile?.wallet || 0
-    const newWallet = currentWallet + refund
+    const { data: profile } = await admin.from('profiles').select('balance').eq('id', user.id).single()
+    const currentBalance = profile?.balance || 0
+    const newBalance = currentBalance + refund
 
-    await admin.from('profiles').update({ wallet: newWallet }).eq('id', user.id)
+    await admin.from('profiles').update({ balance: newBalance }).eq('id', user.id)
 
     // Delete Discord Category
     if (house.discord_category_id) {

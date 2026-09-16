@@ -276,7 +276,7 @@ export default function RecrutementPage() {
         </p>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 relative z-10">
+      <div className="w-full max-w-7xl mx-auto px-4 relative z-10">
         {(selectedRoleToApply || myApplication) ? (
           <div className="bg-black/20 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-12 shadow-2xl animate-scaleIn relative overflow-hidden">
             
@@ -299,7 +299,7 @@ export default function RecrutementPage() {
             )}
 
             {/* Horizontal Timeline (Top) */}
-            <div className="mb-12 relative max-w-3xl mx-auto">
+            <div className="mb-12 relative w-full mx-auto">
               <div className="hidden md:block absolute top-5 left-8 right-8 h-1 bg-white/10 z-0 overflow-hidden">
                 <div 
                   className="h-full bg-discord-blurple transition-all duration-1000 ease-in-out" 
@@ -347,7 +347,7 @@ export default function RecrutementPage() {
             </div>
 
             {/* Active Content Area */}
-            <div className="max-w-3xl mx-auto w-full transition-all">
+            <div className="w-full transition-all">
               {!myApplication ? (
                 // -----------------------------
                 // ETAPE 1: LE FORMULAIRE

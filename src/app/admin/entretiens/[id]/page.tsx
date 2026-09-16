@@ -79,7 +79,7 @@ export default function EntretienDetailPage() {
 
   const handleSave = async (customUpdates?: any) => {
     setSaving(true)
-    const payload = customUpdates || interview
+    const payload = { ...interview, ...customUpdates }
     try {
       const res = await fetch(`/api/admin/interviews/${id}`, {
         method: 'PATCH',
