@@ -186,7 +186,7 @@ export default function EntretienDetailPage() {
                       className="w-full text-left p-2 rounded-lg hover:bg-white/5 flex items-center gap-3 transition-colors"
                     >
                       {m.user.avatar ? (
-                        <img src={`https://cdn.discordapp.com/avatars/${m.user.id}/${m.user.avatar}.png`} className="w-8 h-8 rounded-full" />
+                        <img src={`https://cdn.discordapp.com/avatars/${m.user.id}/${m.user.avatar}.png`} alt="" className="w-8 h-8 rounded-full" />
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-discord-blurple flex items-center justify-center text-xs font-bold">?</div>
                       )}

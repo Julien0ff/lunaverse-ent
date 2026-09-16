@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { ChevronDown, Upload, Briefcase, CheckCircle2, Shield, Heart, GraduationCap, Users, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import clsx from 'clsx'
@@ -184,7 +184,7 @@ export default function RecrutementPage() {
   }
 
   // Dynamically generate available roles
-  const dynamicRoles = React.useMemo(() => {
+  const dynamicRoles = useMemo(() => {
     const roles: any[] = []
     
     // Check Professeur
@@ -433,7 +433,7 @@ export default function RecrutementPage() {
 
                         <h4 className="text-sm font-black uppercase tracking-widest text-white mb-3">Pré-requis</h4>
                         <ul className="space-y-3">
-                          {role.requis.map((req, i) => (
+                          {role.requis.map((req: string, i: number) => (
                             <li key={i} className="flex items-start gap-3">
                               <CheckCircle2 className={`w-5 h-5 mt-0.5 shrink-0 text-${role.color}`} />
                               <span className="text-discord-muted font-medium">{req}</span>
