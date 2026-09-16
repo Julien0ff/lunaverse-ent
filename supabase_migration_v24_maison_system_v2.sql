@@ -12,6 +12,9 @@ ALTER TABLE houses DROP COLUMN IF EXISTS status; -- No more pending status, purc
 -- Add discord_category_id column for storing the created Discord category ID
 ALTER TABLE houses ADD COLUMN IF NOT EXISTS discord_category_id VARCHAR;
 
+-- Add sq_meters column for house surface area
+ALTER TABLE houses ADD COLUMN IF NOT EXISTS sq_meters INTEGER DEFAULT 0;
+
 -- 2. House Rooms Table
 CREATE TABLE IF NOT EXISTS house_rooms (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

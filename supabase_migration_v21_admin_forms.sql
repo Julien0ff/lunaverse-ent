@@ -33,6 +33,9 @@ CREATE TABLE IF NOT EXISTS interviews (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Add missing columns
+ALTER TABLE interviews ADD COLUMN IF NOT EXISTS vocal_channel_name VARCHAR;
+
 -- Triggers for updated_at
 DROP TRIGGER IF EXISTS update_satisfaction_forms_updated_at ON satisfaction_forms;
 CREATE TRIGGER update_satisfaction_forms_updated_at
