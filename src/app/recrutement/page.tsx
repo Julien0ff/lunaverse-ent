@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { ChevronDown, Upload, Briefcase, CheckCircle2, Shield, Heart, GraduationCap, Users, Loader2 } from 'lucide-react'
+import { Briefcase, ChevronDown, CheckCircle2, Copy, Loader2, Info, Users, MonitorPlay, GraduationCap, Gavel, FileText, Calendar, Clock, Lock, ArrowRight, ShieldCheck, Gamepad2, Mic2, FileSearch, HelpCircle, BookOpen, UserPlus, FileSignature, AlertCircle, Camera, Stethoscope, Scissors, ShieldAlert, FileQuestion, Megaphone, Coffee, Upload, Send, ClipboardCheck, Shield, Heart } from 'lucide-react'
 import Link from 'next/link'
 import clsx from 'clsx'
 import { supabase } from '@/lib/supabase'
@@ -34,11 +34,13 @@ const ROLE_TEMPLATES: Record<string, any> = {
 export default function RecrutementPage() {
   const { profile, ready } = useAuth()
   const [effectifs, setEffectifs] = useState<{ classiques: any[], personnel: any[] }>({ classiques: [], personnel: [] })
-  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [loadingEffectifs, setLoadingEffectifs] = useState(true)
 
   const [myApplication, setMyApplication] = useState<any>(null)
   const [loadingApp, setLoadingApp] = useState(true)
+
+  // Modals / States
+  const [selectedRoleToApply, setSelectedRoleToApply] = useState<any>(null)
 
   // Form states
   const [rpFirstname, setRpFirstname] = useState('')
@@ -98,8 +100,8 @@ export default function RecrutementPage() {
     })
   }
 
-  const toggleExpand = (id: string) => {
-    setExpandedId(prev => prev === id ? null : id)
+  const handleSelectRole = (role: any) => {
+    setSelectedRoleToApply(role)
     // Reset form
     setSuccessMsg('')
     setErrorMsg('')
@@ -136,7 +138,6 @@ export default function RecrutementPage() {
           .upload(fileName, cvFile)
 
         if (uploadError) {
-          // Si le bucket n'existe pas, on continue sans crasher, mais on prévient
           console.error("CV Upload failed", uploadError)
         } else if (data) {
           const { data: publicData } = supabase.storage.from('cvs').getPublicUrl(data.path)
@@ -166,10 +167,8 @@ export default function RecrutementPage() {
       const resData = await res.json()
       setSuccessMsg('Votre candidature a été envoyée avec succès ! L\'équipe administrative vous recontactera très vite.')
       
-      // Update local state to show timeline
       setMyApplication(resData.interview)
       
-      // Clear form
       setRpFirstname('')
       setRpLastname('')
       setMotivation('')
@@ -246,117 +245,287 @@ export default function RecrutementPage() {
       </nav>
 
       {/* Hero */}
-      <div className="max-w-3xl mx-auto px-4 pt-16 pb-12 animate-slideIn">
-        <div className="w-16 h-16 bg-discord-blurple/20 rounded-2xl flex items-center justify-center mb-6">
-          <Briefcase className="w-8 h-8 text-discord-blurple" />
-        </div>
-        <h1 className="text-5xl font-black tracking-tight mb-4 leading-tight">
-          Rejoignez l'équipe<br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-discord-blurple to-purple-400">
-            Éducative de LunaVerse
-          </span>
+      <div className="max-w-3xl mx-auto px-4 pt-16 pb-12 animate-slideIn text-center">
+        {selectedRoleToApply || myApplication ? (
+          <div className="w-16 h-16 bg-discord-blurple/20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(88,101,242,0.3)]">
+            <ClipboardCheck className="w-8 h-8 text-discord-blurple" />
+          </div>
+        ) : (
+          <div className="w-16 h-16 bg-discord-blurple/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Users className="w-8 h-8 text-discord-blurple" />
+          </div>
+        )}
+        <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-4 leading-tight">
+          {selectedRoleToApply || myApplication ? 'Votre Candidature' : (
+            <>
+              Rejoignez l'équipe<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-discord-blurple to-purple-400">
+                Éducative de LunaVerse
+              </span>
+            </>
+          )}
         </h1>
-        <p className="text-lg text-discord-muted font-medium mb-8">
-          {myApplication 
+        <p className="text-lg text-discord-muted font-medium max-w-2xl mx-auto leading-relaxed">
+          {selectedRoleToApply || myApplication 
             ? "Suivez l'avancement de votre candidature en temps réel." 
-            : "Découvrez nos postes ouverts et postulez directement via notre plateforme. Votre candidature sera transmise en temps réel à l'administration."}
+            : "L'académie recrute ! Consultez nos postes ouverts et déposez votre candidature pour intégrer notre équipe."}
         </p>
       </div>
 
-      {myApplication && (
-        <div className="max-w-3xl mx-auto px-4 mb-16 animate-slideIn">
-          <div className="glass-card p-8">
-            <h2 className="text-2xl font-black text-white mb-8 border-b border-white/10 pb-4">Suivi de votre Candidature : {myApplication.target_role}</h2>
+      <div className="max-w-4xl mx-auto px-4 relative z-10">
+        {(selectedRoleToApply || myApplication) ? (
+          <div className="bg-black/20 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-12 shadow-2xl animate-scaleIn relative overflow-hidden">
             
-            <div className="relative pl-8 space-y-12 before:absolute before:inset-0 before:ml-10 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
+            {/* Header Timeline */}
+            <div className="text-center mb-12">
+              <h3 className="text-2xl font-black text-white mb-2">
+                Poste : {myApplication?.target_role || selectedRoleToApply?.title}
+              </h3>
+              <p className="text-discord-muted font-medium">Timeline de Recrutement</p>
+            </div>
+
+            {/* Back Button */}
+            {!myApplication && (
+              <button 
+                onClick={() => setSelectedRoleToApply(null)} 
+                className="mb-8 text-discord-blurple font-bold hover:underline text-sm flex items-center"
+              >
+                ← Retour aux postes
+              </button>
+            )}
+
+            <div className="relative space-y-8 md:space-y-12 before:content-[''] before:absolute before:inset-0 before:ml-5 md:before:mx-auto md:before:translate-x-0 before:h-full before:w-1 before:bg-white/5">
               
-              {/* Étape 1 : Candidature envoyée */}
-              <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                <div className="flex items-center justify-center w-6 h-6 rounded-full border-4 border-[var(--discord-dark)] bg-discord-blurple text-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 absolute left-[-2rem] md:left-1/2">
-                  <CheckCircle2 className="w-3 h-3" />
+              {/* Étape 1 : Candidature Envoyée (ou Formulaire) */}
+              <div className="relative flex flex-col md:flex-row items-start justify-between md:justify-normal md:even:flex-row-reverse group">
+                <div className={clsx("flex items-center justify-center w-10 h-10 rounded-full border-4 border-[var(--discord-dark)] shadow shrink-0 z-10 md:order-1 absolute left-0 md:left-1/2 md:-translate-x-1/2", 
+                  "bg-discord-blurple text-white"
+                )}>
+                  {myApplication ? <CheckCircle2 className="w-5 h-5" /> : <ClipboardCheck className="w-5 h-5" />}
                 </div>
-                <div className="w-[calc(100%-2rem)] md:w-[calc(50%-2rem)] p-4 rounded-xl border border-white/10 bg-white/5 shadow-xl">
-                  <h3 className="font-bold text-white text-lg">Candidature Envoyée</h3>
-                  <p className="text-sm text-discord-muted mt-1">Votre dossier a bien été transmis à l'administration.</p>
-                  <p className="text-xs text-discord-muted mt-2 opacity-60">{new Date(myApplication.created_at).toLocaleDateString()}</p>
+                <div className={clsx("w-full pl-16 md:pl-0 md:w-[calc(50%-3rem)] transition-all",
+                  myApplication ? "opacity-100" : "opacity-100"
+                )}>
+                  <div className={clsx("p-6 rounded-2xl border shadow-xl", 
+                    myApplication ? "border-discord-blurple/30 bg-discord-blurple/10" : "border-white/10 bg-white/5"
+                  )}>
+                    <h3 className="font-bold text-lg text-discord-blurple mb-2">
+                      {myApplication ? 'Candidature Envoyée' : '1. Formulaire de Candidature'}
+                    </h3>
+                    
+                    {myApplication ? (
+                      <p className="text-sm text-discord-muted">
+                        Candidature soumise le <strong className="text-white">{new Date(myApplication.created_at).toLocaleDateString('fr-FR')}</strong>.
+                      </p>
+                    ) : (
+                      // The Application Form inside Step 1
+                      <div className="mt-6 space-y-4 text-left">
+                        
+                        {!ready || !profile ? (
+                          <div className="text-center py-4">
+                            <p className="text-discord-muted mb-4 font-medium text-sm">Connectez-vous avec Discord pour postuler.</p>
+                            <button onClick={handleLogin} className="btn bg-discord-blurple text-white hover:bg-discord-blurple/80 text-sm">
+                              Se connecter avec Discord
+                            </button>
+                          </div>
+                        ) : successMsg ? (
+                          <div className="p-4 rounded-xl bg-discord-success/10 border border-discord-success/30 text-discord-success font-bold text-center">
+                            {successMsg}
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 gap-4">
+                              <div>
+                                <label className="block text-xs font-bold text-discord-muted uppercase mb-1">Prénom RP *</label>
+                                <input 
+                                  type="text" 
+                                  value={rpFirstname}
+                                  onChange={e => setRpFirstname(e.target.value)}
+                                  className="glass-input w-full text-sm py-2" 
+                                  placeholder="Ex: John" 
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-discord-muted uppercase mb-1">Nom RP *</label>
+                                <input 
+                                  type="text" 
+                                  value={rpLastname}
+                                  onChange={e => setRpLastname(e.target.value)}
+                                  className="glass-input w-full text-sm py-2" 
+                                  placeholder="Ex: Doe" 
+                                />
+                              </div>
+                            </div>
+
+                            {selectedRoleToApply?.id === 'Professeur' && (
+                              <div>
+                                <label className="block text-xs font-bold text-discord-muted uppercase mb-2">Matière(s) Souhaitée(s) *</label>
+                                <div className="flex flex-wrap gap-2">
+                                  {effectifs.classiques?.filter((subj: any) => subj.capacity > 0)
+                                    .map((subj: any) => (
+                                      <button
+                                        key={subj.name}
+                                        onClick={() => toggleMatiere(subj.name)}
+                                        className={clsx(
+                                          "px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
+                                          selectedMatieres.includes(subj.name)
+                                            ? "bg-discord-blurple/20 text-discord-blurple border-discord-blurple/50"
+                                            : "bg-white/5 text-discord-muted border-white/5 hover:bg-white/10"
+                                        )}
+                                      >
+                                        {subj.name}
+                                      </button>
+                                  ))}
+                                  {(!effectifs.classiques || effectifs.classiques.length === 0) && (
+                                    <span className="text-discord-muted text-xs">Aucune matière disponible</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            <div>
+                              <label className="block text-xs font-bold text-discord-muted uppercase mb-1">Lettre de Motivation</label>
+                              <textarea 
+                                value={motivation}
+                                onChange={e => setMotivation(e.target.value)}
+                                className="glass-input w-full min-h-[80px] py-2 text-sm" 
+                                placeholder="Expliquez pourquoi..."
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-discord-muted uppercase mb-1">Vos Disponibilités</label>
+                              <input 
+                                type="text" 
+                                value={disponibilites}
+                                onChange={e => setDisponibilites(e.target.value)}
+                                className="glass-input w-full text-sm py-2" 
+                                placeholder="Ex: Tous les soirs..."
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-discord-muted uppercase mb-1">CV ou Ressources (Optionnel)</label>
+                              <div className="flex items-center gap-4">
+                                <label className="btn bg-white/5 border border-white/10 hover:bg-white/10 cursor-pointer text-xs py-2 px-3">
+                                  <Upload className="w-3 h-3 mr-2 inline" />
+                                  Joindre un fichier
+                                  <input 
+                                    type="file" 
+                                    accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                                    className="hidden" 
+                                    onChange={e => e.target.files && setCvFile(e.target.files[0])}
+                                  />
+                                </label>
+                                {cvFile && <span className="text-xs text-discord-blurple font-bold">{cvFile.name}</span>}
+                              </div>
+                            </div>
+
+                            {errorMsg && <div className="text-discord-error text-xs font-bold">{errorMsg}</div>}
+
+                            <button 
+                              onClick={() => handleSubmit(selectedRoleToApply?.id)}
+                              disabled={isSubmitting}
+                              className="w-full py-3 rounded-xl font-bold bg-discord-blurple hover:bg-discord-blurple/80 text-white transition-colors flex items-center justify-center gap-2 mt-4"
+                            >
+                              {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                              Envoyer ma Candidature
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Étape 2 : En attente / Planifié */}
-              <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                <div className={clsx("flex items-center justify-center w-6 h-6 rounded-full border-4 border-[var(--discord-dark)] shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 absolute left-[-2rem] md:left-1/2", 
-                  myApplication.scheduled_at ? "bg-discord-blurple text-white" : "bg-white/10 text-discord-muted"
+              {/* Étape 2 : Analyse / Planification */}
+              <div className="relative flex items-center justify-between md:justify-normal md:even:flex-row-reverse group">
+                <div className={clsx("flex items-center justify-center w-8 h-8 rounded-full border-4 border-[var(--discord-dark)] shadow shrink-0 z-10 md:order-1 absolute left-1 md:left-1/2 md:-translate-x-1/2", 
+                  myApplication?.scheduled_at ? "bg-discord-blurple text-white" : "bg-white/10 text-discord-muted"
                 )}>
-                  {myApplication.scheduled_at ? <CheckCircle2 className="w-3 h-3" /> : <div className="w-2 h-2 rounded-full bg-white/30" />}
+                  {myApplication?.scheduled_at ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-2 h-2 rounded-full bg-white/30" />}
                 </div>
-                <div className={clsx("w-[calc(100%-2rem)] md:w-[calc(50%-2rem)] p-4 rounded-xl border shadow-xl transition-all",
-                  myApplication.scheduled_at ? "border-white/10 bg-white/5" : "border-transparent bg-white/[0.02]"
+                <div className={clsx("w-full pl-16 md:pl-0 md:w-[calc(50%-3rem)] transition-all",
+                  myApplication?.scheduled_at ? "opacity-100" : "opacity-50"
                 )}>
-                  <h3 className={clsx("font-bold text-lg", myApplication.scheduled_at ? "text-white" : "text-discord-muted")}>Planification de l'Entretien</h3>
-                  {myApplication.scheduled_at ? (
-                     <p className="text-sm text-discord-muted mt-1">
-                       Un entretien est prévu le <strong className="text-white">{new Date(myApplication.scheduled_at).toLocaleString('fr-FR')}</strong>.
-                     </p>
-                  ) : (
-                     <p className="text-sm text-discord-muted mt-1 opacity-70">L'administration analyse votre profil et proposera une date d'entretien.</p>
-                  )}
+                  <div className={clsx("p-4 rounded-xl border shadow-xl",
+                    myApplication?.scheduled_at ? "border-white/10 bg-white/5" : "border-transparent bg-white/[0.02]"
+                  )}>
+                    <h3 className={clsx("font-bold text-lg", myApplication?.scheduled_at ? "text-white" : "text-discord-muted")}>Planification de l'Entretien</h3>
+                    {myApplication?.scheduled_at ? (
+                       <p className="text-sm text-discord-muted mt-1">
+                         Un entretien est prévu le <strong className="text-white">{new Date(myApplication.scheduled_at).toLocaleString('fr-FR')}</strong>.
+                       </p>
+                    ) : (
+                       <p className="text-sm text-discord-muted mt-1 opacity-70">L'administration analyse votre profil et proposera une date d'entretien.</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Étape 3 : Convocation (Salon) */}
-              <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                <div className={clsx("flex items-center justify-center w-6 h-6 rounded-full border-4 border-[var(--discord-dark)] shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 absolute left-[-2rem] md:left-1/2", 
-                  myApplication.vocal_channel_name ? "bg-discord-blurple text-white" : "bg-white/10 text-discord-muted"
+              <div className="relative flex items-center justify-between md:justify-normal md:even:flex-row-reverse group">
+                <div className={clsx("flex items-center justify-center w-8 h-8 rounded-full border-4 border-[var(--discord-dark)] shadow shrink-0 z-10 md:order-1 absolute left-1 md:left-1/2 md:-translate-x-1/2", 
+                  myApplication?.vocal_channel_name ? "bg-discord-blurple text-white" : "bg-white/10 text-discord-muted"
                 )}>
-                  {myApplication.vocal_channel_name ? <CheckCircle2 className="w-3 h-3" /> : <div className="w-2 h-2 rounded-full bg-white/30" />}
+                  {myApplication?.vocal_channel_name ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-2 h-2 rounded-full bg-white/30" />}
                 </div>
-                <div className={clsx("w-[calc(100%-2rem)] md:w-[calc(50%-2rem)] p-4 rounded-xl border shadow-xl transition-all",
-                  myApplication.vocal_channel_name ? "border-discord-blurple/30 bg-discord-blurple/10" : "border-transparent bg-white/[0.02]"
+                <div className={clsx("w-full pl-16 md:pl-0 md:w-[calc(50%-3rem)] transition-all",
+                  myApplication?.vocal_channel_name ? "opacity-100" : "opacity-50"
                 )}>
-                  <h3 className={clsx("font-bold text-lg", myApplication.vocal_channel_name ? "text-discord-blurple" : "text-discord-muted")}>Convocation</h3>
-                  {myApplication.vocal_channel_name ? (
-                     <p className="text-sm text-discord-muted mt-1">
-                       Veuillez vous rendre dans le vocal <strong className="text-white bg-black/30 px-2 py-0.5 rounded">#{myApplication.vocal_channel_name}</strong> à l'heure prévue.
-                     </p>
-                  ) : (
-                     <p className="text-sm text-discord-muted mt-1 opacity-70">Le salon vocal vous sera communiqué peu avant l'entretien.</p>
-                  )}
+                  <div className={clsx("p-4 rounded-xl border shadow-xl",
+                    myApplication?.vocal_channel_name ? "border-discord-blurple/30 bg-discord-blurple/10" : "border-transparent bg-white/[0.02]"
+                  )}>
+                    <h3 className={clsx("font-bold text-lg", myApplication?.vocal_channel_name ? "text-discord-blurple" : "text-discord-muted")}>Convocation</h3>
+                    {myApplication?.vocal_channel_name ? (
+                       <p className="text-sm text-discord-muted mt-1">
+                         Veuillez vous rendre dans le vocal <strong className="text-white bg-black/30 px-2 py-0.5 rounded">#{myApplication.vocal_channel_name}</strong> à l'heure prévue.
+                       </p>
+                    ) : (
+                       <p className="text-sm text-discord-muted mt-1 opacity-70">Le salon vocal vous sera communiqué peu avant l'entretien.</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Étape 4 : Résultat */}
-              <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                <div className={clsx("flex items-center justify-center w-6 h-6 rounded-full border-4 border-[var(--discord-dark)] shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 absolute left-[-2rem] md:left-1/2", 
-                  myApplication.status === 'accepted' ? "bg-discord-success text-white" : 
-                  myApplication.status === 'refused' ? "bg-discord-error text-white" : "bg-white/10 text-discord-muted"
+              <div className="relative flex items-center justify-between md:justify-normal md:even:flex-row-reverse group">
+                <div className={clsx("flex items-center justify-center w-8 h-8 rounded-full border-4 border-[var(--discord-dark)] shadow shrink-0 z-10 md:order-1 absolute left-1 md:left-1/2 md:-translate-x-1/2", 
+                  myApplication?.status === 'accepted' ? "bg-discord-success text-white" : 
+                  myApplication?.status === 'refused' ? "bg-discord-error text-white" : "bg-white/10 text-discord-muted"
                 )}>
-                  {['accepted', 'refused'].includes(myApplication.status) ? <CheckCircle2 className="w-3 h-3" /> : <div className="w-2 h-2 rounded-full bg-white/30" />}
+                  {myApplication && ['accepted', 'refused'].includes(myApplication.status) ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-2 h-2 rounded-full bg-white/30" />}
                 </div>
-                <div className={clsx("w-[calc(100%-2rem)] md:w-[calc(50%-2rem)] p-4 rounded-xl border shadow-xl transition-all",
-                  myApplication.status === 'accepted' ? "border-discord-success/30 bg-discord-success/10" : 
-                  myApplication.status === 'refused' ? "border-discord-error/30 bg-discord-error/10" : "border-transparent bg-white/[0.02]"
+                <div className={clsx("w-full pl-16 md:pl-0 md:w-[calc(50%-3rem)] transition-all",
+                  myApplication && ['accepted', 'refused'].includes(myApplication.status) ? "opacity-100" : "opacity-50"
                 )}>
-                  <h3 className={clsx("font-bold text-lg", 
-                    myApplication.status === 'accepted' ? "text-discord-success" : 
-                    myApplication.status === 'refused' ? "text-discord-error" : "text-discord-muted"
-                  )}>Résultat de la candidature</h3>
-                  {myApplication.status === 'accepted' ? (
-                     <p className="text-sm text-white font-medium mt-1">
-                       Félicitations ! Vous êtes accepté au poste de {myApplication.target_role}. Vos rôles vous ont été attribués.
-                     </p>
-                  ) : myApplication.status === 'refused' ? (
-                     <p className="text-sm text-discord-muted mt-1">
-                       Malheureusement, votre candidature n'a pas été retenue pour cette session.
-                     </p>
-                  ) : (
-                     <p className="text-sm text-discord-muted mt-1 opacity-70">En attente de la délibération finale.</p>
-                  )}
+                  <div className={clsx("p-4 rounded-xl border shadow-xl",
+                    myApplication?.status === 'accepted' ? "border-discord-success/30 bg-discord-success/10" : 
+                    myApplication?.status === 'refused' ? "border-discord-error/30 bg-discord-error/10" : "border-transparent bg-white/[0.02]"
+                  )}>
+                    <h3 className={clsx("font-bold text-lg", 
+                      myApplication?.status === 'accepted' ? "text-discord-success" : 
+                      myApplication?.status === 'refused' ? "text-discord-error" : "text-discord-muted"
+                    )}>Résultat de la candidature</h3>
+                    {myApplication?.status === 'accepted' ? (
+                       <p className="text-sm text-white font-medium mt-1">
+                         Félicitations ! Vous êtes accepté au poste de {myApplication.target_role}. Vos rôles vous ont été attribués.
+                       </p>
+                    ) : myApplication?.status === 'refused' ? (
+                       <p className="text-sm text-discord-muted mt-1">
+                         Malheureusement, votre candidature n'a pas été retenue pour cette session.
+                       </p>
+                    ) : (
+                       <p className="text-sm text-discord-muted mt-1 opacity-70">En attente de la délibération finale.</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
             </div>
             
-            {['accepted', 'refused'].includes(myApplication.status) && (
+            {myApplication && ['accepted', 'refused'].includes(myApplication.status) && (
               <div className="mt-12 text-center">
                 <button 
                   onClick={() => setMyApplication(null)}
@@ -367,211 +536,74 @@ export default function RecrutementPage() {
               </div>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Accordions */}
-      {!myApplication && (
-      <div className="max-w-3xl mx-auto px-4">
-        <h2 className="text-sm font-black text-discord-muted uppercase tracking-widest mb-6 flex items-center justify-between">
-          <span>Postes Disponibles</span>
-          {loadingEffectifs && <Loader2 className="w-4 h-4 animate-spin" />}
-        </h2>
-        
-        <div className="space-y-4">
-          {dynamicRoles.length === 0 && !loadingEffectifs && (
-            <div className="p-8 text-center glass-card">
-              <p className="text-discord-muted font-medium">Aucun poste n'est actuellement ouvert au recrutement.</p>
-            </div>
-          )}
-          {dynamicRoles.map(role => {
-            const Icon = role.icon
-            const isExpanded = expandedId === role.id
-
-            return (
-              <div 
-                key={role.id}
-                className={clsx(
-                  "rounded-2xl transition-all duration-300 overflow-hidden border",
-                  isExpanded ? "bg-white/5 border-white/10 shadow-xl" : "bg-white/[0.02] border-transparent hover:bg-white/5 cursor-pointer"
-                )}
-              >
-                {/* Header (Clickable) */}
-                <div 
-                  className="px-6 py-5 flex items-center justify-between select-none"
-                  onClick={() => toggleExpand(role.id)}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={clsx("w-12 h-12 rounded-xl flex items-center justify-center bg-opacity-20", `bg-${role.color}/20 text-${role.color}`)}>
-                      <Icon className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-black">{role.title}</h3>
-                      <p className="text-sm font-bold text-discord-success">Poste Ouvert</p>
-                    </div>
-                  </div>
-                  <ChevronDown className={clsx("w-6 h-6 text-discord-muted transition-transform duration-300", isExpanded && "rotate-180")} />
-                </div>
-
-                {/* Content (Expanded) */}
-                <div 
-                  className={clsx(
-                    "grid transition-all duration-300 ease-in-out",
-                    isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                  )}
-                >
-                  <div className="overflow-hidden">
-                    <div className="px-6 pb-6 pt-2">
-                      <div className="h-px w-full bg-white/5 mb-6" />
-                      
-                      {/* Description & Requis */}
-                      <div className="mb-8">
-                        <h4 className="text-sm font-black uppercase tracking-widest text-white mb-2">Le Rôle</h4>
-                        <p className="text-discord-muted font-medium mb-6 leading-relaxed">
-                          {role.description}
-                        </p>
-
-                        <h4 className="text-sm font-black uppercase tracking-widest text-white mb-3">Pré-requis</h4>
-                        <ul className="space-y-3">
-                          {role.requis.map((req: string, i: number) => (
-                            <li key={i} className="flex items-start gap-3">
-                              <CheckCircle2 className={`w-5 h-5 mt-0.5 shrink-0 text-${role.color}`} />
-                              <span className="text-discord-muted font-medium">{req}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {/* Application Form */}
-                      <div className="bg-black/20 p-6 rounded-2xl border border-white/5">
-                        <h4 className="text-lg font-black text-white mb-6">Formulaire de Candidature</h4>
-                        
-                        {!ready || !profile ? (
-                          <div className="text-center py-8">
-                            <p className="text-discord-muted mb-4 font-medium">Vous devez vous connecter avec votre compte Discord pour pouvoir postuler.</p>
-                            <button onClick={handleLogin} className="btn bg-discord-blurple text-white hover:bg-discord-blurple/80">
-                              Se connecter avec Discord
-                            </button>
-                          </div>
-                        ) : successMsg ? (
-                          <div className="p-4 rounded-xl bg-discord-success/10 border border-discord-success/30 text-discord-success font-bold text-center">
-                            {successMsg}
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-xs font-bold text-discord-muted uppercase mb-1">Prénom RP *</label>
-                                <input 
-                                  type="text" 
-                                  value={rpFirstname}
-                                  onChange={e => setRpFirstname(e.target.value)}
-                                  className="glass-input w-full" 
-                                  placeholder="Ex: John" 
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-bold text-discord-muted uppercase mb-1">Nom RP *</label>
-                                <input 
-                                  type="text" 
-                                  value={rpLastname}
-                                  onChange={e => setRpLastname(e.target.value)}
-                                  className="glass-input w-full" 
-                                  placeholder="Ex: Doe" 
-                                />
-                              </div>
-                            </div>
-
-                            {role.id === 'Professeur' && (
-                              <div>
-                                <label className="block text-xs font-bold text-discord-muted uppercase mb-2">Matière(s) Souhaitée(s) *</label>
-                                <div className="flex flex-wrap gap-2">
-                                  {effectifs.personnel?.find((p: any) => p.category === 'Professeurs')?.items
-                                    ?.filter((subj: any) => subj.max === null || (subj.current || 0) < subj.max)
-                                    .map((subj: any) => (
-                                      <button
-                                        key={subj.name}
-                                        onClick={() => toggleMatiere(subj.name)}
-                                        className={clsx(
-                                          "px-3 py-1.5 rounded-lg text-sm font-bold transition-all border",
-                                          selectedMatieres.includes(subj.name)
-                                            ? "bg-discord-blurple/20 text-discord-blurple border-discord-blurple/50"
-                                            : "bg-white/5 text-discord-muted border-white/5 hover:bg-white/10"
-                                        )}
-                                      >
-                                        {subj.name}
-                                      </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            <div>
-                              <label className="block text-xs font-bold text-discord-muted uppercase mb-1">Lettre de Motivation</label>
-                              <textarea 
-                                value={motivation}
-                                onChange={e => setMotivation(e.target.value)}
-                                className="glass-input w-full min-h-[100px] py-2" 
-                                placeholder="Expliquez pourquoi vous souhaitez rejoindre l'équipe..."
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-xs font-bold text-discord-muted uppercase mb-1">Vos Disponibilités</label>
-                              <input 
-                                type="text" 
-                                value={disponibilites}
-                                onChange={e => setDisponibilites(e.target.value)}
-                                className="glass-input w-full" 
-                                placeholder="Ex: Tous les soirs après 18h, le week-end..."
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-xs font-bold text-discord-muted uppercase mb-1">CV ou Ressources (Optionnel)</label>
-                              <div className="flex items-center gap-4">
-                                <label className="btn bg-white/5 border border-white/10 hover:bg-white/10 cursor-pointer text-sm">
-                                  <Upload className="w-4 h-4" />
-                                  Joindre un fichier
-                                  <input 
-                                    type="file" 
-                                    accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
-                                    className="hidden" 
-                                    onChange={e => e.target.files && setCvFile(e.target.files[0])}
-                                  />
-                                </label>
-                                {cvFile && (
-                                  <span className="text-sm font-bold text-discord-success truncate flex-1">
-                                    {cvFile.name}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[10px] text-discord-muted mt-1">Formats acceptés : PDF, Images, Word.</p>
-                            </div>
-
-                            {errorMsg && (
-                              <div className="text-discord-error text-sm font-bold">{errorMsg}</div>
-                            )}
-
-                            <button 
-                              onClick={() => handleSubmit(role.id)}
-                              disabled={isSubmitting}
-                              className={`w-full btn mt-4 bg-${role.color} hover:bg-${role.color}/80 text-white`}
-                            >
-                              {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Envoyer ma candidature'}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        ) : (
+          <div className="space-y-4">
+            <h2 className="text-sm font-black text-discord-muted uppercase tracking-widest mb-6 flex items-center justify-between">
+              <span>Postes Disponibles</span>
+              {loadingEffectifs && <Loader2 className="w-4 h-4 animate-spin" />}
+            </h2>
+            
+            {dynamicRoles.length === 0 && !loadingEffectifs && (
+              <div className="p-8 text-center glass-card">
+                <p className="text-discord-muted font-medium">Aucun poste n'est actuellement ouvert au recrutement.</p>
               </div>
-            )
-          })}
-        </div>
+            )}
+
+            {dynamicRoles.map(role => {
+              const Icon = role.icon
+
+              return (
+                <div 
+                  key={role.id}
+                  className="rounded-2xl transition-all duration-300 overflow-hidden border bg-white/[0.02] border-transparent hover:bg-white/5"
+                >
+                  <div className="px-6 py-5 flex items-center justify-between select-none">
+                    <div className="flex items-center gap-4">
+                      <div className={clsx("w-12 h-12 rounded-xl flex items-center justify-center bg-opacity-20", `bg-${role.color}/20 text-${role.color}`)}>
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-black">{role.title}</h3>
+                        <p className="text-sm font-bold text-discord-success">Poste Ouvert</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="px-6 pb-6 pt-2">
+                    <div className="h-px w-full bg-white/5 mb-6" />
+                    
+                    <div className="mb-4">
+                      <h4 className="text-sm font-black uppercase tracking-widest text-white mb-2">Le Rôle</h4>
+                      <p className="text-discord-muted font-medium mb-6 leading-relaxed">
+                        {role.description}
+                      </p>
+                      
+                      <h4 className="text-sm font-black uppercase tracking-widest text-white mb-2">Prérequis</h4>
+                      <ul className="space-y-2 mb-6">
+                        {role.requis.map((req: string, i: number) => (
+                          <li key={i} className="flex items-center gap-3 text-sm text-discord-muted font-medium bg-black/20 p-2 rounded-lg border border-white/5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-discord-success" />
+                            {req}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="mt-4 flex justify-end">
+                      <button 
+                        onClick={() => handleSelectRole(role)}
+                        className="btn bg-discord-blurple hover:bg-discord-blurple/80 text-white font-bold"
+                      >
+                        Candidater pour ce poste
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
-      )}
     </div>
   )
 }

@@ -66,7 +66,7 @@ export default function AdminHousesPage() {
               <div className="text-xs text-discord-muted uppercase mb-1">Propriétaire</div>
               <div className="flex items-center gap-2">
                 {house.profiles?.avatar_url || house.owner?.avatar_url ? (
-                  <img src={house.profiles?.avatar_url || house.owner?.avatar_url} className="w-6 h-6 rounded-full" />
+                  <img src={house.profiles?.avatar_url || house.owner?.avatar_url} alt="" className="w-6 h-6 rounded-full" />
                 ) : (
                   <div className="w-6 h-6 rounded-full bg-discord-blurple/20" />
                 )}

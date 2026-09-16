@@ -298,7 +298,7 @@ export default function MaisonPage() {
                 {members.map((m: any) => (
                   <div key={m.id} className="flex items-center gap-3 p-3 bg-black/20 rounded-xl border border-white/5">
                     {m.user?.avatar_url ? (
-                      <img src={m.user.avatar_url} className="w-10 h-10 rounded-full" />
+                      <img src={m.user.avatar_url} alt="" className="w-10 h-10 rounded-full" />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-discord-dark flex items-center justify-center text-discord-muted font-bold">
                         {m.user?.username?.charAt(0)?.toUpperCase()}
