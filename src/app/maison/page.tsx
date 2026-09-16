@@ -8,9 +8,21 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 
 const HOUSE_TYPES = [
-  { type: 'Appartement', price: 5000, maxRooms: 10, icon: Layers, color: 'discord-blurple' },
-  { type: 'Maison', price: 20000, maxRooms: 20, icon: Home, color: 'discord-green' },
-  { type: 'Villa', price: 50000, maxRooms: 40, icon: Map, color: 'discord-yellow' }
+  { 
+    type: 'Appartement', price: 5000, maxRooms: 10, icon: Layers, 
+    colorClass: 'text-discord-blurple', bgClass: 'bg-discord-blurple', 
+    bgHoverClass: 'hover:bg-discord-blurple/80', bgLightClass: 'bg-discord-blurple/10' 
+  },
+  { 
+    type: 'Maison', price: 20000, maxRooms: 20, icon: Home, 
+    colorClass: 'text-discord-green', bgClass: 'bg-discord-green', 
+    bgHoverClass: 'hover:bg-discord-green/80', bgLightClass: 'bg-discord-green/10' 
+  },
+  { 
+    type: 'Villa', price: 50000, maxRooms: 40, icon: Map, 
+    colorClass: 'text-discord-yellow', bgClass: 'bg-discord-yellow', 
+    bgHoverClass: 'hover:bg-discord-yellow/80', bgLightClass: 'bg-discord-yellow/10' 
+  }
 ]
 
 export default function MaisonPage() {
@@ -177,9 +189,9 @@ export default function MaisonPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {HOUSE_TYPES.map((h, i) => (
             <div key={i} className="glass-card p-6 flex flex-col relative overflow-hidden group">
-              <div className={`absolute top-0 right-0 w-32 h-32 bg-${h.color}/10 rounded-bl-full transition-transform group-hover:scale-110`} />
+              <div className={clsx("absolute top-0 right-0 w-32 h-32 rounded-bl-full transition-transform group-hover:scale-110", h.bgLightClass)} />
               <h3 className="text-2xl font-black text-white mb-2 flex items-center gap-3">
-                <h.icon className={`w-8 h-8 text-${h.color}`} />
+                <h.icon className={clsx("w-8 h-8", h.colorClass)} />
                 {h.type}
               </h3>
               <p className="text-discord-muted text-sm font-medium mb-6">
@@ -193,7 +205,10 @@ export default function MaisonPage() {
                 <button 
                   onClick={() => setBuyConfirm({ type: h.type, price: h.price })}
                   disabled={buying}
-                  className={`w-full py-3 rounded-xl font-bold flex justify-center items-center gap-2 text-white bg-${h.color} hover:bg-${h.color}/80 transition-colors disabled:opacity-50`}
+                  className={clsx(
+                    "w-full py-3 rounded-xl font-bold flex justify-center items-center gap-2 text-white transition-colors disabled:opacity-50",
+                    h.bgClass, h.bgHoverClass
+                  )}
                 >
                   {buying ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingCart className="w-5 h-5" />}
                   Acheter
