@@ -97,7 +97,7 @@ export default function RecrutementPage() {
   }, [ready, profile])
 
   const handleLogin = async () => {
-    const redirectUrl = `${window.location.origin}/auth/callback?next=/recrutement`
+    const redirectUrl = `${window.location.origin}/api/auth/callback?next=/recrutement`
     await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: { redirectTo: redirectUrl }
