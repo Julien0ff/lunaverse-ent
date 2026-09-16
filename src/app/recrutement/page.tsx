@@ -90,6 +90,10 @@ export default function RecrutementPage() {
       }
     }
     fetchApp()
+    
+    // Auto-refresh every 10 seconds to update timeline dynamically
+    const intervalId = setInterval(fetchApp, 10000)
+    return () => clearInterval(intervalId)
   }, [ready, profile])
 
   const handleLogin = async () => {
@@ -296,7 +300,12 @@ export default function RecrutementPage() {
 
             {/* Horizontal Timeline (Top) */}
             <div className="mb-12 relative max-w-3xl mx-auto">
-              <div className="hidden md:block absolute top-5 left-8 right-8 h-1 bg-white/10 z-0" />
+              <div className="hidden md:block absolute top-5 left-8 right-8 h-1 bg-white/10 z-0 overflow-hidden">
+                <div 
+                  className="h-full bg-discord-blurple transition-all duration-1000 ease-in-out" 
+                  style={{ width: !myApplication ? '0%' : ['accepted', 'refused'].includes(myApplication.status) ? '100%' : myApplication.vocal_channel_name ? '66%' : myApplication.scheduled_at ? '33%' : '0%' }}
+                />
+              </div>
               <div className="flex flex-col md:flex-row justify-between relative z-10 gap-6 md:gap-0">
                 {/* Step 1: Formulaire / Envoyé */}
                 <div className="flex flex-col items-center flex-1">

@@ -27,12 +27,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Vous possédez déjà une maison.' }, { status: 400 })
     }
 
-    // Get user wallet and profile using the authenticated client (so we can read it)
-    const { data: profile } = await supabase.from('profiles').select('wallet, discord_id, username, nickname_rp').eq('id', user.id).single()
-    if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-
-    // We still use Admin to bypass RLS for updating the wallet
+    // We use Admin to bypass RLS for fetching the profile and updating the wallet
     const admin = createSupabaseAdmin()
+
+    // Get user wallet and profile
+    const { data: profile, error: profileError } = await admin.from('profiles').select('wallet, discord_id, username, nickname_rp').eq('id', user.id).single()
+    if (!profile) return NextResponse.json({ error: 'Profile not found: ' + (profileError?.message || 'No profile data') }, { status: 404 })
 
     if ((profile.wallet || 0) < price) {
       return NextResponse.json({ error: 'Fonds insuffisants' }, { status: 400 })

@@ -15,13 +15,13 @@ const HOUSE_TYPES = [
   },
   { 
     type: 'Maison', price: 20000, maxRooms: 20, icon: Home, 
-    colorClass: 'text-discord-green', bgClass: 'bg-discord-green', 
-    bgHoverClass: 'hover:bg-discord-green/80', bgLightClass: 'bg-discord-green/10' 
+    colorClass: 'text-discord-success', bgClass: 'bg-discord-success', 
+    bgHoverClass: 'hover:bg-discord-success/80', bgLightClass: 'bg-discord-success/10' 
   },
   { 
     type: 'Villa', price: 50000, maxRooms: 40, icon: Map, 
-    colorClass: 'text-discord-yellow', bgClass: 'bg-discord-yellow', 
-    bgHoverClass: 'hover:bg-discord-yellow/80', bgLightClass: 'bg-discord-yellow/10' 
+    colorClass: 'text-discord-warning', bgClass: 'bg-discord-warning', 
+    bgHoverClass: 'hover:bg-discord-warning/80', bgLightClass: 'bg-discord-warning/10' 
   }
 ]
 
@@ -155,18 +155,18 @@ export default function MaisonPage() {
   if (data?.status === 'pending_invite') {
     return (
       <div className="flex flex-col justify-center items-center h-[70vh] space-y-6">
-        <div className="w-20 h-20 bg-discord-yellow/20 rounded-full flex items-center justify-center">
-          <Home className="w-10 h-10 text-discord-yellow animate-bounce" />
+        <div className="w-20 h-20 bg-discord-warning/20 rounded-full flex items-center justify-center">
+          <Home className="w-10 h-10 text-discord-warning animate-bounce" />
         </div>
         <div className="text-center">
           <h2 className="text-2xl font-black text-white mb-2">Invitation en attente</h2>
           <p className="text-discord-muted max-w-md">Un adulte vous a invité à rejoindre sa maison. Accepter l'invitation vous donnera accès aux salons Discord privés.</p>
         </div>
         <div className="flex gap-4">
-          <button onClick={() => respondToInvite(data.house_id, true)} className="flex items-center px-4 py-2 rounded-xl font-bold transition-colors bg-discord-green/20 text-discord-green hover:bg-discord-green/30">
+          <button onClick={() => respondToInvite(data.house_id, true)} className="flex items-center px-4 py-2 rounded-xl font-bold transition-colors bg-discord-success/20 text-discord-success hover:bg-discord-success/30">
             <CheckCircle2 className="w-5 h-5 mr-2" /> Accepter
           </button>
-          <button onClick={() => respondToInvite(data.house_id, false)} className="flex items-center px-4 py-2 rounded-xl font-bold transition-colors bg-discord-red/20 text-discord-red hover:bg-discord-red/30">
+          <button onClick={() => respondToInvite(data.house_id, false)} className="flex items-center px-4 py-2 rounded-xl font-bold transition-colors bg-discord-error/20 text-discord-error hover:bg-discord-error/30">
             <XCircle className="w-5 h-5 mr-2" /> Refuser
           </button>
         </div>
@@ -224,7 +224,7 @@ export default function MaisonPage() {
             <div className="bg-[#1e1f22] border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-scaleIn">
               <h3 className="text-xl font-black text-white mb-2">Confirmer l'achat</h3>
               <p className="text-discord-muted mb-6">
-                Voulez-vous vraiment acheter : <strong className="text-white">{buyConfirm.type}</strong> pour <strong className="text-discord-green">{buyConfirm.price} €</strong> ?<br/><br/>
+                Voulez-vous vraiment acheter : <strong className="text-white">{buyConfirm.type}</strong> pour <strong className="text-discord-success">{buyConfirm.price} €</strong> ?<br/><br/>
                 L'argent sera débité de votre compte bancaire en jeu.
               </p>
               <div className="flex gap-4">

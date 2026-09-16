@@ -73,7 +73,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         if (error) throw error
 
         // --- DISCORD INTEGRATION ---
-        const { sendDiscordDM, setDiscordMemberNickname, addDiscordMemberRole } = require('@/lib/discord-api')
+        const { sendDiscordDMByDiscordId, setDiscordMemberNickname, addDiscordMemberRole } = require('@/lib/discord-api')
 
         // 1. DM for Convocation
         if (
@@ -82,11 +82,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         ) {
             const dateStr = data.scheduled_at ? new Date(data.scheduled_at).toLocaleString('fr-FR') : 'à définir'
             const chanStr = data.vocal_channel_name || 'à définir'
-            await sendDiscordDM(data.candidate_id, {
-                title: `📅 Convocation à un Entretien : ${data.target_role}`,
-                description: `Votre candidature a été mise à jour.\n\n**Date :** ${dateStr}\n**Lieu :** Salon Vocal \`${chanStr}\``,
-                color: 0x5865F2
-            })
+            if (data.candidate_discord_id) {
+                await sendDiscordDMByDiscordId(data.candidate_discord_id, {
+                    title: `📅 Convocation à un Entretien : ${data.target_role}`,
+                    description: `Votre candidature a été mise à jour.\n\n**Date :** ${dateStr}\n**Lieu :** Salon Vocal \`${chanStr}\``,
+                    color: 0x5865F2
+                })
+            }
         }
 
         // 2. Acceptance Logic
@@ -106,17 +108,21 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             // Update profile nickname
             await supabase.from('profiles').update({ nickname_rp: `${data.rp_firstname} ${data.rp_lastname}` }).eq('id', data.candidate_id)
             
-            await sendDiscordDM(data.candidate_id, {
-                title: `🎉 Félicitations !`,
-                description: `Vous avez été **accepté** au poste de **${data.target_role}**.\nVos rôles vous ont été attribués. Bienvenue dans l'équipe !`,
-                color: 0x57F287
-            })
+            if (data.candidate_discord_id) {
+                await sendDiscordDMByDiscordId(data.candidate_discord_id, {
+                    title: `🎉 Félicitations !`,
+                    description: `Vous avez été **accepté** au poste de **${data.target_role}**.\nVos rôles vous ont été attribués. Bienvenue dans l'équipe !`,
+                    color: 0x57F287
+                })
+            }
         } else if (updates.status === 'refused' && oldData.status !== 'refused') {
-            await sendDiscordDM(data.candidate_id, {
-                title: `❌ Candidature Refusée`,
-                description: `Malheureusement, votre candidature pour le poste de **${data.target_role}** n'a pas été retenue pour cette session.`,
-                color: 0xED4245
-            })
+            if (data.candidate_discord_id) {
+                await sendDiscordDMByDiscordId(data.candidate_discord_id, {
+                    title: `❌ Candidature Refusée`,
+                    description: `Malheureusement, votre candidature pour le poste de **${data.target_role}** n'a pas été retenue pour cette session.`,
+                    color: 0xED4245
+                })
+            }
         }
 
         return NextResponse.json({ interview: data })

@@ -16,10 +16,12 @@ export default function EntretienDetailPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  // Search states
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searching, setSearching] = useState(false)
+
+  // Channels for Phase 1 planning
+  const [vocalChannels, setVocalChannels] = useState<any[]>([])
 
   const id = params?.id as string
 
@@ -32,6 +34,16 @@ export default function EntretienDetailPage() {
         }
       })
       .finally(() => setLoading(false))
+      
+    // Fetch voice channels for scheduling
+    fetch('/api/discord/channels')
+      .then(res => res.json())
+      .then(data => {
+        if (data.channels) {
+          setVocalChannels(data.channels)
+        }
+      })
+      .catch(console.error)
   }, [id])
 
   const handleSearch = async (q: string) => {
@@ -171,7 +183,7 @@ export default function EntretienDetailPage() {
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-discord-muted" />
                 <input 
                   type="text" 
-                  value={searchQuery || interview.candidate_discord_id}
+                  value={searchQuery || (interview.rp_firstname ? `${interview.rp_firstname} ${interview.rp_lastname}`.trim() : interview.candidate_discord_id)}
                   onChange={e => handleSearch(e.target.value)}
                   className="glass-input pl-10"
                   placeholder="Rechercher par nom Discord..."
@@ -252,13 +264,16 @@ export default function EntretienDetailPage() {
               </div>
               <div>
                 <label className="text-xs font-bold text-discord-muted uppercase mb-1 block">Salon Vocal (Convocation)</label>
-                <input 
-                  type="text" 
+                <select
                   value={interview.vocal_channel_name || ''}
                   onChange={e => setInterview({...interview, vocal_channel_name: e.target.value})}
-                  className="glass-input"
-                  placeholder="ex: ✨・Secrétariat"
-                />
+                  className="glass-input appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM4RDkyOTkiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cG9seWxpbmUgcG9pbnRzPSI2IDkgMTIgMTggOSI+PC9wb2x5bGluZT48L3N2Zz4=')] bg-no-repeat bg-[position:calc(100%-1rem)_center]"
+                >
+                  <option value="">-- Sélectionner un salon vocal --</option>
+                  {vocalChannels.map(ch => (
+                    <option key={ch.id} value={ch.name}>{ch.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
@@ -392,24 +407,24 @@ export default function EntretienDetailPage() {
             <h3 className="text-sm font-black text-discord-muted uppercase tracking-widest mb-6">Bilan et Délibéré Final</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+              <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center opacity-70 cursor-not-allowed">
                 <label className="text-[10px] font-bold text-discord-muted uppercase tracking-widest block mb-2">Note Dossier (Coef 1)</label>
+                <div className="text-2xl font-black text-white">{interview.dossier_note || 0}</div>
+              </div>
+              <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+                <label className="text-[10px] font-bold text-discord-muted uppercase tracking-widest block mb-2">Note Oral (Coef 2)</label>
                 <input 
                   type="number"
-                  min="0" max="20"
-                  value={interview.dossier_note || ''}
+                  min="0" max="20" step="0.5"
+                  value={interview.interview_note || ''}
                   onChange={e => {
-                    const d = parseFloat(e.target.value) || 0
-                    const o = parseFloat(interview.interview_note) || 0
+                    const o = parseFloat(e.target.value) || 0
+                    const d = parseFloat(interview.dossier_note) || 0
                     const g = ((d + (o*2)) / 3).toFixed(2)
-                    setInterview({...interview, dossier_note: e.target.value, global_note: g})
+                    setInterview({...interview, interview_note: e.target.value, global_note: g})
                   }}
                   className="glass-input text-center text-xl font-black py-2 w-full max-w-[120px] mx-auto"
                 />
-              </div>
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center opacity-70 cursor-not-allowed">
-                <label className="text-[10px] font-bold text-discord-muted uppercase tracking-widest block mb-2">Note Oral (Coef 2)</label>
-                <div className="text-2xl font-black text-white">{interview.interview_note || 0}</div>
               </div>
               <div className="p-4 rounded-xl bg-discord-blurple/10 border border-discord-blurple/30 text-center">
                 <label className="text-[10px] font-bold text-discord-blurple uppercase tracking-widest block mb-2">Moyenne Finale</label>
