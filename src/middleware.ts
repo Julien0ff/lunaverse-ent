@@ -6,8 +6,8 @@ import { NextResponse, type NextRequest } from 'next/server'
  * Routes that don't require authentication.
  * Everything else (pages and API routes) requires a valid Supabase session.
  */
-const PUBLIC_ROUTES = ['/', '/unauthorized']
-const PUBLIC_API_PREFIXES = ['/api/auth/', '/api/cron/']
+const PUBLIC_ROUTES = ['/', '/unauthorized', '/recrutement']
+const PUBLIC_API_PREFIXES = ['/api/auth/', '/api/cron/', '/api/recrutement/']
 
 function isPublicRoute(pathname: string): boolean {
     if (PUBLIC_ROUTES.includes(pathname)) return true
