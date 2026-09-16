@@ -105,13 +105,11 @@ export default function RecrutementPage() {
     // Reset form
     setSuccessMsg('')
     setErrorMsg('')
-    setSelectedMatieres([])
+    setSelectedMatiere('')
   }
 
   const toggleMatiere = (mat: string) => {
-    setSelectedMatieres(prev => 
-      prev.includes(mat) ? prev.filter(m => m !== mat) : [...prev, mat]
-    )
+    setSelectedMatiere(mat)
   }
 
   const handleSubmit = async (roleId: string) => {
@@ -119,7 +117,7 @@ export default function RecrutementPage() {
       setErrorMsg('Veuillez renseigner votre Prénom et Nom RP.')
       return
     }
-    if (roleId === 'Professeur' && selectedMatieres.length === 0) {
+    if (roleId === 'Professeur' && !selectedMatiere) {
       setErrorMsg('Veuillez sélectionner au moins une matière.')
       return
     }
@@ -460,7 +458,7 @@ export default function RecrutementPage() {
                             </button>
                           </div>
                         )}
-                    )}
+                </div>
               ) : (
                 // -----------------------------
                 // ETAPE 2 à 4 : STATUT DE LA CANDIDATURE
