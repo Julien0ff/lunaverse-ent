@@ -11,7 +11,7 @@ export async function GET() {
     const { data: settingsData, error } = await admin
       .from('server_settings')
       .select('key, value')
-      .in('key', ['effectifs_data'])
+      .in('key', ['effectifs_data', 'rp_options'])
 
     if (error) throw error
 
@@ -21,7 +21,8 @@ export async function GET() {
     }, {})
 
     return NextResponse.json({ 
-      effectifs: settings.effectifs_data || { classiques: [], personnel: [] }
+      effectifs: settings.effectifs_data || { classiques: [], personnel: [] },
+      options: settings.rp_options || []
     })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

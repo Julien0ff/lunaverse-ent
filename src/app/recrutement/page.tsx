@@ -34,6 +34,7 @@ const ROLE_TEMPLATES: Record<string, any> = {
 export default function RecrutementPage() {
   const { profile, ready } = useAuth()
   const [effectifs, setEffectifs] = useState<{ classiques: any[], personnel: any[] }>({ classiques: [], personnel: [] })
+  const [rpOptions, setRpOptions] = useState<any[]>([])
   const [loadingEffectifs, setLoadingEffectifs] = useState(true)
 
   const [myApplication, setMyApplication] = useState<any>(null)
@@ -61,6 +62,7 @@ export default function RecrutementPage() {
         if (res.ok) {
           const data = await res.json()
           setEffectifs(data.effectifs)
+          setRpOptions(data.options || [])
         }
       } catch (e) {
         console.error('Failed to load effectifs', e)
@@ -392,28 +394,52 @@ export default function RecrutementPage() {
                             </div>
 
                             {selectedRoleToApply?.id === 'Professeur' && (
-                              <div>
-                                <label className="block text-xs font-bold text-discord-muted uppercase mb-2">Matière(s) Souhaitée(s) *</label>
-                                <div className="flex flex-wrap gap-2">
-                                  {effectifs.classiques?.filter((subj: any) => subj.capacity > 0)
-                                    .map((subj: any) => (
-                                      <button
-                                        key={subj.name}
-                                        onClick={() => toggleMatiere(subj.name)}
-                                        className={clsx(
-                                          "px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
-                                          selectedMatiere === subj.name
-                                            ? "bg-discord-blurple/20 text-discord-blurple border-discord-blurple/50"
-                                            : "bg-white/5 text-discord-muted border-white/5 hover:bg-white/10"
-                                        )}
-                                      >
-                                        {subj.name}
-                                      </button>
-                                  ))}
-                                  {(!effectifs.classiques || effectifs.classiques.length === 0) && (
-                                    <span className="text-discord-muted text-xs">Aucune matière disponible</span>
-                                  )}
+                              <div className="space-y-4">
+                                <div>
+                                  <label className="block text-xs font-bold text-discord-muted uppercase mb-2">Matière(s) Souhaitée(s) *</label>
+                                  <div className="flex flex-wrap gap-2">
+                                    {effectifs.classiques?.filter((subj: any) => subj.capacity > 0)
+                                      .map((subj: any) => (
+                                        <button
+                                          key={subj.name}
+                                          onClick={() => toggleMatiere(subj.name)}
+                                          className={clsx(
+                                            "px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
+                                            selectedMatiere === subj.name
+                                              ? "bg-discord-blurple/20 text-discord-blurple border-discord-blurple/50"
+                                              : "bg-white/5 text-discord-muted border-white/5 hover:bg-white/10"
+                                          )}
+                                        >
+                                          {subj.name}
+                                        </button>
+                                    ))}
+                                    {(!effectifs.classiques || effectifs.classiques.length === 0) && (
+                                      <span className="text-discord-muted text-xs">Aucune matière classique disponible</span>
+                                    )}
+                                  </div>
                                 </div>
+
+                                {rpOptions && rpOptions.length > 0 && (
+                                  <div>
+                                    <label className="block text-xs font-bold text-discord-muted uppercase mb-2">Ou Option(s) Souhaitée(s) *</label>
+                                    <div className="flex flex-wrap gap-2">
+                                      {rpOptions.filter((opt: any) => opt.capacity > 0).map((opt: any) => (
+                                          <button
+                                            key={opt.name || opt}
+                                            onClick={() => toggleMatiere(opt.name || opt)}
+                                            className={clsx(
+                                              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
+                                              selectedMatiere === (opt.name || opt)
+                                                ? "bg-discord-blurple/20 text-discord-blurple border-discord-blurple/50"
+                                                : "bg-white/5 text-discord-muted border-white/5 hover:bg-white/10"
+                                            )}
+                                          >
+                                            {opt.name || opt}
+                                          </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
 
