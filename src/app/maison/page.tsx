@@ -32,11 +32,19 @@ export default function MaisonPage() {
   const [buying, setBuying] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [inviteUserId, setInviteUserId] = useState('')
-
-  // Modals
   const [buyConfirm, setBuyConfirm] = useState<{type: string, price: number} | null>(null)
   const [sellConfirm, setSellConfirm] = useState(false)
+
+  const [inviteDiscordId, setInviteDiscordId] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+
+  // Room & Item Modals
+  const [roomModal, setRoomModal] = useState(false)
+  const [newRoomName, setNewRoomName] = useState('')
+  const [newRoomType, setNewRoomType] = useState<'text' | 'voice'>('text')
+  const [itemModal, setItemModal] = useState(false)
+  const [buyingAction, setBuyingAction] = useState(false)
 
   useEffect(() => {
     if (user) fetchHouseData()
@@ -99,9 +107,24 @@ export default function MaisonPage() {
     }
   }
 
+  const handleSearch = async (q: string) => {
+    setSearchQuery(q)
+    if (q.length < 3) {
+      setSearchResults([])
+      return
+    }
+    try {
+      const res = await fetch(`/api/discord/members?q=${encodeURIComponent(q)}`)
+      const result = await res.json()
+      setSearchResults(result.members || [])
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   const inviteMember = async () => {
-    if (!inviteUserId) {
-      setError('Veuillez entrer un ID utilisateur.')
+    if (!inviteDiscordId) {
+      setError('Veuillez sélectionner un membre Discord.')
       return
     }
     setError('')
@@ -110,14 +133,15 @@ export default function MaisonPage() {
       const res = await fetch('/api/maison/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetUserId: inviteUserId })
+        body: JSON.stringify({ targetDiscordId: inviteDiscordId })
       })
       const result = await res.json()
       if (!res.ok) {
         setError(result.error)
       } else {
         setSuccess('Invitation envoyée !')
-        setInviteUserId('')
+        setInviteDiscordId('')
+        setSearchQuery('')
         fetchHouseData()
       }
     } catch (e: any) {
@@ -139,6 +163,49 @@ export default function MaisonPage() {
       fetchHouseData()
     } catch (e: any) {
       setError(e.message)
+    }
+  }
+
+  const createRoom = async () => {
+    if (!newRoomName) return
+    setBuyingAction(true)
+    setError('')
+    try {
+      const res = await fetch('/api/maison/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newRoomName.trim().toLowerCase().replace(/\s+/g, '-'), type: newRoomType })
+      })
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error)
+      setSuccess('Pièce construite avec succès !')
+      setRoomModal(false)
+      fetchHouseData()
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setBuyingAction(false)
+    }
+  }
+
+  const buyItem = async (itemId: string) => {
+    setBuyingAction(true)
+    setError('')
+    try {
+      const res = await fetch('/api/maison/items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item_id: itemId })
+      })
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error)
+      setSuccess('Objet acheté avec succès !')
+      setItemModal(false)
+      fetchHouseData()
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setBuyingAction(false)
     }
   }
 
@@ -259,10 +326,10 @@ export default function MaisonPage() {
             </p>
           </div>
           <div className="hidden md:flex gap-4">
-            <button className="flex items-center px-4 py-2 rounded-xl font-bold transition-colors bg-discord-blurple/20 text-discord-blurple border border-discord-blurple/30 hover:bg-discord-blurple/30">
+            <button onClick={() => setRoomModal(true)} className="flex items-center px-4 py-2 rounded-xl font-bold transition-colors bg-discord-blurple/20 text-discord-blurple border border-discord-blurple/30 hover:bg-discord-blurple/30">
               <Plus className="w-4 h-4 mr-2" /> Nouvelle Pièce
             </button>
-            <button className="flex items-center px-4 py-2 rounded-xl font-bold transition-colors bg-white/10 text-white hover:bg-white/20 border border-white/5">
+            <button onClick={() => setItemModal(true)} className="flex items-center px-4 py-2 rounded-xl font-bold transition-colors bg-white/10 text-white hover:bg-white/20 border border-white/5">
               <ShoppingCart className="w-4 h-4 mr-2" /> Boutique Meubles
             </button>
           </div>
@@ -325,17 +392,39 @@ export default function MaisonPage() {
                   Membres
                 </h2>
                 {user.id === house.owner_id && (
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      placeholder="ID Utilisateur (UUID)" 
-                      value={inviteUserId}
-                      onChange={e => setInviteUserId(e.target.value)}
-                      className="glass-input text-xs flex-1"
-                    />
-                    <button onClick={inviteMember} className="bg-discord-blurple text-white px-3 py-1 rounded text-xs font-bold hover:bg-discord-blurple/80">
-                      Inviter
-                    </button>
+                  <div className="relative mb-2">
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-discord-muted" />
+                        <input 
+                          type="text" 
+                          placeholder="Rechercher un pseudo..." 
+                          value={searchQuery}
+                          onChange={e => handleSearch(e.target.value)}
+                          className="glass-input text-xs w-full pl-8"
+                        />
+                      </div>
+                      <button onClick={inviteMember} disabled={!inviteDiscordId} className="bg-discord-blurple text-white px-3 py-1 rounded text-xs font-bold hover:bg-discord-blurple/80 disabled:opacity-50">
+                        Inviter
+                      </button>
+                    </div>
+                    {searchResults.length > 0 && (
+                      <div className="absolute z-10 top-full left-0 right-0 mt-1 p-2 bg-[#1E1F22] rounded-xl border border-white/10 shadow-2xl max-h-40 overflow-y-auto">
+                        {searchResults.map((m: any) => (
+                          <button
+                            key={m.user.id}
+                            onClick={() => {
+                              setInviteDiscordId(m.user.id)
+                              setSearchQuery(m.user.global_name || m.user.username)
+                              setSearchResults([])
+                            }}
+                            className="w-full text-left p-2 rounded-lg hover:bg-white/5 flex items-center gap-3 transition-colors"
+                          >
+                            <span className="font-bold text-white text-xs truncate">{m.user.global_name || m.user.username}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -343,9 +432,13 @@ export default function MaisonPage() {
               <div className="space-y-4">
                 {/* Owner */}
                 <div className="flex items-center gap-3 p-3 bg-discord-blurple/10 rounded-xl border border-discord-blurple/20">
-                  <div className="w-10 h-10 rounded-full bg-discord-blurple flex items-center justify-center text-white font-bold">
-                    {(profile?.username || '?').charAt(0).toUpperCase()}
-                  </div>
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="" className="w-10 h-10 rounded-full" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-discord-blurple flex items-center justify-center text-white font-bold">
+                      {(profile?.username || '?').charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div>
                     <div className="font-bold text-white text-sm">Vous</div>
                     <div className="text-xs text-discord-blurple font-medium uppercase">Propriétaire</div>
@@ -375,12 +468,74 @@ export default function MaisonPage() {
             
             {/* Admin Settings Button */}
             {user.id === house.owner_id && (
-              <button onClick={executeSell} className="w-full py-3 rounded-xl font-bold transition-colors bg-discord-red/20 text-discord-red hover:bg-discord-red/30 border border-discord-red/30">
+              <button onClick={executeSell} className="w-full py-3 rounded-xl font-bold transition-colors bg-discord-error/20 text-discord-error hover:bg-discord-error/30 border border-discord-error/30">
                 Revendre la propriété
               </button>
             )}
           </div>
         </div>
+
+        {/* Modal Nouvelle Pièce */}
+        {roomModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+            <div className="bg-[#1e1f22] border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-scaleIn">
+              <h3 className="text-xl font-black text-white mb-2">Nouvelle Pièce (500 €)</h3>
+              <p className="text-discord-muted mb-6 text-sm">Crée un nouveau salon Discord dans votre maison.</p>
+              
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="text-xs font-bold text-discord-muted uppercase mb-1 block">Nom de la pièce</label>
+                  <input type="text" value={newRoomName} onChange={e => setNewRoomName(e.target.value)} className="glass-input" placeholder="Ex: salle-de-bain" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-discord-muted uppercase mb-1 block">Type de salon</label>
+                  <select value={newRoomType} onChange={e => setNewRoomType(e.target.value as 'text'|'voice')} className="glass-input">
+                    <option value="text">Texte (Salon écrit)</option>
+                    <option value="voice">Vocal (Salon vocal)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <button onClick={() => setRoomModal(false)} className="flex-1 py-2.5 rounded-xl font-bold text-white bg-white/5 hover:bg-white/10 transition-colors">
+                  Annuler
+                </button>
+                <button onClick={createRoom} disabled={buyingAction || !newRoomName} className="flex-1 py-2.5 rounded-xl font-bold text-white bg-discord-blurple hover:bg-discord-blurple/80 transition-colors disabled:opacity-50">
+                  {buyingAction ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Construire'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Boutique Meubles */}
+        {itemModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+            <div className="bg-[#1e1f22] border border-white/10 rounded-2xl p-6 max-w-lg w-full shadow-2xl animate-scaleIn">
+              <h3 className="text-xl font-black text-white mb-2">Boutique de Meubles</h3>
+              <p className="text-discord-muted mb-6 text-sm">Personnalisez votre intérieur. (100 € l'unité)</p>
+              
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {[
+                  { id: 'canape', label: 'Canapé', icon: '🛋️' },
+                  { id: 'lit', label: 'Lit Double', icon: '🛏️' },
+                  { id: 'tv', label: 'Télévision', icon: '📺' },
+                  { id: 'bureau', label: 'Bureau', icon: '🖥️' }
+                ].map(item => (
+                  <button key={item.id} onClick={() => buyItem(item.id)} disabled={buyingAction} className="p-4 bg-black/20 rounded-xl border border-white/5 hover:border-discord-blurple/50 hover:bg-white/5 transition-all flex flex-col items-center gap-2 group disabled:opacity-50">
+                    <div className="text-3xl group-hover:scale-110 transition-transform">{item.icon}</div>
+                    <div className="font-bold text-white">{item.label}</div>
+                    <div className="text-xs text-discord-success">100 €</div>
+                  </button>
+                ))}
+              </div>
+
+              <button onClick={() => setItemModal(false)} className="w-full py-2.5 rounded-xl font-bold text-white bg-white/5 hover:bg-white/10 transition-colors">
+                Fermer
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     )
   }

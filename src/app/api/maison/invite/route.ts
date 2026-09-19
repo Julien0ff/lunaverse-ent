@@ -7,13 +7,25 @@ export async function POST(req: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { targetUserId } = await req.json()
-    if (!targetUserId) return NextResponse.json({ error: 'Missing target user ID' }, { status: 400 })
+    const { targetDiscordId } = await req.json()
+    if (!targetDiscordId) return NextResponse.json({ error: 'Missing target Discord ID' }, { status: 400 })
+
+    // Look up user profile by discord_id
+    const { data: profile } = await supabase.from('profiles').select('id').eq('discord_id', targetDiscordId).maybeSingle()
+    if (!profile) return NextResponse.json({ error: 'Cet utilisateur n\'a pas de compte sur l\'ENT.' }, { status: 400 })
+
+    const targetUserId = profile.id
 
     // Check if user owns the house
     const { data: house } = await supabase.from('houses').select('id, type').eq('owner_id', user.id).single()
     if (!house) {
       return NextResponse.json({ error: 'Vous ne possédez aucune maison.' }, { status: 400 })
+    }
+
+    // Check if target user already belongs to a house
+    const { data: existingMember } = await supabase.from('house_members').select('id').eq('user_id', targetUserId).maybeSingle()
+    if (existingMember) {
+      return NextResponse.json({ error: 'Cet utilisateur est déjà dans une maison ou a une invitation.' }, { status: 400 })
     }
 
     // Insert pending invitation

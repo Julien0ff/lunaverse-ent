@@ -197,6 +197,32 @@ export async function createHouseDiscordChannels(ownerPseudo: string, ownerDisco
   }
 }
 
+export async function createHouseDiscordRoom(categoryId: string, name: string, type: 'text' | 'voice') {
+  try {
+    const token = process.env.DISCORD_BOT_TOKEN
+    if (!token) return null
+    const guildId = await getFirstGuildId(token)
+    if (!guildId) return null
+
+    const res = await fetch(`https://discord.com/api/v10/guilds/${guildId}/channels`, {
+      method: 'POST',
+      headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: type === 'voice' ? `🔊・${name}` : `🏠・${name}`,
+        type: type === 'voice' ? 2 : 0,
+        parent_id: categoryId
+      })
+    })
+    
+    if (!res.ok) throw new Error('Failed to create room channel')
+    const channel = await res.json()
+    return channel.id
+  } catch (e) {
+    console.error('Failed to create house discord room', e)
+    return null
+  }
+}
+
 export async function addMemberToDiscordChannel(channelId: string, memberDiscordId: string) {
   try {
     const token = process.env.DISCORD_BOT_TOKEN

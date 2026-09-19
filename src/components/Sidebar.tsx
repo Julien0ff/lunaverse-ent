@@ -60,6 +60,7 @@ const ADMIN_NAV = [
   { href: '/admin/finances', icon: Wallet, label: 'Finances' },
   { href: '/admin/primes', icon: Award, label: 'Primes & Aides' },
   { href: '/admin/shop', icon: ShoppingCart, label: 'Boutique' },
+  { href: '/admin/houses', icon: Home, label: 'Maisons' },
   { href: '/admin/roles', icon: Shield, label: 'Rôles & Salaires' },
   { href: '/admin/declarations', icon: Megaphone, label: 'Déclarations' },
   { href: '/admin/annonces', icon: Bell, label: 'Annonces' },
