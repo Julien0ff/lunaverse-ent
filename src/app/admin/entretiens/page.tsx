@@ -136,7 +136,14 @@ export default function EntretiensListPage() {
               >
                 <div className="flex flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-3">
-                    <span className="text-lg font-black text-white">{inv.rp_firstname} {inv.rp_lastname}</span>
+                    {inv.profile?.avatar_url ? (
+                      <img src={inv.profile.avatar_url} alt="" className="w-8 h-8 rounded-full" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-discord-blurple flex items-center justify-center text-xs font-bold text-white">
+                        {inv.profile?.username?.[0] || inv.rp_firstname?.[0] || '?'}
+                      </div>
+                    )}
+                    <span className="text-lg font-black text-white">{inv.profile?.nickname_rp || `${inv.rp_firstname} ${inv.rp_lastname}`.trim() || 'Inconnu'}</span>
                     <span className="text-xs px-2 py-0.5 rounded-md bg-white/10 font-bold uppercase tracking-wider text-discord-muted">
                       {inv.target_role}
                     </span>

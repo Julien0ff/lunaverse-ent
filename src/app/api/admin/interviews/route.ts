@@ -18,7 +18,19 @@ export async function GET(req: Request) {
 
         if (error) throw error
 
-        return NextResponse.json({ interviews })
+        const discordIds = interviews.map(i => i.candidate_discord_id).filter(Boolean)
+        let profiles: any[] = []
+        if (discordIds.length > 0) {
+            const { data } = await supabase.from('profiles').select('discord_id, username, avatar_url, nickname_rp').in('discord_id', discordIds)
+            if (data) profiles = data
+        }
+
+        const interviewsWithProfiles = interviews.map(i => ({
+            ...i,
+            profile: profiles.find(p => p.discord_id === i.candidate_discord_id) || null
+        }))
+
+        return NextResponse.json({ interviews: interviewsWithProfiles })
     } catch (err: any) {
         return NextResponse.json({ error: err.message }, { status: 500 })
     }

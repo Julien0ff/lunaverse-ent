@@ -176,14 +176,30 @@ export default function EntretienDetailPage() {
               <User className="w-4 h-4 text-discord-blurple" /> Informations
             </h3>
 
+            {interview.profile && (
+              <div className="flex items-center gap-4 mb-6 p-4 rounded-xl bg-white/5 border border-white/10">
+                {interview.profile.avatar_url ? (
+                  <img src={interview.profile.avatar_url} alt="" className="w-12 h-12 rounded-full shadow-lg" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-discord-blurple flex items-center justify-center text-xl font-bold shadow-lg">
+                    {interview.profile.username?.[0] || '?'}
+                  </div>
+                )}
+                <div>
+                  <div className="font-black text-white text-lg">{interview.profile.nickname_rp || interview.profile.username}</div>
+                  <div className="text-sm text-discord-muted">@{interview.profile.username}</div>
+                </div>
+              </div>
+            )}
+
             {/* Candidate Search */}
             <div className="mb-4 relative">
-              <label className="text-xs font-bold text-discord-muted uppercase mb-1 block">Discord ID du Candidat</label>
+              <label className="text-xs font-bold text-discord-muted uppercase mb-1 block">Modifier le membre Discord ciblé</label>
               <div className="relative">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-discord-muted" />
                 <input 
                   type="text" 
-                  value={searchQuery || (interview.rp_firstname ? `${interview.rp_firstname} ${interview.rp_lastname}`.trim() : interview.candidate_discord_id)}
+                  value={searchQuery}
                   onChange={e => handleSearch(e.target.value)}
                   className="glass-input pl-10"
                   placeholder="Rechercher par nom Discord..."

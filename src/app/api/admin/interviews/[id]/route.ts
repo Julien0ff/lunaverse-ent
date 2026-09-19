@@ -15,7 +15,14 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
             .single()
 
         if (error) throw error
-        return NextResponse.json({ interview: data })
+
+        let profile = null
+        if (data.candidate_discord_id) {
+            const { data: profileData } = await supabase.from('profiles').select('discord_id, username, avatar_url, nickname_rp').eq('discord_id', data.candidate_discord_id).maybeSingle()
+            profile = profileData
+        }
+
+        return NextResponse.json({ interview: { ...data, profile } })
     } catch (err: any) {
         return NextResponse.json({ error: err.message }, { status: 500 })
     }

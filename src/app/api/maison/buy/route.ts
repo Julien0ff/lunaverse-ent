@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     // 3. Create House
     const { data: house, error: houseError } = await supabase.from('houses').insert({
       owner_id: user.id,
-      type: type,
+      house_type: type,
       sq_meters: type === 'Villa' ? 250 : type === 'Maison' ? 120 : 60,
       discord_category_id: discordCatId
     }).select().single()

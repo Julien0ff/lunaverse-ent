@@ -167,6 +167,7 @@ export default function SatisfactionListPage() {
             {!stats ? (
               <div className="text-center text-discord-muted">Pas assez de données pour les statistiques.</div>
             ) : (
+              <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-6 rounded-xl bg-white/5 border border-white/10">
                   <h3 className="text-lg font-black text-white mb-4">L'Inscription</h3>
@@ -203,10 +204,56 @@ export default function SatisfactionListPage() {
                         <span>Taux de Réussite Pronote</span>
                         <span className="text-discord-success">{stats.pronoteWorkedPercent}%</span>
                       </div>
+                      <div className="h-2 rounded-full bg-black/40 overflow-hidden"><div className="h-full bg-discord-success" style={{ width: `${stats.pronoteWorkedPercent}%`}}></div></div>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Derniers Retours Écrits */}
+              <div className="mt-6 p-6 rounded-xl bg-white/5 border border-white/10">
+                <h3 className="text-lg font-black text-white mb-4">Derniers retours écrits</h3>
+                <div className="space-y-6">
+                  {completed.filter(f => f.q_ent_likes || f.q_ent_improvements || f.q_pronote_exp).slice(0, 5).map(f => (
+                    <div key={f.id} className="p-4 bg-black/20 rounded-lg border border-white/5 space-y-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        {f.profile?.avatar_url ? (
+                          <img src={f.profile.avatar_url} alt="" className="w-6 h-6 rounded-full" />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-discord-blurple flex items-center justify-center text-[10px] font-bold text-white">
+                            {f.profile?.username?.[0] || f.target_username?.[0] || '?'}
+                          </div>
+                        )}
+                        <span className="text-sm font-bold text-white">{f.profile?.nickname_rp || f.profile?.username || f.target_username || 'Anonyme'}</span>
+                        <span className="text-xs text-discord-muted ml-auto">{new Date(f.created_at).toLocaleDateString()}</span>
+                      </div>
+                      
+                      {f.q_ent_likes && (
+                        <div>
+                          <div className="text-[10px] font-bold text-discord-success uppercase tracking-widest mb-1">Ce qui plaît</div>
+                          <div className="text-sm text-gray-300 italic">"{f.q_ent_likes}"</div>
+                        </div>
+                      )}
+                      {f.q_ent_improvements && (
+                        <div>
+                          <div className="text-[10px] font-bold text-discord-warning uppercase tracking-widest mb-1">Améliorations</div>
+                          <div className="text-sm text-gray-300 italic">"{f.q_ent_improvements}"</div>
+                        </div>
+                      )}
+                      {f.q_pronote_exp && (
+                        <div>
+                          <div className="text-[10px] font-bold text-discord-blurple uppercase tracking-widest mb-1">Expérience Pronote</div>
+                          <div className="text-sm text-gray-300 italic">"{f.q_pronote_exp}"</div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {completed.filter(f => f.q_ent_likes || f.q_ent_improvements || f.q_pronote_exp).length === 0 && (
+                    <div className="text-center text-discord-muted text-sm">Aucun retour écrit pour le moment.</div>
+                  )}
+                </div>
+              </div>
+            </>
             )}
           </div>
         )}
