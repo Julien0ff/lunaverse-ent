@@ -520,7 +520,9 @@ export default function MaisonPage() {
                   { id: 'canape', label: 'Canapé', icon: '🛋️' },
                   { id: 'lit', label: 'Lit Double', icon: '🛏️' },
                   { id: 'tv', label: 'Télévision', icon: '📺' },
-                  { id: 'bureau', label: 'Bureau', icon: '🖥️' }
+                  { id: 'bureau', label: 'Bureau', icon: '🖥️' },
+                  { id: 'frigo', label: 'Frigo', icon: '❄️' },
+                  { id: 'four', label: 'Four', icon: '🍳' }
                 ].map(item => (
                   <button key={item.id} onClick={() => buyItem(item.id)} disabled={buyingAction} className="p-4 bg-black/20 rounded-xl border border-white/5 hover:border-discord-blurple/50 hover:bg-white/5 transition-all flex flex-col items-center gap-2 group disabled:opacity-50">
                     <div className="text-3xl group-hover:scale-110 transition-transform">{item.icon}</div>
