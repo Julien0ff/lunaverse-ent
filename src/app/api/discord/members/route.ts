@@ -17,7 +17,10 @@ export async function GET(req: Request) {
         const guildsRes = await fetch('https://discord.com/api/v10/users/@me/guilds', {
             headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}` }
         })
-        if (!guildsRes.ok) throw new Error('Failed to fetch guilds')
+        if (!guildsRes.ok) {
+            const errText = await guildsRes.text()
+            throw new Error(`Failed to fetch guilds: ${guildsRes.status} ${errText}`)
+        }
         const guilds = await guildsRes.json()
         if (!guilds || guilds.length === 0) throw new Error('Bot is not in any guild')
         
@@ -27,7 +30,10 @@ export async function GET(req: Request) {
         const searchRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/search?query=${encodeURIComponent(query)}&limit=10`, {
             headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}` }
         })
-        if (!searchRes.ok) throw new Error('Failed to search members')
+        if (!searchRes.ok) {
+            const errText = await searchRes.text()
+            throw new Error(`Failed to search members: ${searchRes.status} ${errText}`)
+        }
         
         const members = await searchRes.json()
 
