@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ChevronLeft, Save, Search, User, Check, Smartphone, Monitor, Trash2 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -13,6 +13,7 @@ export default function SatisfactionDetailPage() {
   const [form, setForm] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Search states
   const [searchQuery, setSearchQuery] = useState('')
@@ -30,25 +31,29 @@ export default function SatisfactionDetailPage() {
       .finally(() => setLoading(false))
   }, [id])
 
-  const handleSearch = async (q: string) => {
+  const handleSearch = (q: string) => {
     setSearchQuery(q)
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+    
     if (q.length < 3) {
       setSearchResults([])
       return
     }
     setSearching(true)
-    try {
-      const res = await fetch(`/api/discord/members?q=${encodeURIComponent(q)}`)
-      const data = await res.json()
-      if (!res.ok) {
-        console.error("Discord search failed:", data)
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/discord/members?q=${encodeURIComponent(q)}`)
+        const data = await res.json()
+        if (!res.ok) {
+          console.error("Discord search failed:", data)
+        }
+        setSearchResults(data.members || [])
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setSearching(false)
       }
-      setSearchResults(data.members || [])
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setSearching(false)
-    }
+    }, 1200)
   }
 
   const selectCandidate = (member: any) => {
@@ -69,6 +74,7 @@ export default function SatisfactionDetailPage() {
     delete payload.id
     delete payload.created_at
     delete payload.updated_at
+    delete payload.target_username
     try {
       const res = await fetch(`/api/admin/satisfaction/${id}`, {
         method: 'PATCH',

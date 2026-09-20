@@ -129,7 +129,7 @@ export default function MaisonPage() {
       } catch (e) {
         console.error(e)
       }
-    }, 500)
+    }, 1200)
   }
 
   const inviteMember = async () => {

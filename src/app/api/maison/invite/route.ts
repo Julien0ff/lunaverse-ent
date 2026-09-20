@@ -13,7 +13,6 @@ export async function POST(req: Request) {
     // Look up user profile by discord_id
     const { data: profile } = await supabase.from('profiles').select('id').eq('discord_id', targetDiscordId).maybeSingle()
     if (!profile) {
-      require('fs').appendFileSync('error.log', `MAISON INVITE ERROR: missing profile for discord_id ${targetDiscordId}\n`)
       return NextResponse.json({ error: 'Cet utilisateur n\'a pas de compte sur l\'ENT.' }, { status: 400 })
     }
 
@@ -25,14 +24,12 @@ export async function POST(req: Request) {
       console.error('House query error:', houseErr)
     }
     if (!house) {
-      require('fs').appendFileSync('error.log', `MAISON INVITE ERROR: house null or houseErr. houseErr=${JSON.stringify(houseErr)}\n`)
       return NextResponse.json({ error: 'Vous ne possédez aucune maison. (Ou erreur technique)' }, { status: 400 })
     }
 
     // Check if target user already belongs to a house
     const { data: existingMember } = await supabase.from('house_members').select('id').eq('user_id', targetUserId).maybeSingle()
     if (existingMember) {
-      require('fs').appendFileSync('error.log', `MAISON INVITE ERROR: user already in house\n`)
       return NextResponse.json({ error: 'Cet utilisateur est déjà dans une maison ou a une invitation.' }, { status: 400 })
     }
 
@@ -46,7 +43,6 @@ export async function POST(req: Request) {
 
     if (inviteError) {
       if (inviteError.code === '23505') {
-        require('fs').appendFileSync('error.log', `MAISON INVITE ERROR: 23505 Cet utilisateur a déjà été invité.\n`)
         return NextResponse.json({ error: 'Cet utilisateur a déjà été invité.' }, { status: 400 })
       }
       throw inviteError
