@@ -39,6 +39,7 @@ export async function GET(req: Request) {
 
         return NextResponse.json({ members })
     } catch (err: any) {
+        require('fs').appendFileSync('error.log', `DISCORD SEARCH ERROR: ${err.message}\n`)
         console.error('[DISCORD MEMBERS SEARCH ERROR]', err)
         return NextResponse.json({ error: err.message }, { status: 500 })
     }
