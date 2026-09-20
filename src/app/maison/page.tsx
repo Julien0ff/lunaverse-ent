@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Home, Key, Map, Layers, Plus, Users, Search, ShoppingCart, Loader2, CheckCircle2, XCircle } from 'lucide-react'
+import { Home, Key, Map, Layers, Plus, Users, Search, ShoppingCart, Loader2, CheckCircle2, XCircle, ChevronDown } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import clsx from 'clsx'
 import { supabase } from '@/lib/supabase'
@@ -357,8 +357,8 @@ export default function MaisonPage() {
   if (data?.status === 'has_house') {
     const { house, rooms, members, items } = data
     return (
-      <div className="page-container max-w-6xl mx-auto space-y-6 animate-fadeIn">
-        {/* Header */}
+      <div className="flex-1 max-w-[1600px] mx-auto p-4 sm:p-6 lg:p-8 w-full overflow-y-auto">
+        {/* En-tête */}
         <div className="glass-card p-8 flex items-center justify-between relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-discord-blurple/10 rounded-full blur-3xl pointer-events-none" />
           <div className="relative z-10">
@@ -484,9 +484,22 @@ export default function MaisonPage() {
                 {/* Owner */}
                 <div className="flex items-center gap-3 p-3 bg-discord-blurple/10 rounded-xl border border-discord-blurple/20">
                   {data.owner?.avatar_url ? (
-                    <img src={data.owner.avatar_url} alt="" className="w-10 h-10 rounded-full" />
+                    <>
+                      <img 
+                        src={data.owner.avatar_url} 
+                        alt="" 
+                        className="w-10 h-10 rounded-full object-cover shrink-0" 
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                        }}
+                      />
+                      <div className="hidden w-10 h-10 rounded-full bg-discord-blurple flex items-center justify-center text-white font-bold shrink-0">
+                        {(data.owner?.username || '?').charAt(0).toUpperCase()}
+                      </div>
+                    </>
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-discord-blurple flex items-center justify-center text-white font-bold">
+                    <div className="w-10 h-10 rounded-full bg-discord-blurple flex items-center justify-center text-white font-bold shrink-0">
                       {(data.owner?.username || '?').charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -503,7 +516,20 @@ export default function MaisonPage() {
                   <div key={m.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5 gap-3">
                     <div className="flex items-center gap-3">
                       {m.user?.avatar_url ? (
-                        <img src={m.user.avatar_url} alt="" className="w-10 h-10 rounded-full shrink-0" />
+                        <>
+                          <img 
+                            src={m.user.avatar_url} 
+                            alt="" 
+                            className="w-10 h-10 rounded-full object-cover shrink-0" 
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none'
+                              e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                            }}
+                          />
+                          <div className="hidden w-10 h-10 rounded-full bg-discord-dark flex items-center justify-center text-discord-muted font-bold shrink-0">
+                            {m.user?.username?.charAt(0)?.toUpperCase()}
+                          </div>
+                        </>
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-discord-dark flex items-center justify-center text-discord-muted font-bold shrink-0">
                           {m.user?.username?.charAt(0)?.toUpperCase()}
@@ -518,14 +544,17 @@ export default function MaisonPage() {
                     </div>
                     {user.id === house.owner_id && (
                       <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                        <select 
-                          value={m.role} 
-                          onChange={(e) => updateMemberRole(m.id, e.target.value)}
-                          className="bg-black/40 text-xs text-white px-2 py-1.5 rounded border border-white/10 outline-none cursor-pointer hover:bg-black/60 transition-colors"
-                        >
-                          <option value="enfant">Enfant</option>
-                          <option value="parent">Parent</option>
-                        </select>
+                        <div className="relative">
+                          <select 
+                            value={m.role} 
+                            onChange={(e) => updateMemberRole(m.id, e.target.value)}
+                            className="appearance-none bg-black/40 text-xs text-white pl-3 pr-8 py-1.5 rounded-lg border border-white/10 outline-none cursor-pointer hover:bg-white/5 transition-colors focus:border-discord-blurple focus:ring-1 focus:ring-discord-blurple"
+                          >
+                            <option value="enfant" className="bg-[#2B2D31]">Enfant</option>
+                            <option value="parent" className="bg-[#2B2D31]">Parent</option>
+                          </select>
+                          <ChevronDown className="w-3 h-3 text-discord-muted absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
                         <button 
                           onClick={() => kickMember(m.id)}
                           className="p-1.5 rounded bg-discord-error/20 text-discord-error hover:bg-discord-error/40 transition-colors"
