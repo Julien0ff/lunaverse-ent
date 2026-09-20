@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Home, Key, Map, Layers, Plus, Users, Search, ShoppingCart, Loader2, CheckCircle2, XCircle } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import clsx from 'clsx'
@@ -107,19 +107,26 @@ export default function MaisonPage() {
     }
   }
 
-  const handleSearch = async (q: string) => {
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const handleSearch = (q: string) => {
     setSearchQuery(q)
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+    
     if (q.length < 3) {
       setSearchResults([])
       return
     }
-    try {
-      const res = await fetch(`/api/discord/members?q=${encodeURIComponent(q)}`)
-      const result = await res.json()
-      setSearchResults(result.members || [])
-    } catch (e) {
-      console.error(e)
-    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/discord/members?q=${encodeURIComponent(q)}`)
+        const result = await res.json()
+        setSearchResults(result.members || [])
+      } catch (e) {
+        console.error(e)
+      }
+    }, 500)
   }
 
   const inviteMember = async () => {
@@ -160,6 +167,41 @@ export default function MaisonPage() {
       })
       if (!res.ok) throw new Error('Erreur lors de la réponse à l\'invitation')
       setSuccess(accept ? 'Invitation acceptée !' : 'Invitation refusée.')
+      fetchHouseData()
+    } catch (e: any) {
+      setError(e.message)
+    }
+  }
+
+  const updateMemberRole = async (memberId: string, role: string) => {
+    setError('')
+    setSuccess('')
+    try {
+      const res = await fetch(`/api/maison/members/${memberId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role })
+      })
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || 'Erreur lors de la mise à jour.')
+      setSuccess('Rôle mis à jour avec succès.')
+      fetchHouseData()
+    } catch (e: any) {
+      setError(e.message)
+    }
+  }
+
+  const kickMember = async (memberId: string) => {
+    if (!confirm('Voulez-vous vraiment expulser ce membre ?')) return
+    setError('')
+    setSuccess('')
+    try {
+      const res = await fetch(`/api/maison/members/${memberId}`, {
+        method: 'DELETE'
+      })
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || 'Erreur lors de l\'expulsion.')
+      setSuccess('Membre expulsé de la maison.')
       fetchHouseData()
     } catch (e: any) {
       setError(e.message)
@@ -334,6 +376,10 @@ export default function MaisonPage() {
             </button>
           </div>
         </div>
+        
+        {/* Messages d'erreur et de succès */}
+        {error && <div className="text-discord-red font-bold p-4 bg-discord-red/10 rounded-xl w-full border border-discord-red/20">{error}</div>}
+        {success && <div className="text-discord-success font-bold p-4 bg-discord-success/10 rounded-xl w-full border border-discord-success/20">{success}</div>}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Area: Rooms & Items */}
@@ -447,20 +493,41 @@ export default function MaisonPage() {
 
                 {/* Other Members */}
                 {members.map((m: any) => (
-                  <div key={m.id} className="flex items-center gap-3 p-3 bg-black/20 rounded-xl border border-white/5">
-                    {m.user?.avatar_url ? (
-                      <img src={m.user.avatar_url} alt="" className="w-10 h-10 rounded-full" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-discord-dark flex items-center justify-center text-discord-muted font-bold">
-                        {m.user?.username?.charAt(0)?.toUpperCase()}
-                      </div>
-                    )}
-                    <div>
-                      <div className="font-bold text-white text-sm">{m.user?.nickname_rp || m.user?.username}</div>
-                      <div className="text-xs text-discord-muted font-medium uppercase flex items-center gap-2">
-                        {m.role} {m.status === 'pending' && <span className="text-discord-yellow text-[10px]">(En attente)</span>}
+                  <div key={m.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5 gap-3">
+                    <div className="flex items-center gap-3">
+                      {m.user?.avatar_url ? (
+                        <img src={m.user.avatar_url} alt="" className="w-10 h-10 rounded-full shrink-0" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-discord-dark flex items-center justify-center text-discord-muted font-bold shrink-0">
+                          {m.user?.username?.charAt(0)?.toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-bold text-white text-sm break-all">{m.user?.nickname_rp || m.user?.username}</div>
+                        <div className="text-xs text-discord-muted font-medium uppercase flex items-center gap-2">
+                          {m.role} {m.status === 'pending' && <span className="text-discord-yellow text-[10px]">(En attente)</span>}
+                        </div>
                       </div>
                     </div>
+                    {user.id === house.owner_id && (
+                      <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                        <select 
+                          value={m.role} 
+                          onChange={(e) => updateMemberRole(m.id, e.target.value)}
+                          className="bg-black/40 text-xs text-white px-2 py-1.5 rounded border border-white/10 outline-none cursor-pointer hover:bg-black/60 transition-colors"
+                        >
+                          <option value="enfant">Enfant</option>
+                          <option value="parent">Parent</option>
+                        </select>
+                        <button 
+                          onClick={() => kickMember(m.id)}
+                          className="p-1.5 rounded bg-discord-error/20 text-discord-error hover:bg-discord-error/40 transition-colors"
+                          title="Virer ce membre"
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

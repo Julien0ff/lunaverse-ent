@@ -36,7 +36,7 @@ export default function SatisfactionListPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          target_discord_id: ''
+          target_discord_id: 'pending_selection'
         })
       })
       if (res.ok) {
@@ -102,7 +102,7 @@ export default function SatisfactionListPage() {
                     {f.target_username?.[0] || f.profile?.username?.[0] || '?'}
                   </div>
                 )}
-                <span className="text-lg font-black text-white">{f.profile?.nickname_rp || f.profile?.username || f.target_username || f.target_discord_id || 'Nouveau Questionnaire'}</span>
+                <span className="text-lg font-black text-white">{f.profile?.nickname_rp || f.profile?.username || f.target_username || (f.target_discord_id === 'pending_selection' ? 'Cible à définir' : f.target_discord_id) || 'Nouveau Questionnaire'}</span>
               </div>
               <div className="text-xs text-discord-muted flex items-center gap-2">
                 <span>Créé le {new Date(f.created_at).toLocaleDateString()}</span>

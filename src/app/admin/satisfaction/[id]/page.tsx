@@ -156,7 +156,7 @@ export default function SatisfactionDetailPage() {
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-discord-muted" />
                 <input 
                   type="text" 
-                  value={searchQuery || form.target_discord_id}
+                  value={searchQuery || (form.target_discord_id === 'pending_selection' ? '' : form.target_discord_id) || ''}
                   onChange={e => handleSearch(e.target.value)}
                   className="glass-input pl-10"
                   placeholder="Rechercher sur le Discord..."
