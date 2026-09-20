@@ -73,6 +73,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         
         // Remove joined fields before updating
         delete updates.inspector
+        delete updates.profile
         
         const { data, error } = await supabase
             .from('interviews')
