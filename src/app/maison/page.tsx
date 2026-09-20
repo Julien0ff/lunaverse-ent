@@ -357,7 +357,7 @@ export default function MaisonPage() {
   if (data?.status === 'has_house') {
     const { house, rooms, members, items } = data
     return (
-      <div className="flex-1 max-w-[1600px] mx-auto p-4 sm:p-6 lg:p-8 w-full overflow-y-auto">
+      <div className="page-container max-w-[1600px] mx-auto space-y-6 animate-fadeIn w-full">
         {/* En-tête */}
         <div className="glass-card p-8 flex items-center justify-between relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-discord-blurple/10 rounded-full blur-3xl pointer-events-none" />
