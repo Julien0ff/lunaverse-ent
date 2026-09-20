@@ -364,20 +364,22 @@ export default function MaisonPage() {
           <div className="relative z-10">
             <h1 className="text-4xl font-black text-white mb-2 flex items-center gap-3">
               <Home className="w-10 h-10 text-discord-blurple" />
-              {house.type} de {profile?.username || 'Moi'}
+              {house.type} de {data.owner?.nickname_rp || data.owner?.username || 'Propriétaire'}
             </h1>
             <p className="text-discord-muted text-lg font-medium">
               Surface : {house.sq_meters} m² • Salons Discord générés
             </p>
           </div>
-          <div className="hidden md:flex gap-4">
-            <button onClick={() => setRoomModal(true)} className="flex items-center px-4 py-2 rounded-xl font-bold transition-colors bg-discord-blurple/20 text-discord-blurple border border-discord-blurple/30 hover:bg-discord-blurple/30">
-              <Plus className="w-4 h-4 mr-2" /> Nouvelle Pièce
-            </button>
-            <button onClick={() => setItemModal(true)} className="flex items-center px-4 py-2 rounded-xl font-bold transition-colors bg-white/10 text-white hover:bg-white/20 border border-white/5">
-              <ShoppingCart className="w-4 h-4 mr-2" /> Boutique Meubles
-            </button>
-          </div>
+          {user.id === house.owner_id && (
+            <div className="hidden md:flex gap-4">
+              <button onClick={() => setRoomModal(true)} className="flex items-center px-4 py-2 rounded-xl font-bold transition-colors bg-discord-blurple/20 text-discord-blurple border border-discord-blurple/30 hover:bg-discord-blurple/30">
+                <Plus className="w-4 h-4 mr-2" /> Nouvelle Pièce
+              </button>
+              <button onClick={() => setItemModal(true)} className="flex items-center px-4 py-2 rounded-xl font-bold transition-colors bg-white/10 text-white hover:bg-white/20 border border-white/5">
+                <ShoppingCart className="w-4 h-4 mr-2" /> Boutique Meubles
+              </button>
+            </div>
+          )}
         </div>
         
         {/* Messages d'erreur et de succès */}
@@ -481,15 +483,17 @@ export default function MaisonPage() {
               <div className="space-y-4">
                 {/* Owner */}
                 <div className="flex items-center gap-3 p-3 bg-discord-blurple/10 rounded-xl border border-discord-blurple/20">
-                  {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="" className="w-10 h-10 rounded-full" />
+                  {data.owner?.avatar_url ? (
+                    <img src={data.owner.avatar_url} alt="" className="w-10 h-10 rounded-full" />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-discord-blurple flex items-center justify-center text-white font-bold">
-                      {(profile?.username || '?').charAt(0).toUpperCase()}
+                      {(data.owner?.username || '?').charAt(0).toUpperCase()}
                     </div>
                   )}
                   <div>
-                    <div className="font-bold text-white text-sm">Vous</div>
+                    <div className="font-bold text-white text-sm">
+                      {data.owner?.nickname_rp || data.owner?.username} {user.id === house.owner_id && <span className="text-discord-muted text-xs ml-1">(Vous)</span>}
+                    </div>
                     <div className="text-xs text-discord-blurple font-medium uppercase">Propriétaire</div>
                   </div>
                 </div>

@@ -26,10 +26,11 @@ export async function GET() {
     }
 
     // Fetch related data
-    const [rooms, members, items] = await Promise.all([
+    const [rooms, members, items, ownerData] = await Promise.all([
       supabase.from('house_rooms').select('*').eq('house_id', house.id),
-      supabase.from('house_members').select('*, user:user_id(username, global_name, avatar_url, nickname_rp)').eq('house_id', house.id),
-      supabase.from('house_items').select('*').eq('house_id', house.id)
+      supabase.from('house_members').select('*, user:user_id(username, avatar_url, nickname_rp)').eq('house_id', house.id),
+      supabase.from('house_items').select('*').eq('house_id', house.id),
+      supabase.from('profiles').select('id, username, avatar_url, nickname_rp').eq('id', house.owner_id).maybeSingle()
     ])
 
     return NextResponse.json({
@@ -37,7 +38,8 @@ export async function GET() {
       house,
       rooms: rooms.data || [],
       members: members.data || [],
-      items: items.data || []
+      items: items.data || [],
+      owner: ownerData.data
     })
 
   } catch (err: any) {
