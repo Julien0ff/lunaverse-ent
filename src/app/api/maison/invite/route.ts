@@ -17,9 +17,12 @@ export async function POST(req: Request) {
     const targetUserId = profile.id
 
     // Check if user owns the house
-    const { data: house } = await supabase.from('houses').select('id, type').eq('owner_id', user.id).single()
+    const { data: house, error: houseErr } = await supabase.from('houses').select('id, type').eq('owner_id', user.id).limit(1).maybeSingle()
+    if (houseErr) {
+      console.error('House query error:', houseErr)
+    }
     if (!house) {
-      return NextResponse.json({ error: 'Vous ne possédez aucune maison.' }, { status: 400 })
+      return NextResponse.json({ error: 'Vous ne possédez aucune maison. (Ou erreur technique)' }, { status: 400 })
     }
 
     // Check if target user already belongs to a house

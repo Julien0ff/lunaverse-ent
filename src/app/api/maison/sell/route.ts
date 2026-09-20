@@ -16,7 +16,8 @@ export async function DELETE(req: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     // Check if user owns the house
-    const { data: house } = await supabase.from('houses').select('*').eq('owner_id', user.id).single()
+    const { data: house, error: houseErr } = await supabase.from('houses').select('*').eq('owner_id', user.id).limit(1).maybeSingle()
+    if (houseErr) console.error('House query error:', houseErr)
     if (!house) {
       return NextResponse.json({ error: 'Vous ne possédez aucune maison.' }, { status: 400 })
     }

@@ -61,7 +61,8 @@ export default function SatisfactionDetailPage() {
 
   const handleSave = async (customUpdates?: any) => {
     setSaving(true)
-    const payload = customUpdates ? { ...form, ...customUpdates } : form
+    const payload = customUpdates ? { ...form, ...customUpdates } : { ...form }
+    delete payload.profile // Remove relation field before saving to DB
     try {
       const res = await fetch(`/api/admin/satisfaction/${id}`, {
         method: 'PATCH',
