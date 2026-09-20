@@ -40,6 +40,9 @@ export default function SatisfactionDetailPage() {
     try {
       const res = await fetch(`/api/discord/members?q=${encodeURIComponent(q)}`)
       const data = await res.json()
+      if (!res.ok) {
+        console.error("Discord search failed:", data)
+      }
       setSearchResults(data.members || [])
     } catch (e) {
       console.error(e)
@@ -62,7 +65,10 @@ export default function SatisfactionDetailPage() {
   const handleSave = async (customUpdates?: any) => {
     setSaving(true)
     const payload = customUpdates ? { ...form, ...customUpdates } : { ...form }
-    delete payload.profile // Remove relation field before saving to DB
+    delete payload.profile
+    delete payload.id
+    delete payload.created_at
+    delete payload.updated_at
     try {
       const res = await fetch(`/api/admin/satisfaction/${id}`, {
         method: 'PATCH',
@@ -75,6 +81,9 @@ export default function SatisfactionDetailPage() {
         if (customUpdates?.status === 'completed') {
            router.push('/admin/satisfaction')
         }
+      } else {
+        const err = await res.json()
+        alert(`Erreur de sauvegarde: ${err.error || 'Erreur inconnue'}`)
       }
     } catch (e) {
       console.error(e)

@@ -121,8 +121,11 @@ export default function MaisonPage() {
     searchTimeoutRef.current = setTimeout(async () => {
       try {
         const res = await fetch(`/api/discord/members?q=${encodeURIComponent(q)}`)
-        const result = await res.json()
-        setSearchResults(result.members || [])
+        const data = await res.json()
+        if (!res.ok) {
+          console.error("Discord search failed:", data)
+        }
+        setSearchResults(data.members || [])
       } catch (e) {
         console.error(e)
       }
