@@ -61,7 +61,7 @@ export default function SatisfactionDetailPage() {
 
   const handleSave = async (customUpdates?: any) => {
     setSaving(true)
-    const payload = customUpdates || form
+    const payload = customUpdates ? { ...form, ...customUpdates } : form
     try {
       const res = await fetch(`/api/admin/satisfaction/${id}`, {
         method: 'PATCH',
