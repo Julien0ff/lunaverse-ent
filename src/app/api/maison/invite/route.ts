@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     const targetUserId = profile.id
 
     // Check if user owns the house
-    const { data: house, error: houseErr } = await supabase.from('houses').select('id, type').eq('owner_id', user.id).limit(1).maybeSingle()
+    const { data: house, error: houseErr } = await supabase.from('houses').select('id').eq('owner_id', user.id).limit(1).maybeSingle()
     if (houseErr) {
       console.error('House query error:', houseErr)
     }
