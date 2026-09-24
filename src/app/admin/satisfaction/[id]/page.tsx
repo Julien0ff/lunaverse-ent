@@ -241,7 +241,7 @@ export default function SatisfactionDetailPage() {
           <div className="glass-card mb-6">
             <h3 className="text-sm font-black text-discord-muted uppercase tracking-widest mb-6 border-b border-white/10 pb-4">2. Expérience Pronote</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+            <div className="flex flex-col gap-8 mb-6">
               <div>
                 <label className="text-xs font-bold text-discord-muted uppercase mb-3 block">Appareil Principal</label>
                 <div className="flex flex-col sm:flex-row gap-4">

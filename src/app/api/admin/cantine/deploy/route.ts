@@ -49,13 +49,13 @@ export async function POST() {
       const date = new Date(m.menu_date)
       const dayName = new Intl.DateTimeFormat('fr-FR', { weekday: 'long' }).format(date)
       
-      let val = ''
-      if (m.starter) val += `**Entrée:** ${m.starter}\n`
-      if (m.main) val += `**Plat:** ${m.main}\n`
-      if (m.side) val += `**Accompagnement:** ${m.side}\n`
-      if (m.drink) val += `**Boisson:** ${m.drink}\n`
-      if (m.dessert) val += `**Dessert:** ${m.dessert}\n`
-      if (m.note) val += `*${m.note}*\n`
+      let val = `**Horaire :** ${menus[0].time_start.slice(0, 5)} - ${menus[0].time_end.slice(0, 5)}\n\n`
+      if (m.starter) val += `🥗 **Entrée:** ${m.starter}\n`
+      if (m.main) val += `🍗 **Plat:** ${m.main}\n`
+      if (m.side) val += `🍟 **Accompagnement:** ${m.side}\n`
+      if (m.dessert) val += `🍰 **Dessert:** ${m.dessert}\n`
+      if (m.drink) val += `🥤 **Boisson:** ${m.drink}\n`
+      if (m.note) val += `\n*💡 ${m.note}*\n`
 
       return {
         name: `📅 ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${date.toLocaleDateString('fr-FR')}`,
@@ -64,7 +64,23 @@ export async function POST() {
       }
     })
 
-    // 4. Send embed to Discord
+    // 4. Delete previous menu messages
+    const getMsgsRes = await fetch(`https://discord.com/api/v10/channels/${menuChannelId}/messages?limit=20`, {
+      headers: { 'Authorization': `Bot ${token}` }
+    })
+    if (getMsgsRes.ok) {
+      const messages = await getMsgsRes.json()
+      for (const msg of messages) {
+        if (msg.embeds && msg.embeds.length > 0 && msg.embeds[0].title === '🍲 Menu de la Cantine') {
+          await fetch(`https://discord.com/api/v10/channels/${menuChannelId}/messages/${msg.id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bot ${token}` }
+          }).catch(() => {})
+        }
+      }
+    }
+
+    // 5. Send embed to Discord
     const res = await fetch(`https://discord.com/api/v10/channels/${menuChannelId}/messages`, {
       method: 'POST',
       headers: {
@@ -100,40 +116,7 @@ export async function POST() {
       return NextResponse.json({ error: 'Erreur Discord pour le menu' }, { status: 500 })
     }
 
-    // 5. Send Scanner embed to RP Cantine Channel if configured
-    if (rpChannelId) {
-      const rpRes = await fetch(`https://discord.com/api/v10/channels/${rpChannelId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bot ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          embeds: [{
-            title: '💳 Scanner son Abonnement',
-            description: "Cliquez ci-dessous pour badger à la cantine. L'accès sera déverrouillé automatiquement si vous êtes abonné et que c'est l'heure du repas.",
-            color: 0x5865F2,
-          }],
-          components: [
-            {
-              type: 1,
-              components: [
-                {
-                  type: 2,
-                  style: 3, // Success
-                  label: "Badger à la cantine",
-                  custom_id: "cantine_scan",
-                  emoji: { name: "🎫" }
-                }
-              ]
-            }
-          ]
-        })
-      })
-      if (!rpRes.ok) {
-        console.error('Discord scanner deploy error:', await rpRes.text())
-      }
-    }
+    return NextResponse.json({ success: true })
 
     return NextResponse.json({ success: true })
   } catch (err: any) {

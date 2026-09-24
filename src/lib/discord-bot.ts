@@ -1864,8 +1864,8 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
           .setColor(0xF97316)
           .setDescription(`**Horaire :** ${m.time_start.slice(0, 5)} - ${m.time_end.slice(0, 5)}\n\n` + 
             (m.starter ? `🥗 **Entrée :** ${m.starter}\n` : '') +
-            `🍖 **Plat :** ${m.main}\n` +
-            (m.side ? `🍚 **Accompagnement :** ${m.side}\n` : '') +
+            `🍗 **Plat :** ${m.main}\n` +
+            (m.side ? `🍟 **Accompagnement :** ${m.side}\n` : '') +
             (m.dessert ? `🍰 **Dessert :** ${m.dessert}\n` : '') +
             (m.drink ? `🥤 **Boisson :** ${m.drink}\n` : '') +
             (m.note ? `\n*💡 ${m.note}*` : ''))

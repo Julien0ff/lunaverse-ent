@@ -96,7 +96,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             if (data.candidate_discord_id) {
                 await sendDiscordDMByDiscordId(data.candidate_discord_id, {
                     title: `📅 Convocation à un Entretien : ${data.target_role}`,
-                    description: `Votre candidature a été mise à jour.\n\n**Date :** ${dateStr}\n**Lieu :** Salon Vocal \`${chanStr}\``,
+                    description: `Félicitations, votre dossier a été retenu ! Vous êtes convoqué à un entretien pour le poste de **${data.target_role}**.\n\n**Date :** ${dateStr}\n**Lieu :** Salon Vocal \`${chanStr}\``,
                     color: 0x5865F2
                 })
             }
@@ -121,16 +121,16 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             
             if (data.candidate_discord_id) {
                 await sendDiscordDMByDiscordId(data.candidate_discord_id, {
-                    title: `🎉 Félicitations !`,
-                    description: `Vous avez été **accepté** au poste de **${data.target_role}**.\nVos rôles vous ont été attribués. Bienvenue dans l'équipe !`,
+                    title: `🎉 Résultats de recrutement`,
+                    description: `Tu as reçu tes résultats pour le poste de **${data.target_role}**.\n\nJe te laisse les consulter sur [l'ENT (ent.lunaverse.fr)](https://ent.lunaverse.fr/recrutement).`,
                     color: 0x57F287
                 })
             }
         } else if (updates.status === 'refused' && oldData.status !== 'refused') {
             if (data.candidate_discord_id) {
                 await sendDiscordDMByDiscordId(data.candidate_discord_id, {
-                    title: `❌ Candidature Refusée`,
-                    description: `Malheureusement, votre candidature pour le poste de **${data.target_role}** n'a pas été retenue pour cette session.`,
+                    title: `❌ Résultats de recrutement`,
+                    description: `Tu as reçu tes résultats pour le poste de **${data.target_role}**.\n\nJe te laisse les consulter sur [l'ENT (ent.lunaverse.fr)](https://ent.lunaverse.fr/recrutement).`,
                     color: 0xED4245
                 })
             }

@@ -194,9 +194,9 @@ export default function SatisfactionListPage() {
                   <div className="space-y-4">
                     <div>
                       <div className="text-xs font-bold text-discord-muted mb-2 uppercase tracking-widest">Appareil utilisé</div>
-                      <div className="flex gap-2 h-6 rounded-md overflow-hidden">
-                        <div className="bg-discord-blurple flex items-center justify-center text-[10px] font-bold text-white" style={{ width: `${stats.pcPercent}%`}}>PC {stats.pcPercent}%</div>
-                        <div className="bg-discord-warning flex items-center justify-center text-[10px] font-bold text-black" style={{ width: `${stats.mobilePercent}%`}}>Mobile {stats.mobilePercent}%</div>
+                      <div className="flex h-6 rounded-md overflow-hidden bg-black/40">
+                        {stats.pcPercent > 0 && <div className="bg-discord-blurple flex items-center justify-center text-[10px] font-bold text-white" style={{ width: `${stats.pcPercent}%`}}>PC {stats.pcPercent}%</div>}
+                        {stats.mobilePercent > 0 && <div className="bg-discord-warning flex items-center justify-center text-[10px] font-bold text-black" style={{ width: `${stats.mobilePercent}%`}}>Mobile {stats.mobilePercent}%</div>}
                       </div>
                     </div>
                     <div>

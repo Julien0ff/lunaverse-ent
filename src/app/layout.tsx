@@ -12,7 +12,23 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'ENT LunaVerse',
-  description: 'ENT pour le serveur RP LunaVerse',
+  description: 'ENT pour le serveur RP LunaVerse. Retrouvez vos informations, cours, absences, cantine et plus.',
+  keywords: ['LunaVerse', 'ENT', 'RP', 'Serveur', 'Ecole', 'Education'],
+  authors: [{ name: 'LunaVerse' }],
+  robots: 'index, follow',
+  openGraph: {
+    type: 'website',
+    url: 'https://ent.lunaverse.fr/',
+    title: 'ENT LunaVerse',
+    description: 'Espace Numérique de Travail pour le serveur RP LunaVerse.',
+    siteName: 'ENT LunaVerse',
+    images: [{ url: '/logo.png' }]
+  },
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png'
+  },
   manifest: '/manifest.json',
   themeColor: '#5865F2',
   appleWebApp: {

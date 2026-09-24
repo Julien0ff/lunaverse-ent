@@ -318,14 +318,39 @@ export default function AdminCantinePage() {
               <h3 className="text-xl font-bold text-white flex items-center gap-3">
                 Menus Prévus
               </h3>
-              <button
-                onClick={deployMenu}
-                disabled={deploying || menus.length === 0}
-                className="btn bg-[#5865F2] hover:bg-[#5865F2]/80 text-white px-6 py-2 font-bold flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(88,101,242,0.3)] disabled:opacity-50 disabled:shadow-none"
-              >
-                {deploying ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                Déployer (2 prochains jours)
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    setDeploying(true)
+                    showFeedback('')
+                    try {
+                      const res = await fetch('/api/admin/cantine/deploy-scanner', { method: 'POST' })
+                      if (res.ok) {
+                        showFeedback('✅ Scanner déployé sur Discord !')
+                      } else {
+                        const err = await res.json()
+                        showFeedback(`❌ Erreur: ${err.error || 'Impossible de déployer.'}`)
+                      }
+                    } catch (e) {
+                      showFeedback('❌ Erreur lors du déploiement.')
+                    } finally {
+                      setDeploying(false)
+                    }
+                  }}
+                  disabled={deploying}
+                  className="btn bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 font-bold flex items-center justify-center gap-2 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Déployer Carte
+                </button>
+                <button
+                  onClick={deployMenu}
+                  disabled={deploying || menus.length === 0}
+                  className="btn bg-[#5865F2] hover:bg-[#5865F2]/80 text-white px-6 py-2 font-bold flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(88,101,242,0.3)] disabled:opacity-50 disabled:shadow-none"
+                >
+                  {deploying ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                  Déployer Menu
+                </button>
+              </div>
             </div>
 
             {menus.length === 0 ? (

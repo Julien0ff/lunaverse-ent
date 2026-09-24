@@ -398,34 +398,34 @@ export default function Cantine() {
                 </div>
 
                 {/* Content Side - Massive Text */}
-                <div className="flex-1 p-10 flex flex-col justify-center bg-gradient-to-br from-transparent to-orange-500/5">
-                   <div className="flex flex-col space-y-12">
+                <div className="flex-1 p-8 flex flex-col justify-center bg-gradient-to-br from-transparent to-orange-500/5">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {m.starter && (
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                            <p className="text-xs font-black text-discord-muted uppercase tracking-[0.2em]">🥗 Entrée</p>
-                           <p className="text-xl font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{m.starter}</p>
+                           <p className="text-lg font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{m.starter}</p>
                         </div>
                       )}
-                      <div className="space-y-4 md:col-span-1">
-                         <p className="text-sm font-black text-orange-500 uppercase tracking-[0.2em]">🥩 Plat Principal</p>
-                         <p className="text-4xl font-black text-white whitespace-pre-wrap leading-tight">{m.main}</p>
+                      <div className="space-y-2 md:col-span-2 xl:col-span-1">
+                         <p className="text-sm font-black text-orange-500 uppercase tracking-[0.2em]">🍗 Plat Principal</p>
+                         <p className="text-2xl sm:text-3xl font-black text-white whitespace-pre-wrap leading-tight">{m.main}</p>
                       </div>
                       {m.side && (
-                        <div className="space-y-2">
-                           <p className="text-xs font-black text-orange-300 uppercase tracking-[0.2em]">🍚 Accompagnement</p>
-                           <p className="text-xl font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{m.side}</p>
+                        <div className="space-y-1">
+                           <p className="text-xs font-black text-orange-300 uppercase tracking-[0.2em]">🍟 Accompagnement</p>
+                           <p className="text-lg font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{m.side}</p>
                         </div>
                       )}
                       {m.dessert && (
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                            <p className="text-xs font-black text-pink-400 uppercase tracking-[0.2em]">🍰 Dessert</p>
-                           <p className="text-xl font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{m.dessert}</p>
+                           <p className="text-lg font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{m.dessert}</p>
                         </div>
                       )}
                       {m.drink && (
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                            <p className="text-xs font-black text-blue-400 uppercase tracking-[0.2em]">🥤 Boisson</p>
-                           <p className="text-xl font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{m.drink}</p>
+                           <p className="text-lg font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{m.drink}</p>
                         </div>
                       )}
                    </div>

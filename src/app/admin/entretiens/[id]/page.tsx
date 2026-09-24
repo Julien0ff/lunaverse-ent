@@ -274,7 +274,7 @@ export default function EntretienDetailPage() {
                 <input 
                   type="datetime-local" 
                   value={interview.scheduled_at ? new Date(new Date(interview.scheduled_at).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
-                  onChange={e => setInterview({...interview, scheduled_at: e.target.value})}
+                  onChange={e => setInterview({...interview, scheduled_at: e.target.value ? new Date(e.target.value).toISOString() : null})}
                   className="glass-input"
                 />
               </div>
@@ -298,63 +298,63 @@ export default function EntretienDetailPage() {
         {/* Right Column: Content depending on Phase */}
         <div className="space-y-6 lg:col-span-2">
           
-          {/* PHASE 1: Dossier (Affiché si Brouillon ou En Attente) */}
-          {['draft', 'pending'].includes(interview.status) && (
-            <>
-              <div className="glass-card mb-6">
-                <h3 className="text-sm font-black text-discord-muted uppercase tracking-widest mb-4">Analyse du Dossier (Phase 1)</h3>
-                <div className="space-y-4">
-                  {interview.questions_data?.filter((q: any) => !q.isOral).map((q: any) => (
-                    <div key={q.id} className="p-4 rounded-xl bg-white/5 border border-white/5">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-discord-blurple">{q.category}</span>
-                      <div className="font-bold text-white mb-2">{q.question}</div>
-                      <div className="text-discord-muted whitespace-pre-wrap text-sm bg-black/20 p-3 rounded-lg border border-white/5">{q.response || 'Non fourni'}</div>
-                    </div>
-                  ))}
-                  {(!interview.questions_data || interview.questions_data.filter((q: any) => !q.isOral).length === 0) && (
-                    <div className="text-discord-muted text-center py-4">Aucune donnée de dossier.</div>
-                  )}
+          {/* PHASE 1: Dossier (Toujours affiché comme archive si passé) */}
+          <div className="glass-card mb-6">
+            <h3 className="text-sm font-black text-discord-muted uppercase tracking-widest mb-4">Analyse du Dossier (Phase 1)</h3>
+            <div className="space-y-4">
+              {interview.questions_data?.filter((q: any) => !q.isOral).map((q: any) => (
+                <div key={q.id || Math.random()} className="p-4 rounded-xl bg-white/5 border border-white/5 opacity-80">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-discord-blurple">{q.category}</span>
+                  <div className="font-bold text-white mb-2">{q.question}</div>
+                  <div className="text-discord-muted whitespace-pre-wrap text-sm bg-black/20 p-3 rounded-lg border border-white/5">{q.response || 'Non fourni'}</div>
                 </div>
+              ))}
+              {(!interview.questions_data || interview.questions_data.filter((q: any) => !q.isOral).length === 0) && (
+                <div className="text-discord-muted text-center py-4">Aucune donnée de dossier.</div>
+              )}
+            </div>
 
-                <div className="mt-6 p-4 rounded-xl bg-white/5 border border-white/10">
-                  <label className="text-xs font-bold text-discord-muted uppercase tracking-widest block mb-2">Note de Dossier (/20)</label>
-                  <input 
-                    type="number"
-                    min="0" max="20"
-                    value={interview.dossier_note || ''}
-                    onChange={e => {
-                      const d = parseFloat(e.target.value) || 0
-                      const o = parseFloat(interview.interview_note) || 0
-                      const g = ((d + (o*2)) / 3).toFixed(2)
-                      setInterview({...interview, dossier_note: e.target.value, global_note: g})
-                    }}
-                    className="glass-input text-lg font-black py-2 max-w-[150px]"
-                    placeholder="Ex: 14"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <button 
-                  onClick={() => handleSave({ status: 'refused' })}
-                  className="flex-1 btn bg-discord-error/20 text-discord-error hover:bg-discord-error/30 border border-discord-error/50"
-                >
-                  <X className="w-5 h-5" /> Refuser le dossier
-                </button>
-                <button 
-                  onClick={() => {
-                    if (!interview.scheduled_at || !interview.vocal_channel_name) {
-                      alert("Veuillez définir une Date et un Salon Vocal avant de planifier.");
-                      return;
-                    }
-                    handleSave({ status: 'scheduled' })
+            {['draft', 'pending'].includes(interview.status) && (
+              <div className="mt-6 p-4 rounded-xl bg-white/5 border border-white/10">
+                <label className="text-xs font-bold text-discord-muted uppercase tracking-widest block mb-2">Note de Dossier (/20)</label>
+                <input 
+                  type="number"
+                  min="0" max="20"
+                  value={interview.dossier_note || ''}
+                  onChange={e => {
+                    const d = parseFloat(e.target.value) || 0
+                    const o = parseFloat(interview.interview_note) || 0
+                    const g = ((d + (o*2)) / 3).toFixed(2)
+                    setInterview({...interview, dossier_note: e.target.value, global_note: g})
                   }}
-                  className="flex-1 btn bg-discord-blurple/20 text-discord-blurple hover:bg-discord-blurple/30 border border-discord-blurple/50"
-                >
-                  <Clock className="w-5 h-5" /> Planifier l'entretien (Passer à l'oral)
-                </button>
+                  className="glass-input text-lg font-black py-2 max-w-[150px]"
+                  placeholder="Ex: 14"
+                />
               </div>
-            </>
+            )}
+          </div>
+
+          {['draft', 'pending'].includes(interview.status) && (
+            <div className="flex gap-4 mb-6">
+              <button 
+                onClick={() => handleSave({ status: 'refused' })}
+                className="flex-1 btn bg-discord-error/20 text-discord-error hover:bg-discord-error/30 border border-discord-error/50"
+              >
+                <X className="w-5 h-5" /> Refuser le dossier
+              </button>
+              <button 
+                onClick={() => {
+                  if (!interview.scheduled_at || !interview.vocal_channel_name) {
+                    alert("Veuillez définir une Date et un Salon Vocal avant de planifier.");
+                    return;
+                  }
+                  handleSave({ status: 'scheduled' })
+                }}
+                className="flex-1 btn bg-discord-blurple/20 text-discord-blurple hover:bg-discord-blurple/30 border border-discord-blurple/50"
+              >
+                <Clock className="w-5 h-5" /> Planifier l'entretien (Passer à l'oral)
+              </button>
+            </div>
           )}
 
           {/* PHASE 2: Entretien Oral (Affiché si Planifié, Accepté ou Refusé) */}
