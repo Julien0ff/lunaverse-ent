@@ -10,7 +10,7 @@ import {
   LayoutDashboard, Wallet, Globe, Dices,
   ShoppingCart, Shield, LogOut, Moon, Settings,
   ChevronRight, User, BookOpen, ExternalLink, MessageCircle, Heart, Utensils, Landmark, Menu, X, ShoppingBag, Calendar, Home,
-  Users, UserPlus, GraduationCap, Award, Megaphone, Bell, Library
+  Users, UserPlus, GraduationCap, Award, Megaphone, Bell, Library, ClipboardList
 } from 'lucide-react'
 import clsx from 'clsx'
 import SettingsModal from './SettingsModal'
@@ -26,6 +26,7 @@ const CATEGORIES = [
       { href: 'PRONOTE', icon: BookOpen, labelKey: 'nav.pronote', emoji: '📚', isExternal: true },
       { href: '/cantine', icon: Utensils, labelKey: 'nav.cantine', emoji: '🍱' },
       { href: '/absences', icon: Calendar, labelKey: 'nav.absences', emoji: '📅' },
+      { href: '/satisfaction', icon: ClipboardList, labelKey: 'nav.satisfaction', emoji: '📝' },
       { href: '/maison', icon: Home, labelKey: 'nav.maison', emoji: '🏠' }
     ]
   },

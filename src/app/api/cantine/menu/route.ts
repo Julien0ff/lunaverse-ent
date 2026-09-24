@@ -38,22 +38,32 @@ export async function GET() {
     .select('*')
     .gte('menu_date', todayStr)
     .order('menu_date', { ascending: true })
-    .order('time_start', { ascending: true })
 
   if (error) {
     if (error.code === '42P01') {
-      // Table doesn't exist yet — just return empty
       return NextResponse.json({ menus: [], active: null })
     }
     throw error
   }
 
-  const all = menus || []
-  // Find the currently active menu (matches today's date + time window)
+  const { data: settings } = await adminClient
+    .from('server_settings')
+    .select('key, value')
+    .in('key', ['cantine_start_time', 'cantine_end_time'])
+  
+  const globalStart = settings?.find((s: any) => s.key === 'cantine_start_time')?.value || '11:30'
+  const globalEnd = settings?.find((s: any) => s.key === 'cantine_end_time')?.value || '13:30'
+
+  const all = (menus || []).map((m: any) => ({
+    ...m,
+    time_start: globalStart + ':00',
+    time_end: globalEnd + ':00'
+  }))
+
   const active = all.find((m: any) =>
     m.menu_date === todayStr &&
-    currentTime >= m.time_start &&
-    currentTime <= m.time_end
+    currentTime >= globalStart &&
+    currentTime <= globalEnd
   ) || null
 
   return NextResponse.json({ menus: all, active })

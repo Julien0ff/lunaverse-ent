@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
-import { Plus, BarChart3, Search, ChevronRight, FileText, CheckCircle2, ClipboardList } from 'lucide-react'
+import { Plus, BarChart3, Search, ChevronRight, FileText, CheckCircle2, ClipboardList, Megaphone, X, Send, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import clsx from 'clsx'
 
@@ -11,6 +11,36 @@ export default function SatisfactionListPage() {
   const [forms, setForms] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'drafts' | 'completed' | 'stats'>('drafts')
+
+  const [showDiscordModal, setShowDiscordModal] = useState(false)
+  const [discordChannelId, setDiscordChannelId] = useState('')
+  const [discordMessage, setDiscordMessage] = useState('')
+  const [publishing, setPublishing] = useState(false)
+
+  const handlePublishDiscord = async () => {
+    if (!discordChannelId) return alert('Veuillez entrer un ID de salon Discord.')
+    setPublishing(true)
+    try {
+      const res = await fetch('/api/admin/satisfaction/discord', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelId: discordChannelId, customMessage: discordMessage })
+      })
+      if (res.ok) {
+        alert('✅ Annonce publiée avec succès sur Discord !')
+        setShowDiscordModal(false)
+        setDiscordMessage('')
+        setDiscordChannelId('')
+      } else {
+        const err = await res.json()
+        alert(`❌ Erreur: ${err.error}`)
+      }
+    } catch (e) {
+      alert('Erreur réseau.')
+    } finally {
+      setPublishing(false)
+    }
+  }
 
   const fetchForms = async () => {
     try {
@@ -127,10 +157,16 @@ export default function SatisfactionListPage() {
           </h1>
           <p className="text-discord-muted mt-2 font-medium">Recueillez et analysez les retours des utilisateurs.</p>
         </div>
-        <button onClick={handleCreate} className="btn btn-primary px-6 shadow-lg shadow-discord-blurple/20 hover:-translate-y-1">
-          <Plus className="w-5 h-5" />
-          Nouveau Questionnaire
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowDiscordModal(true)} className="btn bg-discord-blurple/20 text-discord-blurple hover:bg-discord-blurple hover:text-white px-4 transition-colors">
+            <Megaphone className="w-5 h-5" />
+            Publier sur Discord
+          </button>
+          <button onClick={handleCreate} className="btn btn-primary px-6 shadow-lg shadow-discord-blurple/20 hover:-translate-y-1">
+            <Plus className="w-5 h-5" />
+            Nouveau Questionnaire
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -258,6 +294,50 @@ export default function SatisfactionListPage() {
           </div>
         )}
       </div>
+
+      {showDiscordModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#1e1e24] border border-white/10 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-slideUp">
+            <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/5">
+              <h3 className="font-black text-white flex items-center gap-2">
+                <Megaphone className="w-5 h-5 text-discord-blurple" />
+                Publier sur Discord
+              </h3>
+              <button onClick={() => setShowDiscordModal(false)} className="text-discord-muted hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="text-xs font-bold text-discord-muted uppercase tracking-widest block mb-2">ID du Salon Discord</label>
+                <input 
+                  type="text" 
+                  value={discordChannelId} 
+                  onChange={e => setDiscordChannelId(e.target.value)} 
+                  placeholder="Ex: 123456789012345678"
+                  className="glass-input w-full"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-discord-muted uppercase tracking-widest block mb-2">Message personnalisé (Optionnel)</label>
+                <textarea 
+                  value={discordMessage} 
+                  onChange={e => setDiscordMessage(e.target.value)} 
+                  placeholder="Texte au dessus de l'embed..."
+                  className="glass-input w-full h-20 resize-none"
+                />
+              </div>
+              <button 
+                onClick={handlePublishDiscord} 
+                disabled={publishing}
+                className="btn bg-discord-blurple text-white w-full font-bold shadow-lg shadow-discord-blurple/20"
+              >
+                {publishing ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Send className="w-5 h-5" /> Envoyer l'Annonce</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

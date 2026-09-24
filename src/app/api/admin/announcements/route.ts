@@ -204,8 +204,8 @@ async function updateDiscordInfoTraficEmbed(supabase: any) {
     const embeds = []
     if (targetInfos.length === 0) {
       embeds.push({
-        title: '✅ INFO-TRAFIC : Trafic Normal',
-        description: 'Aucune perturbation n\'est signalée pour le moment.',
+        title: '✅ ANNONCES : Fonctionnement Normal',
+        description: 'Aucune annonce en cours pour le moment.',
         color: 0x57F287,
         timestamp: new Date().toISOString(),
         footer: { text: 'LunaVerse ENT — Administration' }
@@ -226,16 +226,23 @@ async function updateDiscordInfoTraficEmbed(supabase: any) {
             desc += `\n**Date / Heure:** ${dateStr} à ${timeStr}`
         }
 
-        if (info.info_text) desc += `\n\n**Information:**\n${info.info_text}`
+        if (info.info_status === 'annonce_cours' && info.info_text) {
+          desc += `\n\n**Salle de cours :** ${info.info_text}`
+        } else if (info.info_text) {
+          desc += `\n\n**Information:**\n${info.info_text}`
+        }
 
         let titleIcon = 'ℹ️'
-        if (info.info_status === 'supprime') titleIcon = '❌'
-        if (info.info_status === 'remplace') titleIcon = '🔄'
-        if (info.info_status === 'retard') titleIcon = '⏰'
-        if (info.info_status === 'deplace') titleIcon = '📅'
+        let statusTitle = info.info_status ? info.info_status.toUpperCase() : 'INFORMATION'
+        
+        if (info.info_status === 'supprime') { titleIcon = '❌'; statusTitle = 'COURS SUPPRIMÉ' }
+        if (info.info_status === 'remplace') { titleIcon = '🔄'; statusTitle = 'COURS REMPLACÉ' }
+        if (info.info_status === 'retard') { titleIcon = '⏰'; statusTitle = 'PROFESSEUR EN RETARD' }
+        if (info.info_status === 'deplace') { titleIcon = '📅'; statusTitle = 'COURS DÉPLACÉ' }
+        if (info.info_status === 'annonce_cours') { titleIcon = '🆕'; statusTitle = 'NOUVEAU COURS' }
 
         embeds.push({
-          title: `${titleIcon} INFO-TRAFIC : ${info.info_status ? info.info_status.toUpperCase() : 'INFORMATION'}`,
+          title: `${titleIcon} ANNONCE : ${statusTitle}`,
           color: color,
           description: desc,
           timestamp: new Date(info.created_at).toISOString(),
@@ -245,7 +252,7 @@ async function updateDiscordInfoTraficEmbed(supabase: any) {
     }
     
     return {
-      content: targetName === 'Général' ? `<@&${ROLE_ELEVE}> — Tableau d'affichage des perturbations` : `Tableau d'affichage des perturbations — Classe ${targetName}`,
+      content: targetName === 'all' ? `<@&${ROLE_ELEVE}> — Tableau d'affichage des annonces` : `Tableau d'affichage des annonces — Classe ${targetName}`,
       embeds: embeds.slice(0, 10)
     }
   }

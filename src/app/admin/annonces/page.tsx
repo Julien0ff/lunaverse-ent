@@ -15,6 +15,7 @@ interface Announcement {
   info_text: string
   status: string
   created_at: string
+  start_time?: string
   teacher?: { username: string, nickname_rp: string }
   replacement?: { username: string, nickname_rp: string }
 }
@@ -55,16 +56,19 @@ export default function AdminAnnoncesPage() {
     info_text: ''
   })
 
+  const [discordChannels, setDiscordChannels] = useState<{id: string, name: string}[]>([])
+
   useEffect(() => {
     fetchData()
   }, [])
 
   const fetchData = async () => {
     try {
-      const [annRes, usrRes, clsRes] = await Promise.all([
+      const [annRes, usrRes, clsRes, chanRes] = await Promise.all([
         fetch('/api/admin/announcements'),
         fetch('/api/admin/users'),
-        fetch('/api/admin/classes')
+        fetch('/api/admin/classes'),
+        fetch('/api/discord/channels')
       ])
       
       if (annRes.ok) {
@@ -84,6 +88,10 @@ export default function AdminAnnoncesPage() {
         const c = await clsRes.json()
         setClasses(c.classes || [])
       }
+      if (chanRes.ok) {
+        const ch = await chanRes.json()
+        setDiscordChannels(ch.channels || [])
+      }
     } catch (e) {
       console.error(e)
     } finally {
@@ -93,6 +101,16 @@ export default function AdminAnnoncesPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Check if channelId is missing for specific class
+    if (formData.target_class !== 'all') {
+      const cls = classes.find(c => c.name === formData.target_class)
+      if (!cls || !cls.channelId) {
+        alert("⚠️ Cette classe n'a pas de salon Discord (Channel ID) configuré dans l'onglet Effectifs & Classes. L'annonce ne pourra pas être envoyée sur Discord. Veuillez d'abord configurer le salon de la classe.")
+        return
+      }
+    }
+
     setSaving(true)
     try {
       const res = await fetch('/api/admin/announcements', {
@@ -158,9 +176,9 @@ export default function AdminAnnoncesPage() {
         <div>
           <h2 className="text-3xl font-black text-white flex items-center gap-3">
             <Megaphone className="text-discord-blurple w-8 h-8" />
-            Annonces & Info-Trafic
+            Annonces Classes
           </h2>
-          <p className="text-discord-muted mt-2">Gérez les perturbations et annonces de cours (Mise à jour automatique de l'embed Discord).</p>
+          <p className="text-discord-muted mt-2">Gérez les annonces et perturbations de cours (Mise à jour automatique dans le salon de la classe concernée).</p>
         </div>
         <button 
           onClick={() => setShowModal(true)}
@@ -168,22 +186,6 @@ export default function AdminAnnoncesPage() {
         >
           <Plus className="w-5 h-5" /> Créer une annonce
         </button>
-      </div>
-
-      <div className="glass-card p-5 max-w-md">
-        <h3 className="text-sm font-bold text-white mb-3">Configuration Discord</h3>
-        <div className="flex gap-2">
-          <input 
-            type="text" 
-            value={salonDiscord} 
-            onChange={e => setSalonDiscord(e.target.value)} 
-            placeholder="ID du Salon Info-Trafic"
-            className="glass-input flex-1"
-          />
-          <button onClick={handleSaveSettings} className="btn bg-white/10 hover:bg-white/20 px-4">
-            <Save className="w-4 h-4" />
-          </button>
-        </div>
       </div>
 
       {loading ? (
@@ -249,7 +251,7 @@ export default function AdminAnnoncesPage() {
             {/* Header */}
             <div className="p-6 border-b border-white/5 flex items-center justify-between shrink-0 bg-white/5">
               <div>
-                <h3 className="text-xl font-black text-white">Créer un Info-Trafic</h3>
+                <h3 className="text-xl font-black text-white">Créer une Annonce</h3>
                 <p className="text-sm text-discord-muted mt-1">Diffusez une annonce ciblée ou générale.</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-2 bg-black/20 hover:bg-black/40 rounded-xl text-discord-muted hover:text-white transition-colors">
@@ -270,8 +272,12 @@ export default function AdminAnnoncesPage() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Type de perturbation</label>
-                    <select value={formData.info_status} onChange={e => setFormData({...formData, info_status: e.target.value})} className="glass-input w-full bg-white/5 border-white/10" required>
+                    <select value={formData.info_status} onChange={e => {
+                      const newStatus = e.target.value
+                      setFormData({...formData, info_status: newStatus, info_text: newStatus === 'annonce_cours' ? '' : formData.info_text})
+                    }} className="glass-input w-full bg-white/5 border-white/10" required>
                       <option value="information">Information générale</option>
+                      <option value="annonce_cours">Nouveau cours</option>
                       <option value="supprime">Cours supprimé</option>
                       <option value="remplace">Cours remplacé</option>
                       <option value="retard">Professeur en retard</option>
@@ -287,12 +293,23 @@ export default function AdminAnnoncesPage() {
                   </select>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Professeur concerné</label>
-                  <select value={formData.teacher_id} onChange={e => setFormData({...formData, teacher_id: e.target.value})} className="glass-input w-full bg-white/5 border-white/10">
-                    <option value="">-- Aucun --</option>
-                    {users.map(u => <option key={u.id} value={u.id}>{u.nickname_rp || u.username}</option>)}
-                  </select>
+                <div className="grid grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Professeur concerné</label>
+                    <select value={formData.teacher_id} onChange={e => setFormData({...formData, teacher_id: e.target.value})} className="glass-input w-full bg-white/5 border-white/10">
+                      <option value="">-- Aucun --</option>
+                      {users.map(u => <option key={u.id} value={u.id}>{u.nickname_rp || u.username}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Date et Heure</label>
+                    <input 
+                      type="datetime-local" 
+                      value={formData.start_time ? new Date(new Date(formData.start_time).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
+                      onChange={e => setFormData({...formData, start_time: e.target.value ? new Date(e.target.value).toISOString() : undefined})}
+                      className="glass-input w-full bg-white/5 border-white/10"
+                    />
+                  </div>
                 </div>
 
                 {formData.info_status === 'remplace' && (
@@ -305,15 +322,30 @@ export default function AdminAnnoncesPage() {
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Informations supplémentaires</label>
-                  <textarea 
-                    value={formData.info_text} 
-                    onChange={e => setFormData({...formData, info_text: e.target.value})} 
-                    className="glass-input w-full bg-white/5 border-white/10 resize-none h-24" 
-                    placeholder="Précisez le motif, la salle, etc."
-                  />
-                </div>
+                {formData.info_status === 'annonce_cours' ? (
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Salle de cours</label>
+                    <select 
+                      value={formData.info_text?.replace(/[<#>]/g, '') || ''} 
+                      onChange={e => setFormData({...formData, info_text: `<#${e.target.value}>`})} 
+                      className="glass-input w-full bg-white/5 border-white/10" 
+                      required
+                    >
+                      <option value="">-- Sélectionnez une salle --</option>
+                      {discordChannels.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Informations supplémentaires</label>
+                    <textarea 
+                      value={formData.info_text} 
+                      onChange={e => setFormData({...formData, info_text: e.target.value})} 
+                      className="glass-input w-full bg-white/5 border-white/10 resize-none h-24" 
+                      placeholder="Précisez le motif, la salle, etc."
+                    />
+                  </div>
+                )}
               </form>
             </div>
             
