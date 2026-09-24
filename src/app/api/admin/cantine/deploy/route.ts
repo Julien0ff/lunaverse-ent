@@ -49,7 +49,7 @@ export async function POST() {
       const date = new Date(m.menu_date)
       const dayName = new Intl.DateTimeFormat('fr-FR', { weekday: 'long' }).format(date)
       
-      let val = `**Horaire :** ${menus[0].time_start.slice(0, 5)} - ${menus[0].time_end.slice(0, 5)}\n\n`
+      let val = `**Horaire :** ${m.time_start.slice(0, 5)} - ${m.time_end.slice(0, 5)}\n\n`
       if (m.starter) val += `🥗 **Entrée:** ${m.starter}\n`
       if (m.main) val += `🍗 **Plat:** ${m.main}\n`
       if (m.side) val += `🍟 **Accompagnement:** ${m.side}\n`
