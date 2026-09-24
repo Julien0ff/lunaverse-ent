@@ -37,7 +37,7 @@ export async function GET(req: Request) {
     const [annRes, settingsRes] = await Promise.all([
       supabase
         .from('course_announcements')
-        .select('*, teacher:profiles!course_announcements_teacher_id_fkey(username, nickname_rp), replacement:profiles!course_announcements_replacement_teacher_id_fkey(username, nickname_rp)')
+        .select('*, teacher:profiles!teacher_id(username, nickname_rp), replacement:profiles!replacement_teacher_id(username, nickname_rp)')
         .order('created_at', { ascending: false }),
       supabase
         .from('server_settings')
@@ -88,7 +88,7 @@ export async function POST(req: Request) {
         start_time: start_time || null, end_time: end_time || null,
         info_status, info_text, status: 'pending' // ALWAYS pending initially
       })
-      .select('*, teacher:profiles!course_announcements_teacher_id_fkey(username, nickname_rp), replacement:profiles!course_announcements_replacement_teacher_id_fkey(username, nickname_rp)')
+      .select('*, teacher:profiles!teacher_id(username, nickname_rp), replacement:profiles!replacement_teacher_id(username, nickname_rp)')
       .single()
 
     if (insertError) throw insertError
@@ -123,7 +123,7 @@ export async function PUT(req: Request) {
       .from('course_announcements')
       .update(updatePayload)
       .eq('id', id)
-      .select('*, teacher:profiles!course_announcements_teacher_id_fkey(username, nickname_rp), replacement:profiles!course_announcements_replacement_teacher_id_fkey(username, nickname_rp)')
+      .select('*, teacher:profiles!teacher_id(username, nickname_rp), replacement:profiles!replacement_teacher_id(username, nickname_rp)')
       .single()
 
     if (error) throw error
@@ -173,7 +173,7 @@ async function updateDiscordInfoTraficEmbed(supabase: any) {
   // Fetch all currently active infos
   const { data: activeInfos } = await supabase
     .from('course_announcements')
-    .select('*, teacher:profiles!course_announcements_teacher_id_fkey(username, nickname_rp), replacement:profiles!course_announcements_replacement_teacher_id_fkey(username, nickname_rp)')
+    .select('*, teacher:profiles!teacher_id(username, nickname_rp), replacement:profiles!replacement_teacher_id(username, nickname_rp)')
     .eq('type', 'info')
     .eq('status', 'sent')
     .order('created_at', { ascending: false })

@@ -28,7 +28,6 @@ export async function GET(req: Request) {
                 .from('satisfaction_forms')
                 .insert({
                     target_discord_id: profile.discord_id,
-                    target_username: user.user_metadata?.custom_claims?.global_name || user.email,
                     status: 'draft'
                 })
                 .select()
