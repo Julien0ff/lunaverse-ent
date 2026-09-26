@@ -206,7 +206,15 @@ export default function AdminAnnoncesPage() {
                     )}>
                       {ann.status === 'sent' ? 'Publiée' : 'Brouillon'}
                     </span>
-                    <span className="text-xs font-bold text-discord-muted uppercase tracking-widest">{ann.info_status}</span>
+                    <span className="text-xs font-bold text-discord-muted uppercase tracking-widest">
+                      {ann.info_status === 'annonce_cours' ? 'Nouveau cours' : 
+                       ann.info_status === 'information' ? 'Information générale' : 
+                       ann.info_status === 'supprime' ? 'Cours supprimé' : 
+                       ann.info_status === 'remplace' ? 'Cours remplacé' : 
+                       ann.info_status === 'retard' ? 'Prof. en retard' : 
+                       ann.info_status === 'deplace' ? 'Cours déplacé' : 
+                       ann.info_status}
+                    </span>
                   </div>
                   <h3 className="text-xl font-bold text-white">{ann.subject} <span className="text-discord-muted text-base font-normal">({ann.target_class})</span></h3>
                   <p className="text-sm text-gray-400">
@@ -215,7 +223,19 @@ export default function AdminAnnoncesPage() {
                       <> ➔ Remplacé par : <span className="font-bold text-white">{ann.replacement?.nickname_rp || ann.replacement?.username || 'Inconnu'}</span></>
                     )}
                   </p>
-                  {ann.info_text && <p className="text-sm text-gray-300 italic mt-2 border-l-2 border-white/20 pl-2">"{ann.info_text}"</p>}
+                  {ann.info_text && (
+                    <p className="text-sm text-gray-300 mt-2 border-l-2 border-white/20 pl-2">
+                      {ann.info_status === 'annonce_cours' ? (
+                        <span className="flex items-center gap-1">
+                          Salle : <span className="bg-[#5865F2]/20 text-[#5865F2] px-1.5 py-0.5 rounded-md font-medium text-xs">
+                            #{discordChannels.find(c => c.id === ann.info_text.replace(/[<#>]/g, ''))?.name || 'salon-inconnu'}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="italic">"{ann.info_text}"</span>
+                      )}
+                    </p>
+                  )}
                 </div>
                 
                 <div className="flex items-center gap-2">

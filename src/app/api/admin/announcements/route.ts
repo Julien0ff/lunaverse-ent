@@ -296,7 +296,8 @@ async function updateDiscordInfoTraficEmbed(supabase: any) {
       }
     } catch (e) {
       console.error('Failed to post to global info trafic:', e)
-      throw e // Bubble up to let the client know Discord failed
+      // Do not throw the error, otherwise the PUT request fails with 500 even if DB is updated.
+      // throw e 
     }
   }
 
