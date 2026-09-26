@@ -112,7 +112,7 @@ export async function PUT(req: Request) {
     if (action === 'publish') newStatus = 'sent'
     if (action === 'unpublish') newStatus = 'pending'
 
-    const updatePayload = { ...updates, updated_at: new Date().toISOString() }
+    const updatePayload = { ...updates }
     if (newStatus) updatePayload.status = newStatus
     
     // Fix empty strings for UUID fields
