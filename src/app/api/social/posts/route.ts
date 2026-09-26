@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
+            content: "Vous voulez interagir ou publier des posts ? Ça se passe sur l'ENT !",
             embeds: [{
               author: {
                 name: authorName,
@@ -92,8 +93,8 @@ export async function POST(request: NextRequest) {
               components: [{
                 type: 2,
                 style: 5, // Link
-                label: 'Voir sur l\'ENT',
-                url: 'https://auth.rp.lunaverse.fr/social'
+                label: "Aller sur l'ENT",
+                url: 'https://ent.lunaverse.fr/social'
               }]
             }]
           })

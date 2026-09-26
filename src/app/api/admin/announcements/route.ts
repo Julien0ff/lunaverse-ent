@@ -130,7 +130,11 @@ export async function PUT(req: Request) {
 
     // Sync Discord if it's Info-Trafic and status changed or content updated while published
     if (announcement.type === 'info') {
-      await updateDiscordInfoTraficEmbed(supabase)
+      try {
+        await updateDiscordInfoTraficEmbed(supabase)
+      } catch (err) {
+        console.error('Error syncing Discord:', err)
+      }
     }
 
     return NextResponse.json({ success: true, item: announcement })
@@ -194,8 +198,11 @@ async function updateDiscordInfoTraficEmbed(supabase: any) {
   const { data: settingsData } = await supabase.from('server_settings').select('key, value').in('key', ['rp_classes', 'info_trafic_msg_id', 'salon_annonces'])
   const settings = (settingsData || []).reduce((acc: any, curr: any) => ({ ...acc, [curr.key]: curr.value }), {})
   
-  let classes = []
-  try { classes = JSON.parse(settings.rp_classes || '[]') } catch (e) {}
+  let classes: any[] = []
+  try { 
+    const parsed = JSON.parse(settings.rp_classes || '[]') 
+    if (Array.isArray(parsed)) classes = parsed
+  } catch (e) {}
 
   const annoncesChannel = settings.salon_annonces || INFO_TRAFIC_CHANNEL
 

@@ -222,6 +222,9 @@ export default function AdminAnnoncesPage() {
                     {ann.info_status === 'remplace' && (
                       <> ➔ Remplacé par : <span className="font-bold text-white">{ann.replacement?.nickname_rp || ann.replacement?.username || 'Inconnu'}</span></>
                     )}
+                    {ann.start_time && (
+                      <> | Date prévue : <span className="font-bold text-white">{new Date(ann.start_time).toLocaleDateString('fr-FR')} à {new Date(ann.start_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></>
+                    )}
                   </p>
                   {ann.info_text && (
                     <p className="text-sm text-gray-300 mt-2 border-l-2 border-white/20 pl-2">
