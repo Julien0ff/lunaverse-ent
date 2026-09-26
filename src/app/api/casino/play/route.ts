@@ -34,53 +34,123 @@ export async function POST(request: NextRequest) {
     let isWin = false
     let result = ''
 
-    // House edge: increased to 65% base win rate for a more generous casino
+    // House edge logic
     const luckyRoll = Math.random() < 0.65
+    let rawResult: any = {}
 
-    if (luckyRoll) {
-      if (game_type === 'slots') {
-        const symbols = ['🍒', '🍋', '🍇', '💎', '⭐', '🎰']
-        const weights = [35, 30, 20, 10, 4, 1]
-        const spin = () => {
-          let r = Math.random() * weights.reduce((a, b) => a + b, 0)
-          for (let i = 0; i < symbols.length; i++) { r -= weights[i]; if (r <= 0) return symbols[i] }
-          return symbols[symbols.length - 1]
-        }
-        const reels = [spin(), spin(), spin()]
-        result = reels.join(' ')
-        const unique = Array.from(new Set(reels))
-        if (unique.length === 1) {
-          isWin = true
-          if (reels[0] === '🎰') winAmount = Math.floor(bet * 50)
-          else if (reels[0] === '💎') winAmount = Math.floor(bet * 25)
-          else if (reels[0] === '⭐') winAmount = Math.floor(bet * 15)
-          else winAmount = Math.floor(bet * 10)
-        } else {
-          // If luckyRoll but no jackpot, give a small win
-          isWin = true; winAmount = Math.floor(bet * 2)
-          result = reels.join(' ')
-        }
-      } else if (game_type === 'dice') {
-        isWin = true; winAmount = Math.floor(bet * 1.8)
-        result = guess === 'high' ? `Dé: ${Math.floor(Math.random() * 49) + 51}` : `Dé: ${Math.floor(Math.random() * 50) + 1}`
-      } else if (game_type === 'coin') {
-        isWin = true; winAmount = Math.floor(bet * 1.9)
-        result = guess === 'heads' ? 'Pile' : 'Face'
-      } else if (game_type === 'roulette') {
-        isWin = true; winAmount = Math.floor(bet * 1.9)
-        result = guess === 'red' ? '🎡 7 (Rouge)' : '🎡 10 (Noir)'
-      } else if (game_type === 'blackjack') {
-        isWin = true; winAmount = Math.floor(bet * 2)
-        result = '🃏 Gagné'
+    if (game_type === 'slots') {
+      const symbols = ['🍒', '🍋', '🍇', '💎', '⭐', '🎰']
+      const weights = [35, 30, 20, 10, 4, 1]
+      const spin = () => {
+        let r = Math.random() * weights.reduce((a, b) => a + b, 0)
+        for (let i = 0; i < symbols.length; i++) { r -= weights[i]; if (r <= 0) return symbols[i] }
+        return symbols[symbols.length - 1]
       }
-    } else {
-      // Forced loss
-      isWin = false
-      if (game_type === 'slots') result = '🍒 🍋 🍇'
-      else if (game_type === 'dice') result = guess === 'high' ? `Dé: ${Math.floor(Math.random() * 50) + 1}` : `Dé: ${Math.floor(Math.random() * 49) + 51}`
-      else if (game_type === 'coin') result = guess === 'heads' ? 'Face' : 'Pile'
-      else if (game_type === 'roulette') result = guess === 'red' ? '🎡 10 (Noir)' : '🎡 7 (Rouge)'
-      else if (game_type === 'blackjack') result = '🃏 Perdu (Bust)'
+      const reels = [spin(), spin(), spin()]
+      
+      // Override if forced loss
+      if (!luckyRoll) {
+        reels[0] = '🍒'; reels[1] = '🍋'; reels[2] = '🍇';
+      }
+
+      const unique = Array.from(new Set(reels))
+      if (unique.length === 1) {
+        isWin = true
+        if (reels[0] === '🎰') winAmount = Math.floor(bet * 50)
+        else if (reels[0] === '💎') winAmount = Math.floor(bet * 25)
+        else if (reels[0] === '⭐') winAmount = Math.floor(bet * 15)
+        else winAmount = Math.floor(bet * 10)
+      } else if (luckyRoll) {
+        isWin = true; winAmount = Math.floor(bet * 2)
+      } else {
+        isWin = false
+      }
+      result = reels.join(' ')
+      rawResult = { reels }
+    } else if (game_type === 'dice') {
+      const roll = Math.floor(Math.random() * 100) + 1
+      isWin = (guess === 'high' && roll > 50) || (guess === 'low' && roll <= 50)
+      
+      if (!luckyRoll && isWin) {
+        // Force loss
+        isWin = false
+      } else if (luckyRoll && !isWin) {
+        // Force win
+        isWin = true
+      }
+      
+      const finalRoll = isWin 
+        ? (guess === 'high' ? Math.floor(Math.random() * 50) + 51 : Math.floor(Math.random() * 50) + 1)
+        : (guess === 'high' ? Math.floor(Math.random() * 50) + 1 : Math.floor(Math.random() * 50) + 51)
+        
+      winAmount = isWin ? Math.floor(bet * 1.8) : 0
+      result = `Dé: ${finalRoll}`
+      rawResult = { roll: finalRoll }
+    } else if (game_type === 'coin') {
+      isWin = luckyRoll
+      const outcome = isWin ? guess : (guess === 'heads' ? 'tails' : 'heads')
+      winAmount = isWin ? Math.floor(bet * 1.9) : 0
+      result = outcome === 'heads' ? 'Pile' : 'Face'
+      rawResult = { side: outcome }
+    } else if (game_type === 'roulette') {
+      // European Roulette: 0 to 36
+      const winningNumber = Math.floor(Math.random() * 37)
+      const reds = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]
+      const isRed = reds.includes(winningNumber)
+      const isBlack = winningNumber !== 0 && !isRed
+      const isEven = winningNumber !== 0 && winningNumber % 2 === 0
+      const isOdd = winningNumber !== 0 && winningNumber % 2 !== 0
+
+      if (guess === 'red') isWin = isRed
+      else if (guess === 'black') isWin = isBlack
+      else if (guess === 'even') isWin = isEven
+      else if (guess === 'odd') isWin = isOdd
+      else if (!isNaN(parseInt(guess))) isWin = (parseInt(guess) === winningNumber)
+
+      // Override based on house edge
+      if (!luckyRoll && isWin) {
+         isWin = false
+         // Very hacky: just pick 0 if forced loss to ensure they lose
+         rawResult = { number: 0, color: 'green' }
+      } else {
+         rawResult = { number: winningNumber, color: winningNumber === 0 ? 'green' : isRed ? 'red' : 'black' }
+      }
+
+      const mult = (!isNaN(parseInt(guess))) ? 35 : 2
+      winAmount = isWin ? Math.floor(bet * mult) : 0
+      result = `🎡 ${rawResult.number} (${rawResult.color === 'red' ? 'Rouge' : rawResult.color === 'black' ? 'Noir' : 'Vert'})`
+    } else if (game_type === 'blackjack') {
+      // One-shot Blackjack for simplicity but with real cards
+      const suits = ['♠', '♥', '♦', '♣']
+      const ranks = ['2','3','4','5','6','7','8','9','10','J','Q','K','A']
+      const drawCard = () => {
+        const r = ranks[Math.floor(Math.random() * ranks.length)]
+        const s = suits[Math.floor(Math.random() * suits.length)]
+        return { rank: r, suit: s }
+      }
+      
+      const p1 = drawCard(); const p2 = drawCard()
+      const d1 = drawCard(); const d2 = drawCard()
+
+      const getVal = (c: any) => c.rank === 'A' ? 11 : (['J','Q','K'].includes(c.rank) ? 10 : parseInt(c.rank))
+      const pScore = getVal(p1) + getVal(p2)
+      const dScore = getVal(d1) + getVal(d2)
+
+      isWin = luckyRoll ? (pScore > dScore || dScore > 21) : false
+      if (!isWin && pScore >= dScore) {
+         // Force loss
+         isWin = false
+      } else if (isWin && pScore <= dScore) {
+         // Force win
+         isWin = true
+      }
+      
+      winAmount = isWin ? Math.floor(bet * 2) : 0
+      result = isWin ? '🃏 Gagné' : '🃏 Perdu'
+      rawResult = { 
+        player: [p1, p2], playerScore: pScore,
+        dealer: [d1, d2], dealerScore: dScore
+      }
     }
 
     let streakMsg = ''
@@ -170,7 +240,8 @@ export async function POST(request: NextRequest) {
       streak: streakStatus,
       streakAccumulated,
       message, 
-      result 
+      result,
+      rawResult
     })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
