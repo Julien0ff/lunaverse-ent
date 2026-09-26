@@ -14,15 +14,14 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<'profile' | 'appearance' | 'language' | 'notifications' | 'admin' | 'suggestions' | 'bugs'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'appearance' | 'language' | 'notifications' | 'suggestions' | 'bugs'>('profile')
   const [mounted, setMounted] = useState(false)
   const [selectedTheme, setSelectedTheme] = useState('dark')
-  const [webEnabled, setWebEnabled] = useState(true)
+  const [webEnabled, setWebEnabled] = useState(false)
   const [dmsEnabled, setDmsEnabled] = useState(true)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [isAdminUser, setIsAdminUser] = useState(false)
   const [dynamicStatsEnabled, setDynamicStatsEnabled] = useState(true)
-  const [savingAdmin, setSavingAdmin] = useState(false)
   const [discordSettings, setDiscordSettings] = useState<Record<string, string>>({})
   
   const [suggestionTitle, setSuggestionTitle] = useState('')
@@ -31,10 +30,6 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [bugText, setBugText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [feedbackMsg, setFeedbackMsg] = useState('')
-  
-  const [pronoteImg, setPronoteImg] = useState<File | null>(null)
-  const [uploadingPronote, setUploadingPronote] = useState(false)
-  const [pronoteMsg, setPronoteMsg] = useState('')
   
   const { profile, supabase, refreshProfile } = useAuth()
   const { locale, setLocale, t } = useLanguage()
@@ -91,16 +86,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   }, [profile, checkAdminStatus, fetchAdminSettings])
 
   const toggleDynamicStats = async () => {
-    setSavingAdmin(true)
     const newState = !dynamicStatsEnabled
     setDynamicStatsEnabled(newState)
     await supabase.from('server_settings').upsert({ key: 'global_dynamic_stats', value: newState, updated_at: new Date().toISOString() })
-    setSavingAdmin(false)
-  }
-
-  const updateDiscordSetting = async (key: string, value: string) => {
-    setDiscordSettings(prev => ({ ...prev, [key]: value }))
-    await supabase.from('server_settings').upsert({ key, value, updated_at: new Date().toISOString() })
   }
 
   const toggleDms = async () => {
@@ -117,9 +105,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   }
 
   const toggleWeb = () => {
-    const newState = !webEnabled
-    setWebEnabled(newState)
-    localStorage.setItem('lunaverse-web-notifications', String(newState))
+    alert("T'as compris");
   }
 
   const handleThemeChange = (themeId: string) => {
@@ -173,37 +159,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     }
   }
 
-  const handlePronoteUpload = async () => {
-    if (!pronoteImg || !profile) return
-    setUploadingPronote(true)
-    setPronoteMsg('')
-    try {
-      const ext = pronoteImg.name.split('.').pop()
-      const fileName = `pronote_${profile.id}_${Date.now()}.${ext}`
-      
-      const { data, error } = await supabase.storage.from('avatars').upload(`pronote/${fileName}`, pronoteImg)
-      if (error) throw error
 
-      const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(`pronote/${fileName}`)
-      
-      const res = await fetch('/api/pronote/request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_url: publicUrlData.publicUrl })
-      })
-
-      if (res.ok) {
-        setPronoteMsg('✅ Demande envoyée avec succès.')
-        setPronoteImg(null)
-      } else {
-        setPronoteMsg('❌ Erreur lors de la demande.')
-      }
-    } catch (e) {
-      setPronoteMsg('❌ Erreur lors de l\'upload.')
-    } finally {
-      setUploadingPronote(false)
-    }
-  }
 
   if (!isOpen || !mounted) return null
 
@@ -215,22 +171,13 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     { id: 'suggestions', label: 'Suggestions', icon: MessageSquarePlus },
     { id: 'bugs', label: 'Signaler un Bug', icon: Bug },
   ]
-  if (isAdminUser) TABS.push({ id: 'admin', label: 'Admin', icon: Settings })
 
   const THEMES = [
     { id: 'dark', name: t('settings.theme.dark'), icon: Moon, desc: 'Classique & Reposant' },
     { id: 'light', name: t('settings.theme.light'), icon: Sun, desc: 'Solaire & Épuré' },
   ]
 
-  const DISCORD_CONFIG_KEYS = [
-    { key: 'salon_inscription', label: 'Salon Inscription (Embed)' },
-    { key: 'salon_admin', label: 'Salon Admin (Candidatures)' },
-    { key: 'salon_reponses', label: 'Salon Réponses (Acceptation)' },
-    { key: 'cantine_channel_id', label: 'Salon Cantine (RP)' },
-    { key: 'discord_canteen_menu_channel_id', label: 'Salon Menu Cantine' },
-    { key: 'pronote_admin_id', label: 'Salon Alertes Pronote' },
-    { key: 'social_feed_channel_id', label: 'Salon Réseau Social' }
-  ]
+
 
   return createPortal(
     <div className="fixed inset-0 z-[2000] flex items-center justify-center p-0 md:p-4">
@@ -298,30 +245,6 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </div>
                 <div className="p-6 rounded-[32px] bg-white/5 border border-white/5 text-sm text-discord-muted leading-relaxed">
                    Les paramètres de votre compte sont automatiquement gérés par la liaison Discord. Pour changer votre nom ou votre avatar, modifiez votre profil sur Discord et attendez la prochaine synchronisation.
-                </div>
-
-                {/* Pronote Request */}
-                <div className="p-6 rounded-[32px] bg-white/5 border border-white/5 mt-8">
-                   <h4 className="text-[11px] font-black text-discord-muted uppercase tracking-[0.2em] mb-4">Vérification Pronote</h4>
-                   <p className="text-sm text-discord-muted mb-4">Envoyez une capture de votre Pronote (ou photo de profil ENT) pour lier votre compte.</p>
-                   
-                   {pronoteMsg && <div className="mb-4 text-xs font-bold">{pronoteMsg}</div>}
-                   
-                   <div className="flex items-center gap-4">
-                     <input 
-                       type="file" 
-                       accept="image/*"
-                       onChange={e => setPronoteImg(e.target.files?.[0] || null)}
-                       className="text-sm text-discord-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-discord-blurple/20 file:text-discord-blurple hover:file:bg-discord-blurple/30"
-                     />
-                     <button
-                       onClick={handlePronoteUpload}
-                       disabled={!pronoteImg || uploadingPronote}
-                       className="btn bg-discord-blurple hover:bg-discord-blurple/80 text-white py-2 px-6 rounded-full font-bold disabled:opacity-50"
-                     >
-                       {uploadingPronote ? 'Envoi...' : 'Envoyer'}
-                     </button>
-                   </div>
                 </div>
               </div>
             )}
@@ -524,73 +447,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               </div>
             )}
 
-            {activeTab === 'admin' && isAdminUser && (
-               <div className="space-y-6 animate-slideUp">
-                 <div className="p-8 rounded-[40px] bg-white/[0.02] border border-white/5 border-dashed">
-                    <div className="flex items-center gap-4 mb-8">
-                       <div className="w-16 h-16 bg-amber-500/10 rounded-[24px] flex items-center justify-center text-amber-500">
-                          <Settings size={32} />
-                       </div>
-                       <div>
-                          <h4 className="text-xl font-black text-white">Administration ENT</h4>
-                          <p className="text-xs text-discord-muted uppercase tracking-widest font-bold">Paramètres Système</p>
-                       </div>
-                    </div>
 
-                    <div className="space-y-4">
-                       <div className="p-6 rounded-[32px] bg-white/5 border border-white/5">
-                           <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-3">
-                                 <User className="text-discord-blurple" size={20} />
-                                 <span className="font-bold text-white text-lg">Activer l'Onboarding</span>
-                              </div>
-                              <div 
-                                 onClick={() => {
-                                   /* Add toggle onboarding logic later */
-                                   setSavingAdmin(true);
-                                   setTimeout(() => setSavingAdmin(false), 500);
-                                 }}
-                                 className={clsx(
-                                   "w-14 h-7 rounded-full relative p-1 transition-all cursor-pointer",
-                                   "bg-discord-success", // Hardcode to ON for now until DB logic is created
-                                   savingAdmin && "opacity-50"
-                                 )}
-                              >
-                                 <div className={clsx(
-                                   "w-5 h-5 bg-white rounded-full transition-all absolute top-1",
-                                   "right-1 shadow-md shadow-black/20"
-                                 )} />
-                              </div>
-                           </div>
-                           <p className="text-xs text-discord-muted leading-relaxed">
-                              Si activé, les nouveaux utilisateurs verront le tutoriel interactif lors de leur première connexion.
-                           </p>
-                        </div>
-
-                         <div className="p-6 rounded-[32px] bg-white/5 border border-white/5 mt-8">
-                            <div className="flex items-center gap-3 mb-6">
-                               <Settings className="text-discord-blurple" size={20} />
-                               <span className="font-bold text-white text-lg">Intégration Discord (IDs des Salons)</span>
-                            </div>
-                            <div className="space-y-4">
-                              {DISCORD_CONFIG_KEYS.map((conf) => (
-                                <div key={conf.key} className="flex flex-col gap-1">
-                                  <label className="text-xs font-bold text-discord-muted uppercase tracking-wider">{conf.label}</label>
-                                  <input 
-                                    type="text" 
-                                    className="glass-input w-full bg-white/5 border-white/10 text-white focus:border-discord-blurple"
-                                    placeholder="ID du salon (ex: 123456789...)"
-                                    value={discordSettings[conf.key] || ''}
-                                    onChange={(e) => updateDiscordSetting(conf.key, e.target.value)}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                         </div>
-                     </div>
-                 </div>
-               </div>
-            )}
           </div>
         </div>
 
