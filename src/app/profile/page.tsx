@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import Image from 'next/image'
-import { User, Wallet, Calendar, MessageCircle, ShoppingBag, Gamepad2, Trophy, Edit3, Save, Twitter, Instagram, Github, Link as LinkIcon, ExternalLink, Activity, Flame, Coffee, Droplets, Heart, Sparkles } from 'lucide-react'
+import { User, Wallet, Calendar, MessageCircle, ShoppingBag, Gamepad2, Trophy, Edit3, Save, Youtube, Instagram, Link as LinkIcon, ExternalLink, Activity, Flame, Coffee, Droplets, Heart, Sparkles, Palette } from 'lucide-react'
+import { SiTiktok } from 'react-icons/si'
 import clsx from 'clsx'
 
 interface Stats {
@@ -72,7 +73,7 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false)
   const [editBio, setEditBio] = useState('')
   const [editSocials, setEditSocials] = useState({
-    twitter: '', instagram: '', github: '', website: ''
+    youtube: '', instagram: '', tiktok: '', website: ''
   })
   const [editBanner, setEditBanner] = useState('')
   const [saving, setSaving] = useState(false)
@@ -91,9 +92,9 @@ export default function ProfilePage() {
     setEditBio(p.bio || '')
     setEditBanner(p.banner_url || '')
     setEditSocials({
-      twitter: p.twitter_url || '',
+      youtube: p.youtube_url || '',
       instagram: p.instagram_url || '',
-      github: p.github_url || '',
+      tiktok: p.tiktok_url || '',
       website: p.website_url || ''
     })
   }, [profile])
@@ -107,9 +108,9 @@ export default function ProfilePage() {
         body: JSON.stringify({
           bio: editBio,
           banner_url: editBanner,
-          twitter_url: editSocials.twitter,
+          youtube_url: editSocials.youtube,
           instagram_url: editSocials.instagram,
-          github_url: editSocials.github,
+          tiktok_url: editSocials.tiktok,
           website_url: editSocials.website
         })
       })
@@ -387,11 +388,11 @@ export default function ProfilePage() {
       </div>
 
       {/* Bio & Socials */}
-      <div className="glass-card animate-fadeIn">
+      <div className="glass-card animate-fadeIn mt-4">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xs font-black text-discord-muted uppercase tracking-widest flex items-center gap-2">
             <Edit3 className="w-4 h-4 text-discord-blurple" />
-            {t('profile.bio_socials')}
+            {t('profile.bio_socials')} & Personnalisation
           </h3>
           <button 
             onClick={() => editing ? handleSave() : setEditing(true)}
@@ -407,8 +408,10 @@ export default function ProfilePage() {
 
         {editing ? (
           <div className="space-y-6">
-            <div>
-              <label className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-2 block">Bannière (Image ou Dégradé)</label>
+            <div className="mb-6">
+              <h4 className="text-[10px] font-black text-discord-muted uppercase tracking-widest mb-3 flex items-center gap-2">
+                <Palette className="w-3.5 h-3.5" /> Personnalisation de la Bannière
+              </h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                 {[
                   { id: 'grad1', type: 'gradient', value: 'linear-gradient(90deg, #5865F2, #9333EA)', label: 'Blurple' },
@@ -442,9 +445,9 @@ export default function ProfilePage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                { key: 'twitter', icon: Twitter, label: 'Twitter URL' },
+                { key: 'youtube', icon: Youtube, label: 'YouTube URL' },
                 { key: 'instagram', icon: Instagram, label: 'Instagram URL' },
-                { key: 'github', icon: Github, label: 'GitHub URL' },
+                { key: 'tiktok', icon: SiTiktok, label: 'TikTok URL' },
                 { key: 'website', icon: LinkIcon, label: 'Site Web' },
               ].map(social => (
                 <div key={social.key}>
@@ -472,9 +475,9 @@ export default function ProfilePage() {
             </div>
             <div className="w-full md:w-64 space-y-2">
               {[
-                { url: (profile as any)?.twitter_url, icon: Twitter, label: 'Twitter', color: '#1DA1F2' },
+                { url: (profile as any)?.youtube_url, icon: Youtube, label: 'YouTube', color: '#FF0000' },
                 { url: (profile as any)?.instagram_url, icon: Instagram, label: 'Instagram', color: '#E4405F' },
-                { url: (profile as any)?.github_url, icon: Github, label: 'GitHub', color: '#FFFFFF' },
+                { url: (profile as any)?.tiktok_url, icon: SiTiktok, label: 'TikTok', color: '#00F2FE' },
                 { url: (profile as any)?.website_url, icon: LinkIcon, label: 'Site Web', color: '#5865F2' },
               ].filter(s => s.url).map((social, i) => (
                 <a 
@@ -489,7 +492,7 @@ export default function ProfilePage() {
                   <ExternalLink className="w-3 h-3 opacity-20 group-hover:opacity-100" />
                 </a>
               ))}
-              {![(profile as any)?.twitter_url, (profile as any)?.instagram_url, (profile as any)?.github_url, (profile as any)?.website_url].some(u => u) && (
+              {![(profile as any)?.youtube_url, (profile as any)?.instagram_url, (profile as any)?.tiktok_url, (profile as any)?.website_url].some(u => u) && (
                 <p className="text-[10px] text-discord-muted italic">{t('profile.no_socials')}</p>
               )}
             </div>

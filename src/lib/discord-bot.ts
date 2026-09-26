@@ -1122,6 +1122,20 @@ client.on('presenceUpdate', async (_old, newPresence) => {
   } catch { }
 })
 
+// ── Auto user avatar sync on Discord profile change ──────────────────────────────────────
+client.on('userUpdate', async (oldUser, newUser) => {
+  if (oldUser.displayAvatarURL() === newUser.displayAvatarURL()) return;
+  
+  try {
+    await supabase.from('profiles').update({
+      avatar_url: newUser.displayAvatarURL(),
+      username: newUser.username
+    }).eq('discord_id', newUser.id);
+  } catch (err) {
+    console.error('Error updating user avatar:', err);
+  }
+});
+
 // ── Auto role sync on Discord role change ──────────────────────────────────────
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
   const discordId = newMember.id
@@ -2156,8 +2170,22 @@ rId}>.\nC'est généralement dû à une hiérarchie de rôles trop basse (le bot
             { name: '🚻 Sexe', value: targetProfile.sexe || 'Non paramétré', inline: true },
             { name: '💼 Rôle / Classe', value: roleNames, inline: true },
             { name: '❤️ Relation', value: targetProfile.partner_id ? 'En couple' : 'Célibataire', inline: true },
-            { name: '📝 Description', value: targetProfile.description || 'Aucune description.', inline: false }
+            { name: '📝 Description (Pronote)', value: targetProfile.description || 'Aucune description.', inline: false }
           )
+          
+        if (targetProfile.bio) {
+          embed.addFields({ name: '📖 Biographie', value: targetProfile.bio, inline: false })
+        }
+        
+        const socials = []
+        if (targetProfile.youtube_url) socials.push(`[YouTube](${targetProfile.youtube_url})`)
+        if (targetProfile.instagram_url) socials.push(`[Instagram](${targetProfile.instagram_url})`)
+        if (targetProfile.tiktok_url) socials.push(`[TikTok](${targetProfile.tiktok_url})`)
+        if (targetProfile.website_url) socials.push(`[Site Web](${targetProfile.website_url})`)
+        
+        if (socials.length > 0) {
+          embed.addFields({ name: '🌐 Réseaux Sociaux', value: socials.join(' | '), inline: false })
+        }
 
         const row = new ActionRowBuilder<ButtonBuilder>()
         if (isSelf) {

@@ -1,9 +1,11 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
   try {
     const supabase = createSupabaseServer()
+    const supabaseAdmin = createSupabaseAdmin()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -47,14 +49,22 @@ export async function POST(req: Request) {
           .maybeSingle()
 
         if (!existingFriend) {
-          await supabase.from('friends').insert([{
+          await supabaseAdmin.from('friends').insert([{
             user1_id: user.id,
             user2_id: targetId,
             status: 'accepted'
           }])
         } else {
-          await supabase.from('friends').update({ status: 'accepted' }).eq('id', existingFriend.id)
+          await supabaseAdmin.from('friends').update({ status: 'accepted' }).eq('id', existingFriend.id)
         }
+
+        // Envoyer un message automatique
+        await supabaseAdmin.from('messages').insert([{
+          sender_id: targetId,
+          receiver_id: user.id,
+          content: 'Salut ! On a matché ! 👋 Tu veux discuter ?',
+          read: false
+        }])
       }
     }
 

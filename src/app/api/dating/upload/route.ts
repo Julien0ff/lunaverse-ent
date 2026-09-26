@@ -1,4 +1,5 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
@@ -9,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
   try {
     const supabase = createSupabaseServer()
+    const supabaseAdmin = createSupabaseAdmin()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
@@ -24,7 +26,7 @@ export async function POST(request: NextRequest) {
     if (file.size > 5 * 1024 * 1024)
       return NextResponse.json({ error: 'Fichier trop volumineux (max 5 Mo)' }, { status: 400 })
 
-    const path = `${user.id}/dating_photo.${ext}`
+    const path = `${user.id}/dating_photo_${Date.now()}.${ext}`
     const bytes = await file.arrayBuffer()
     const buffer = new Uint8Array(bytes)
 
@@ -32,14 +34,14 @@ export async function POST(request: NextRequest) {
       .from('dating')
       .upload(path, buffer, {
         contentType: file.type,
-        upsert: true, // overwrite previous photo
+        upsert: false, 
       })
 
     if (uploadError) throw uploadError
 
     const { data: { publicUrl } } = supabase.storage.from('dating').getPublicUrl(path)
 
-    // Also update the profile immediately
+    // Also update the profile immediately using admin if needed, but supabase is fine too
     await supabase.from('profiles').update({ dating_photo_url: publicUrl }).eq('id', user.id)
 
     return NextResponse.json({ success: true, url: publicUrl })

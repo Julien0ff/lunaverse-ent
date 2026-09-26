@@ -1,0 +1,3 @@
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS youtube_url VARCHAR,
+ADD COLUMN IF NOT EXISTS tiktok_url VARCHAR;

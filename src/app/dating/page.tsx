@@ -335,8 +335,8 @@ export default function Dating() {
 
       {/* ── Profile Area ── */}
       {tab === 'profile' && (
-        <div className="flex-1 overflow-y-auto custom-scrollbar w-full max-w-sm mx-auto z-10 pb-20">
-          <div className="bg-black/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-6 shadow-2xl">
+        <div className="flex-1 overflow-y-auto custom-scrollbar w-full px-4 z-10 pb-20">
+          <div className="bg-black/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-6 shadow-2xl w-full">
             <h2 className="text-2xl font-black text-white mb-6">Éditer le profil</h2>
             
             {/* Photos Grid */}
