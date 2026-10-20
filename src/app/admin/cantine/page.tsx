@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Clock, Send, Utensils, Info, CheckCircle2, Loader2, Save, Trash2, CalendarDays, Sparkles } from 'lucide-react'
+import { Clock, Send, Utensils, Info, CheckCircle2, Loader2, Save, Trash2, CalendarDays, Sparkles, Download } from 'lucide-react'
 import clsx from 'clsx'
 
 export default function AdminCantinePage() {
@@ -171,6 +171,43 @@ export default function AdminCantinePage() {
     } finally {
       setDeploying(false)
     }
+  }
+
+  const exportPronoteCSV = () => {
+    if (menus.length === 0) {
+      showFeedback('❌ Aucun menu à exporter.')
+      return
+    }
+
+    // Format Pronote / Excel standard : séparateur point-virgule et encodage UTF-8 BOM
+    const headers = ['Date', 'Repas', 'Entree', 'Plat', 'Accompagnement', 'Dessert', 'Boisson', 'Note']
+    const rows = menus.map((m: any) => {
+      const d = new Date(m.menu_date)
+      const formattedDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+      return [
+        formattedDate,
+        'Déjeuner',
+        `"${(m.starter || '').replace(/"/g, '""')}"`,
+        `"${(m.main || '').replace(/"/g, '""')}"`,
+        `"${(m.side || '').replace(/"/g, '""')}"`,
+        `"${(m.dessert || '').replace(/"/g, '""')}"`,
+        `"${(m.drink || '').replace(/"/g, '""')}"`,
+        `"${(m.note || '').replace(/"/g, '""')}"`
+      ].join(';')
+    })
+
+    const csvContent = '\uFEFF' + [headers.join(';'), ...rows].join('\r\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `menus_cantine_pronote_${new Date().toISOString().split('T')[0]}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    showFeedback('📥 Fichier CSV Pronote téléchargé !')
   }
 
   const showFeedback = (msg: string) => {
@@ -343,11 +380,20 @@ export default function AdminCantinePage() {
                   Déployer Carte
                 </button>
                 <button
+                  onClick={exportPronoteCSV}
+                  disabled={menus.length === 0}
+                  className="btn bg-white/10 hover:bg-white/20 text-white px-4 py-2 font-bold flex items-center justify-center gap-2 rounded-lg transition-colors border border-white/10 text-xs sm:text-sm disabled:opacity-50"
+                  title="Exporter les menus au format CSV compatible avec l'importation Pronote"
+                >
+                  <Download className="w-4 h-4 text-discord-blurple" />
+                  Exporter CSV (Pronote)
+                </button>
+                <button
                   onClick={deployMenu}
                   disabled={deploying || menus.length === 0}
-                  className="btn bg-[#5865F2] hover:bg-[#5865F2]/80 text-white px-6 py-2 font-bold flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(88,101,242,0.3)] disabled:opacity-50 disabled:shadow-none"
+                  className="btn bg-[#5865F2] hover:bg-[#5865F2]/80 text-white px-5 py-2 font-bold flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(88,101,242,0.3)] disabled:opacity-50 disabled:shadow-none text-xs sm:text-sm"
                 >
-                  {deploying ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                  {deploying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   Déployer Menu
                 </button>
               </div>
