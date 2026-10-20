@@ -80,28 +80,41 @@ export default function DevoirsPage() {
   const [homeworks, setHomeworks] = useState<Homework[]>([])
   const [classes, setClasses] = useState<{ name: string }[]>([])
   const [selectedClass, setSelectedClass] = useState<string>('all')
+  const [apiStudentClass, setApiStudentClass] = useState<string | null>(null)
   const initialClassSet = useRef(false)
 
-  // Détection d'une classe assignée via les rôles Discord
-  const explicitClass = useMemo(() => {
+  // Déterminer la classe personnelle de l'élève
+  const studentClass = useMemo(() => {
+    // 1. Classe détectée côté serveur via inscriptions ou profil
+    if (apiStudentClass) return apiStudentClass
+
+    // 2. Chercher dans les rôles Discord si un rôle correspond à une classe
     const matchedClass = classes.find(c =>
       roles.some(r => areClassesMatching(r.name, c.name))
     )
     if (matchedClass) return matchedClass.name
 
+    // 3. Chercher dans les rôles si un rôle contient "3A", "3GA" ou "3EA"
     const has3A = roles.some(r => {
       const clean = r.name.toLowerCase().replace(/[^a-z0-9]/g, '')
       return clean.includes('3a') || clean.includes('3ga') || clean.includes('3ea')
     })
-    if (has3A) {
-      const class3 = classes.find(c => areClassesMatching(c.name, '3GA'))
-      if (class3) return class3.name
+    if (has3A) return '3GA'
+
+    // 4. Chercher dans le pseudo RP (ex: "3GA・Pseudo")
+    if (profile?.nickname_rp && profile.nickname_rp.includes('・')) {
+      const prefix = profile.nickname_rp.split('・')[0].trim()
+      const foundInClasses = classes.find(c => areClassesMatching(c.name, prefix))
+      if (foundInClasses) return foundInClasses.name
+      if (prefix) return prefix
     }
 
-    return null
-  }, [roles, classes])
+    // 5. Classe par défaut dans LunaVerse pour les élèves
+    const class3 = classes.find(c => areClassesMatching(c.name, '3GA'))
+    if (class3) return class3.name
 
-  const studentClass = explicitClass || classes[0]?.name || '3GA'
+    return '3GA'
+  }, [apiStudentClass, roles, classes, profile])
 
   const loadData = async () => {
     try {
@@ -113,6 +126,9 @@ export default function DevoirsPage() {
         if (contentType && contentType.includes('application/json')) {
           const data = await res.json()
           setHomeworks(data.homeworks || [])
+          if (data.studentClass) {
+            setApiStudentClass(data.studentClass)
+          }
           if (data.classes) {
             const clsList = (data.classes || []).filter((c: any) => !isHiddenClass(c.name))
             setClasses(clsList)
@@ -133,14 +149,12 @@ export default function DevoirsPage() {
   // Initialisation de la classe sélectionnée une seule fois
   useEffect(() => {
     if (!initialClassSet.current && classes.length > 0) {
-      if (explicitClass) {
-        setSelectedClass(explicitClass)
-      } else {
+      if (!isStudent) {
         setSelectedClass('all')
       }
       initialClassSet.current = true
     }
-  }, [classes, explicitClass])
+  }, [classes, isStudent])
 
   const handleToggleComplete = async (hw: Homework) => {
     const nextCompleted = !hw.completed
@@ -172,16 +186,20 @@ export default function DevoirsPage() {
     }
   }
 
-  // Filtrage selon la classe sélectionnée (ou toutes si 'all')
+  // Filtrage selon la classe : l'élève ne voit STRICTEMENT que sa classe (ou devoirs universels)
   const filteredHomeworks = useMemo(() => {
     return homeworks.filter(hw => {
       // Exclure classes masquées
       if (isHiddenClass(hw.target_class)) return false
 
+      if (isStudent) {
+        return areClassesMatching(hw.target_class, studentClass)
+      }
+
       if (selectedClass === 'all') return true
       return areClassesMatching(hw.target_class, selectedClass)
     })
-  }, [homeworks, selectedClass])
+  }, [homeworks, selectedClass, isStudent, studentClass])
 
   const stats = useMemo(() => {
     const total = filteredHomeworks.length
@@ -204,11 +222,7 @@ export default function DevoirsPage() {
               </h1>
               <p className="text-discord-muted text-sm font-medium">
                 {isStudent ? (
-                  explicitClass ? (
-                    <>Travaux synchronisés depuis Pronote pour la <span className="text-white font-bold">Classe {explicitClass}</span></>
-                  ) : (
-                    <>Travaux et devoirs de l&apos;établissement</>
-                  )
+                  <>Travaux synchronisés depuis Pronote pour votre classe (<span className="text-white font-bold">{studentClass}</span>)</>
                 ) : (
                   <>Consultez les devoirs synchronisés automatiquement depuis Pronote.</>
                 )}
@@ -253,42 +267,49 @@ export default function DevoirsPage() {
           </div>
         </div>
 
-        {/* Stat 3 / Contrôle classe : Sélecteur de classe accessible à tous */}
-        <div className="glass-card p-4 flex flex-col justify-center">
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-discord-muted block">
-              Filtrer par classe
-            </label>
-            {explicitClass && (
-              <span className="text-[10px] font-black uppercase tracking-wider text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-md border border-purple-500/20">
-                Ma classe : {explicitClass}
-              </span>
-            )}
+        {/* Stat 3 / Contrôle classe : Badge de classe pour l'élève, sélecteur pour l'administration/professeurs */}
+        {isStudent ? (
+          <div className="glass-card p-5 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
+              <GraduationCap className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-discord-muted">Votre Classe</p>
+              <p className="text-xl font-black text-white">Classe {studentClass}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            <button
-              onClick={() => setSelectedClass('all')}
-              className={clsx(
-                "px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider shrink-0 transition-colors",
-                selectedClass === 'all' ? "bg-purple-600 text-white" : "bg-white/5 text-discord-muted hover:text-white"
-              )}
-            >
-              Toutes
-            </button>
-            {classes.map(c => (
+        ) : (
+          <div className="glass-card p-4 flex flex-col justify-center">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-discord-muted block">
+                Filtrer par classe
+              </label>
+            </div>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
               <button
-                key={c.name}
-                onClick={() => setSelectedClass(c.name)}
+                onClick={() => setSelectedClass('all')}
                 className={clsx(
                   "px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider shrink-0 transition-colors",
-                  areClassesMatching(selectedClass, c.name) && selectedClass !== 'all' ? "bg-purple-600 text-white" : "bg-white/5 text-discord-muted hover:text-white"
+                  selectedClass === 'all' ? "bg-purple-600 text-white" : "bg-white/5 text-discord-muted hover:text-white"
                 )}
               >
-                {c.name}
+                Toutes
               </button>
-            ))}
+              {classes.map(c => (
+                <button
+                  key={c.name}
+                  onClick={() => setSelectedClass(c.name)}
+                  className={clsx(
+                    "px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider shrink-0 transition-colors",
+                    areClassesMatching(selectedClass, c.name) && selectedClass !== 'all' ? "bg-purple-600 text-white" : "bg-white/5 text-discord-muted hover:text-white"
+                  )}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Liste des devoirs */}
@@ -304,9 +325,12 @@ export default function DevoirsPage() {
           </div>
           <h3 className="text-xl font-bold text-white mb-1">Aucun devoir à rendre</h3>
           <p className="text-discord-muted text-sm max-w-md">
-            Super ! Aucun devoir n&apos;est programmé actuellement {selectedClass !== 'all' ? `pour la classe ${selectedClass}` : 'sur l\'établissement'}.
+            {isStudent
+              ? `Super ! Aucun devoir n'est programmé actuellement pour votre classe (${studentClass}).`
+              : `Super ! Aucun devoir n'est programmé actuellement ${selectedClass !== 'all' ? `pour la classe ${selectedClass}` : 'sur l\'établissement'}.`
+            }
           </p>
-          {selectedClass !== 'all' && (
+          {!isStudent && selectedClass !== 'all' && (
             <button
               onClick={() => setSelectedClass('all')}
               className="mt-4 px-4 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 font-bold text-xs transition-all border border-purple-500/30"

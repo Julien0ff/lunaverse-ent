@@ -21,7 +21,9 @@ async function checkAdminOrTeacher(supabase: any) {
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = createSupabaseServer()
     const admin = createSupabaseAdmin()
+    const { data: { user } } = await supabase.auth.getUser()
     const { searchParams } = new URL(request.url)
     const targetClass = searchParams.get('class')
     const day = searchParams.get('day') // '6' for Samedi, '0' for Dimanche
@@ -81,7 +83,31 @@ export async function GET(request: NextRequest) {
       return !HIDDEN_CLASSES.includes(clean)
     })
 
-    return NextResponse.json({ courses: courses || [], classes: visibleClasses })
+    // Détection de la classe de l'élève connecté
+    let studentClass: string | null = null
+    if (user?.id) {
+      try {
+        const { data: profile } = await admin.from('profiles').select('discord_id, nickname_rp').eq('id', user.id).maybeSingle()
+        if (profile?.discord_id) {
+          const { data: insc } = await admin.from('inscriptions')
+            .select('classe')
+            .eq('discord_id', profile.discord_id)
+            .in('status', ['accepted', 'completed'])
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          if (insc?.classe && insc.classe !== 'À définir') {
+            studentClass = insc.classe
+          }
+        }
+        if (!studentClass && profile?.nickname_rp && profile.nickname_rp.includes('・')) {
+          const prefix = profile.nickname_rp.split('・')[0].trim()
+          if (prefix) studentClass = prefix
+        }
+      } catch (ign) {}
+    }
+
+    return NextResponse.json({ courses: courses || [], classes: visibleClasses, studentClass })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
