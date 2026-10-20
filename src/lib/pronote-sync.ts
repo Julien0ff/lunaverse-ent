@@ -169,6 +169,7 @@ export async function pairPronoteWithQr({ qr, pin }: { qr: string | any; pin: st
       qr: qrObj,
     })
   } catch (err: any) {
+    console.error('[Pronote] pairPronoteWithQr error details:', err)
     if (err?.name === 'BadCredentialsError') {
       throw new Error(
         `Échec d'authentification Pronote pour "${effectiveUsername}" (code PIN: ${effectivePin}). Le jeton du QR Code a expiré (validité 10 min) ou a été invalidé. Veuillez fermer la fenêtre du QR Code sur Pronote, en générer un nouveau et réappairer immédiatement.`
