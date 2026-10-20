@@ -777,10 +777,13 @@ client.on('ready', async () => {
     // ── Automated Pronote Sync (Runs every 10 minutes) ──
     if (now.getMinutes() % 10 === 0) {
       try {
-        const { syncPronoteData } = await import('./pronote-sync')
-        const syncRes = await syncPronoteData()
-        if (syncRes && syncRes.alertsSent > 0) {
-          console.log(`[PronoteSync] Sync auto bot : ${syncRes.coursesCount} cours traités, ${syncRes.homeworksCount} devoirs, ${syncRes.alertsSent} alertes Discord envoyées.`)
+        const pronoteModule: any = await import('./pronote-sync')
+        const syncPronoteData = pronoteModule.syncPronoteData || pronoteModule.default?.syncPronoteData
+        if (typeof syncPronoteData === 'function') {
+          const syncRes = await syncPronoteData()
+          if (syncRes && syncRes.alertsSent > 0) {
+            console.log(`[PronoteSync] Sync auto bot : ${syncRes.coursesCount} cours traités, ${syncRes.homeworksCount} devoirs, ${syncRes.alertsSent} alertes Discord envoyées.`)
+          }
         }
       } catch (err: any) {
         if (!err?.message?.includes("n'est pas encore appairé")) {

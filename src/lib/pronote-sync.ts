@@ -7,7 +7,7 @@ import {
   translateToWeekNumber,
   TimetableClassLesson,
   AccountKind,
-} from './pawnote'
+} from './pawnote/index.js'
 import { createSupabaseAdmin } from './supabase-admin'
 import { randomUUID } from 'crypto'
 // @ts-ignore

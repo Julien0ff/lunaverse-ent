@@ -1,1 +1,15 @@
-{"main":"./index.js","types":"./index.d.ts"}
+{
+  "name": "pawnote-local",
+  "version": "1.0.0",
+  "main": "./index.js",
+  "module": "./index.mjs",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.mjs",
+      "require": "./index.js",
+      "default": "./index.js"
+    }
+  }
+}
