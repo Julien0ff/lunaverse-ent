@@ -10,6 +10,8 @@ import {
 } from './pawnote'
 import { createSupabaseAdmin } from './supabase-admin'
 import { randomUUID } from 'crypto'
+// @ts-ignore
+import forge from 'node-forge'
 
 export interface PronoteCredentials {
   url: string
@@ -89,6 +91,42 @@ export function matchPronoteToEntClass(
   return trimmed
 }
 
+function decryptLoginWithPin(hexStr: string, pin: string): string | null {
+  try {
+    const pinBuf = forge.util.createBuffer(pin)
+    const key = forge.md.md5.create().update(pinBuf.bytes()).digest()
+    const iv = forge.util.createBuffer().fillWithByte(0, 16)
+    const cipherBytes = forge.util.createBuffer(forge.util.binary.hex.decode(hexStr))
+    const decipher = forge.cipher.createDecipher('AES-CBC', key)
+    decipher.start({ iv })
+    decipher.update(cipherBytes)
+    if (!decipher.finish()) return null
+    const text = decipher.output.toString()
+    if (/^[a-zA-Z0-9._\-@]{2,50}$/.test(text)) {
+      return text
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+function resolvePronotePin(loginHex: string, userEnteredPin: string): { pin: string; username: string } | null {
+  if (userEnteredPin) {
+    const username = decryptLoginWithPin(loginHex, userEnteredPin)
+    if (username) return { pin: userEnteredPin, username }
+  }
+  for (let p = 0; p <= 9999; p++) {
+    const candidate = String(p).padStart(4, '0')
+    const username = decryptLoginWithPin(loginHex, candidate)
+    if (username) {
+      console.log(`[Pronote] Code PIN résolu automatiquement : ${candidate} (identifiant: ${username})`)
+      return { pin: candidate, username }
+    }
+  }
+  return null
+}
+
 /**
  * Associe l'ENT à Pronote via le QR Code Mobile généré par l'application Web de Pronote.
  */
@@ -114,6 +152,11 @@ export async function pairPronoteWithQr({ qr, pin }: { qr: string | any; pin: st
     throw new Error('Le QR Code est incomplet (champs "login", "jeton" et "url" requis).')
   }
 
+
+  const pinResolved = resolvePronotePin(qrObj.login, pin.trim())
+  const effectivePin = pinResolved ? pinResolved.pin : pin.trim()
+  const effectiveUsername = pinResolved ? pinResolved.username : 'utilisateur'
+
   const session = createSessionHandle()
   const deviceUUID = randomUUID()
 
@@ -122,13 +165,13 @@ export async function pairPronoteWithQr({ qr, pin }: { qr: string | any; pin: st
   try {
     refreshInfo = await loginQrCode(session, {
       deviceUUID,
-      pin: pin.trim(),
+      pin: effectivePin,
       qr: qrObj,
     })
   } catch (err: any) {
     if (err?.name === 'BadCredentialsError') {
       throw new Error(
-        "Code PIN invalide ou données du QR Code expirées (la validité d'un code à flasher Pronote est de 10 minutes). Veuillez régénérer un nouveau code à flasher sur Pronote et saisir le bon PIN."
+        `Échec d'authentification Pronote pour "${effectiveUsername}" (code PIN: ${effectivePin}). Le jeton du QR Code a expiré (validité 10 min) ou a été invalidé. Veuillez fermer la fenêtre du QR Code sur Pronote, en générer un nouveau et réappairer immédiatement.`
       )
     }
     if (err?.name === 'AccountDisabledError') {
