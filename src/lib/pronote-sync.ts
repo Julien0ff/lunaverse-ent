@@ -118,11 +118,33 @@ export async function pairPronoteWithQr({ qr, pin }: { qr: string | any; pin: st
   const deviceUUID = randomUUID()
 
   // Authentification et handshake QR Code avec pawnote
-  const refreshInfo = await loginQrCode(session, {
-    deviceUUID,
-    pin: pin.trim(),
-    qr: qrObj,
-  })
+  let refreshInfo: any
+  try {
+    refreshInfo = await loginQrCode(session, {
+      deviceUUID,
+      pin: pin.trim(),
+      qr: qrObj,
+    })
+  } catch (err: any) {
+    if (err?.name === 'BadCredentialsError') {
+      throw new Error(
+        "Code PIN invalide ou données du QR Code expirées (la validité d'un code à flasher Pronote est de 10 minutes). Veuillez régénérer un nouveau code à flasher sur Pronote et saisir le bon PIN."
+      )
+    }
+    if (err?.name === 'AccountDisabledError') {
+      throw new Error("Ce compte Pronote est désactivé.")
+    }
+    if (err?.name === 'AccessDeniedError') {
+      throw new Error("Accès refusé par le serveur Pronote ou autorisations insuffisantes.")
+    }
+    if (err?.name === 'SuspendedIPError') {
+      throw new Error("L'adresse IP a été temporairement suspendue par Pronote. Veuillez patienter quelques minutes.")
+    }
+    if (err?.name === 'PageUnavailableError' || err?.name === 'BusyPageError') {
+      throw new Error("Le serveur Pronote est temporairement indisponible ou la page demandée n'a pas répondu.")
+    }
+    throw new Error(err?.message || "Erreur lors de l'appairage avec Pronote.")
+  }
 
   const admin = createSupabaseAdmin()
   const creds: PronoteCredentials = {

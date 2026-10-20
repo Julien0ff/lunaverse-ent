@@ -9,7 +9,8 @@
     "lint": "next lint",
     "bot": "npx --yes tsx src/lib/discord-bot.ts",
     "seed": "npx --yes tsx scripts/seed.ts",
-    "pocketbase:setup": "npx --yes tsx pocketbase/setup.ts"
+    "pocketbase:setup": "npx --yes tsx pocketbase/setup.ts",
+    "postinstall": "node scripts/patch-pawnote.js"
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.15.0",

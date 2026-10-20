@@ -1,32 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 import {
   BookOpen,
-  Check,
-  X,
   Loader2,
-  Download,
   AlertCircle,
   RefreshCw,
   Smartphone,
   ShieldCheck,
   Unlink,
-  Calendar,
   Sparkles,
-  ExternalLink,
   HelpCircle,
+  Check,
 } from 'lucide-react'
 import clsx from 'clsx'
-
-interface Request {
-  id: string
-  image_url: string
-  status: string
-  created_at: string
-  profile: { id: string; username: string; discord_id: string; nickname_rp?: string }
-}
 
 interface PronoteStatus {
   isConnected: boolean
@@ -40,8 +27,6 @@ interface PronoteStatus {
 
 export default function AdminPronotePage() {
   const [loading, setLoading] = useState(true)
-  const [requests, setRequests] = useState<Request[]>([])
-  const [pronoteIdInputs, setPronoteIdInputs] = useState<Record<string, string>>({})
 
   // État Pronote Direct
   const [status, setStatus] = useState<PronoteStatus | null>(null)
@@ -53,16 +38,11 @@ export default function AdminPronotePage() {
   const [showHelp, setShowHelp] = useState(false)
 
   useEffect(() => {
-    loadAll()
+    loadPronoteStatus()
   }, [])
 
-  const loadAll = async () => {
-    setLoading(true)
-    await Promise.all([loadRequests(), loadPronoteStatus()])
-    setLoading(false)
-  }
-
   const loadPronoteStatus = async () => {
+    setLoading(true)
     try {
       const res = await fetch('/api/admin/pronote/connect')
       if (res.ok) {
@@ -71,18 +51,8 @@ export default function AdminPronotePage() {
       }
     } catch (e) {
       console.error('Erreur chargement statut Pronote:', e)
-    }
-  }
-
-  const loadRequests = async () => {
-    try {
-      const res = await fetch('/api/admin/pronote')
-      if (res.ok) {
-        const data = await res.json()
-        setRequests(data)
-      }
-    } catch (e) {
-      console.error(e)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -157,27 +127,6 @@ export default function AdminPronotePage() {
     }
   }
 
-  const updateRequest = async (requestId: string, status: string, profileId?: string) => {
-    const pronoteId = pronoteIdInputs[requestId]
-    if (status === 'approved' && !pronoteId) {
-      alert("Veuillez saisir l'identifiant Pronote avant d'approuver.")
-      return
-    }
-
-    try {
-      const res = await fetch('/api/admin/pronote', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestId, status, profileId, pronoteId }),
-      })
-      if (res.ok) {
-        setRequests(requests.map(r => (r.id === requestId ? { ...r, status } : r)))
-      }
-    } catch (e) {
-      console.error(e)
-    }
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -186,11 +135,8 @@ export default function AdminPronotePage() {
     )
   }
 
-  const pendingRequests = requests.filter(r => r.status === 'pending')
-  const otherRequests = requests.filter(r => r.status !== 'pending')
-
   return (
-    <div className="space-y-8 animate-fadeIn">
+    <div className="space-y-8 animate-fadeIn max-w-5xl">
       {/* En-tête */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -199,7 +145,7 @@ export default function AdminPronotePage() {
             Gestion Pronote & Synchronisation
           </h2>
           <p className="text-discord-muted">
-            Emploi du Temps week-end (12h-19h30), Devoirs et liaison des comptes élèves.
+            Synchronisation automatique de l'Emploi du Temps week-end (12h-19h30) et des Devoirs.
           </p>
         </div>
         <button
@@ -216,23 +162,23 @@ export default function AdminPronotePage() {
         <div className="p-6 rounded-2xl bg-discord-blurple/10 border border-discord-blurple/30 space-y-4 animate-fadeIn">
           <h3 className="font-bold text-white flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-discord-blurple" />
-            Comment connecter Pronote sans mot de passe Discord ?
+            Comment connecter Pronote à l'ENT via le QR Code Mobile ?
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-discord-muted">
             <div className="p-4 rounded-xl bg-black/20 border border-white/5 space-y-2">
               <span className="w-6 h-6 rounded-full bg-discord-blurple/30 text-discord-blurple font-bold flex items-center justify-center">1</span>
               <p className="font-semibold text-white">Générer le QR Code</p>
-              <p>Connectez-vous sur Pronote avec votre compte ayant accès aux classes (direction / prof). Cliquez sur le bouton mobile <strong className="text-white">"Code à flasher"</strong> en haut à droite.</p>
+              <p>Connectez-vous sur Pronote avec votre compte ayant accès aux cours (Espace Vie Scolaire, Direction ou Professeur). Cliquez sur le bouton mobile <strong className="text-white">"Code à flasher"</strong> en haut à droite.</p>
             </div>
             <div className="p-4 rounded-xl bg-black/20 border border-white/5 space-y-2">
               <span className="w-6 h-6 rounded-full bg-discord-blurple/30 text-discord-blurple font-bold flex items-center justify-center">2</span>
               <p className="font-semibold text-white">Définir un code PIN</p>
-              <p>Pronote vous demande de créer un code à 4 chiffres (ex: <code className="text-discord-blurple">1234</code>). Retenez ce code !</p>
+              <p>Pronote vous demande de créer un code à 4 chiffres (ex: <code className="text-discord-blurple">1234</code>). Retenez ce code pour l'appairage !</p>
             </div>
             <div className="p-4 rounded-xl bg-black/20 border border-white/5 space-y-2">
               <span className="w-6 h-6 rounded-full bg-discord-blurple/30 text-discord-blurple font-bold flex items-center justify-center">3</span>
               <p className="font-semibold text-white">Appairer l'ENT</p>
-              <p>Collez le texte du QR Code et le code PIN ci-dessous. L'ENT génère un jeton permanent et reste connecté 24h/24 automatiquement.</p>
+              <p>Collez le texte du QR Code et le code PIN ci-dessous. L'ENT génère un jeton permanent et maintient la synchronisation active 24h/24.</p>
             </div>
           </div>
         </div>
@@ -345,7 +291,7 @@ export default function AdminPronotePage() {
                 <textarea
                   rows={3}
                   className="glass-input w-full bg-white/5 border-white/10 text-white font-mono text-xs focus:border-discord-blurple resize-none"
-                  placeholder='Exemple : {"login":"...","jeton":"...","url":"https://pronote.lunaverse.fr/mobile.eleve.html"}'
+                  placeholder='Exemple : {"login":"...","jeton":"...","url":"https://pronote.lunaverse.fr/mobile.viescolaire.html"}'
                   value={qrInput}
                   onChange={e => setQrInput(e.target.value)}
                 />
@@ -387,129 +333,6 @@ export default function AdminPronotePage() {
               </div>
             </div>
           </form>
-        )}
-      </div>
-
-      {/* Section Demandes des élèves (Vérification manuelle des identifiants) */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-xl font-bold text-white flex items-center gap-2">
-            <Calendar className="text-discord-blurple w-6 h-6" />
-            Demandes de liaison Pronote des Élèves
-          </h3>
-          <p className="text-xs text-discord-muted">
-            Vérifiez les captures d'écran transmises par les élèves pour leur attribuer leur identifiant Pronote.
-          </p>
-        </div>
-
-        {pendingRequests.length === 0 && otherRequests.length === 0 ? (
-          <div className="p-8 text-center text-discord-muted bg-white/5 rounded-3xl border border-white/5">
-            Aucune demande d'élève pour le moment.
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {pendingRequests.map(req => (
-              <div key={req.id} className="glass-card p-6 border-l-4 border-l-amber-500">
-                <div className="flex flex-col md:flex-row gap-6">
-                  <div className="flex-1 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-xl font-bold text-white">{req.profile.username}</h4>
-                        <p className="text-sm text-discord-muted">{req.profile.nickname_rp || 'Pas de pseudo RP'}</p>
-                        <span className="text-[10px] font-mono text-discord-muted block mt-1">
-                          Discord: {req.profile.discord_id}
-                        </span>
-                      </div>
-                      <span className="px-3 py-1 bg-amber-500/20 text-amber-500 text-xs font-bold rounded-full uppercase tracking-wider">
-                        En attente
-                      </span>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-discord-muted uppercase tracking-wider">
-                        Identifiant Pronote (OBLIGATOIRE)
-                      </label>
-                      <input
-                        type="text"
-                        className="glass-input w-full bg-white/5 border-white/10 text-white focus:border-discord-blurple"
-                        placeholder="Ex: dupont.jean"
-                        value={pronoteIdInputs[req.id] || ''}
-                        onChange={e => setPronoteIdInputs({ ...pronoteIdInputs, [req.id]: e.target.value })}
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-3 mt-4">
-                      <button
-                        onClick={() => updateRequest(req.id, 'approved', req.profile.id)}
-                        className="flex-1 btn bg-discord-success hover:bg-discord-success/80 text-white font-bold py-2 px-4 rounded-xl flex items-center justify-center gap-2"
-                      >
-                        <Check size={18} /> Approuver
-                      </button>
-                      <button
-                        onClick={() => updateRequest(req.id, 'rejected')}
-                        className="flex-1 btn bg-discord-error hover:bg-discord-error/80 text-white font-bold py-2 px-4 rounded-xl flex items-center justify-center gap-2"
-                      >
-                        <X size={18} /> Refuser
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="w-full md:w-64 h-64 bg-white/5 rounded-xl border border-white/10 overflow-hidden relative group shrink-0">
-                    <Image src={req.image_url} alt="Preuve Pronote" fill className="object-cover" />
-                    <a
-                      href={req.image_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <div className="bg-white/10 p-3 rounded-full text-white backdrop-blur-md">
-                        <Download size={24} />
-                      </div>
-                    </a>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {otherRequests.length > 0 && (
-              <div className="pt-6 mt-6 border-t border-white/5 space-y-4">
-                <h4 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Check className="text-discord-success w-5 h-5" />
-                  Demandes Traitées
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {otherRequests.map(req => (
-                    <div
-                      key={req.id}
-                      className="p-4 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between"
-                    >
-                      <div>
-                        <p className="font-bold text-white text-sm">{req.profile.username}</p>
-                        <span
-                          className={clsx(
-                            'text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full mt-1 inline-block',
-                            req.status === 'approved'
-                              ? 'bg-discord-success/20 text-discord-success'
-                              : 'bg-discord-error/20 text-discord-error'
-                          )}
-                        >
-                          {req.status === 'approved' ? 'Approuvé' : 'Refusé'}
-                        </span>
-                      </div>
-                      <a
-                        href={req.image_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-discord-muted hover:text-white transition-colors"
-                      >
-                        <Download size={14} />
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
         )}
       </div>
     </div>
