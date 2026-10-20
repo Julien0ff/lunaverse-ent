@@ -210,12 +210,25 @@ export async function pairPronoteWithQr({ qr, pin }: { qr: string | any; pin: st
     updated_at: new Date().toISOString(),
   })
 
+  // Synchronisation immédiate des données
+  let coursesCount = 0
+  let homeworksCount = 0
+  try {
+    const syncRes = await syncPronoteData()
+    coursesCount = syncRes.coursesCount
+    homeworksCount = syncRes.homeworksCount
+  } catch (syncErr: any) {
+    console.warn('[PronoteSync] Premier sync post-appairage:', syncErr?.message || syncErr)
+  }
+
   return {
     success: true,
     username: refreshInfo.username,
     accountName: creds.account_name,
     url: refreshInfo.url,
     kind: refreshInfo.kind,
+    coursesCount,
+    homeworksCount,
   }
 }
 
@@ -265,14 +278,27 @@ export async function syncPronoteData() {
   const session = createSessionHandle()
 
   // Reconnexion avec le jeton mobile permanent
-  await loginToken(session, {
-    url: creds.url,
-    kind: creds.kind,
-    username: creds.username,
-    token: creds.token,
-    deviceUUID: creds.deviceUUID,
-    navigatorIdentifier: creds.navigatorIdentifier,
-  })
+  try {
+    await loginToken(session, {
+      url: creds.url,
+      kind: (Number(creds.kind) || 14) as AccountKind,
+      username: creds.username,
+      token: creds.token,
+      deviceUUID: creds.deviceUUID || randomUUID(),
+      navigatorIdentifier: creds.navigatorIdentifier,
+    })
+  } catch (err: any) {
+    if (
+      err?.name === 'BadCredentialsError' ||
+      err?.message?.includes('challenge') ||
+      err?.message?.includes('credentials')
+    ) {
+      throw new Error(
+        "Le jeton de connexion Pronote a expiré ou a été révoqué par le serveur Pronote. Veuillez déconnecter le compte et réappairer avec un nouveau QR Code."
+      )
+    }
+    throw err
+  }
 
   // Récupération des classes RP déclarées
   const { data: classSetting } = await admin

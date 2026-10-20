@@ -77,7 +77,7 @@ export default function AdminPronotePage() {
       }
       setFeedbackMsg({
         type: 'success',
-        text: `Compte Pronote (${data.accountName || data.username}) associé avec succès !`,
+        text: `Compte Pronote (${data.accountName || data.username}) associé avec succès !${typeof data.coursesCount === 'number' && data.coursesCount > 0 ? ` (${data.coursesCount} cours, ${data.homeworksCount} devoirs synchronisés)` : ''}`,
       })
       setQrInput('')
       setPinInput('')
@@ -248,14 +248,30 @@ export default function AdminPronotePage() {
         {feedbackMsg && (
           <div
             className={clsx(
-              'p-4 rounded-xl text-sm flex items-center gap-3 animate-fadeIn',
+              'p-4 rounded-xl text-sm flex items-center justify-between gap-3 animate-fadeIn flex-wrap',
               feedbackMsg.type === 'success'
                 ? 'bg-discord-success/15 border border-discord-success/30 text-discord-success'
                 : 'bg-discord-error/15 border border-discord-error/30 text-discord-error'
             )}
           >
-            {feedbackMsg.type === 'success' ? <Check size={18} /> : <AlertCircle size={18} />}
-            <span>{feedbackMsg.text}</span>
+            <div className="flex items-center gap-3">
+              {feedbackMsg.type === 'success' ? <Check size={18} className="shrink-0" /> : <AlertCircle size={18} className="shrink-0" />}
+              <span>{feedbackMsg.text}</span>
+            </div>
+            {feedbackMsg.type === 'error' && (feedbackMsg.text.includes('expiré') || feedbackMsg.text.includes('révoqué') || feedbackMsg.text.includes('challenge') || feedbackMsg.text.includes('credentials')) && (
+              <button
+                onClick={async () => {
+                  await handleDisconnect()
+                  setFeedbackMsg({
+                    type: 'error',
+                    text: 'Compte déconnecté. Veuillez générer un nouveau QR Code sur Pronote et le coller ci-dessous avec votre code PIN.'
+                  })
+                }}
+                className="px-3 py-1.5 rounded-lg bg-discord-error/30 hover:bg-discord-error/40 text-white font-bold text-xs transition-colors shrink-0"
+              >
+                Réassocier avec un nouveau QR Code
+              </button>
+            )}
           </div>
         )}
 
