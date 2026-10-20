@@ -121,7 +121,9 @@ export default function AdminPronotePage() {
         body: JSON.stringify({ action: 'disconnect' }),
       })
       await loadPronoteStatus()
-      setFeedbackMsg({ type: 'success', text: 'Compte Pronote déconnecté.' })
+      setQrInput('')
+      setPinInput('')
+      setFeedbackMsg({ type: 'success', text: 'Compte Pronote déconnecté. Veuillez générer un nouveau QR Code sur Pronote.' })
     } catch (e) {
       console.error(e)
     }
