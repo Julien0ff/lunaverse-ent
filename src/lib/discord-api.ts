@@ -1,6 +1,6 @@
 import { createSupabaseServer } from './supabase-server'
 
-export async function sendDiscordDMByDiscordId(discordId: string, embedData: any) {
+export async function sendDiscordDMByDiscordId(discordId: string, embedData: any, components?: any[]) {
   try {
     const token = process.env.DISCORD_BOT_TOKEN
     if (!token) return false
@@ -15,10 +15,15 @@ export async function sendDiscordDMByDiscordId(discordId: string, embedData: any
     const channel = await channelRes.json()
     if (!channel.id) return false
 
+    const payload: any = { embeds: [embedData] }
+    if (components && components.length > 0) {
+      payload.components = components
+    }
+
     const msgRes = await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
       method: 'POST',
       headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ embeds: [embedData] })
+      body: JSON.stringify(payload)
     })
 
     return msgRes.ok
@@ -32,7 +37,7 @@ export async function sendDiscordDMByDiscordId(discordId: string, embedData: any
  * Sends a Direct Message to a user via the Discord REST API.
  * This ensures DMs work reliably even if the bot's Realtime listeners fail.
  */
-export async function sendDiscordDM(userId: string, embedData: any) {
+export async function sendDiscordDM(userId: string, embedData: any, components?: any[]) {
   try {
     const token = process.env.DISCORD_BOT_TOKEN
     if (!token) return false
@@ -58,6 +63,11 @@ export async function sendDiscordDM(userId: string, embedData: any) {
     const channel = await channelRes.json()
     if (!channel.id) return false
 
+    const payload: any = { embeds: [embedData] }
+    if (components && components.length > 0) {
+      payload.components = components
+    }
+
     // 2. Send Message
     const msgRes = await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
       method: 'POST',
@@ -65,9 +75,7 @@ export async function sendDiscordDM(userId: string, embedData: any) {
         Authorization: `Bot ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        embeds: [embedData]
-      })
+      body: JSON.stringify(payload)
     })
 
     return msgRes.ok

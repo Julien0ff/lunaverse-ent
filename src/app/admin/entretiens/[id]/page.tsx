@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ChevronLeft, Save, Search, User, Check, X, Clock, BrainCircuit, Trash2 } from 'lucide-react'
+import { ChevronLeft, Save, Search, User, Check, X, Clock, BrainCircuit, Trash2, Calendar, AlertCircle, MessageSquare, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import clsx from 'clsx'
 import { useLanguage } from '@/context/LanguageContext'
@@ -22,6 +22,11 @@ export default function EntretienDetailPage() {
 
   // Channels for Phase 1 planning
   const [vocalChannels, setVocalChannels] = useState<any[]>([])
+
+  // Reschedule decision states
+  const [processingRescheduleId, setProcessingRescheduleId] = useState<string | null>(null)
+  const [refusalModalReqId, setRefusalModalReqId] = useState<string | null>(null)
+  const [refusalReasonInput, setRefusalReasonInput] = useState('')
 
   const id = params?.id as string
 
@@ -127,6 +132,36 @@ export default function EntretienDetailPage() {
       questions_data: updatedQs,
       interview_note: totalPoints
     }))
+  }
+
+  const handleRescheduleDecision = async (requestId: string, decision: 'accept' | 'refuse', refusalReason?: string) => {
+    setProcessingRescheduleId(requestId)
+    try {
+      const res = await fetch(`/api/admin/interviews/${id}/reschedule`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId,
+          decision,
+          refusal_reason: refusalReason,
+          vocal_channel_name: interview.vocal_channel_name
+        })
+      })
+
+      const data = await res.json()
+      if (res.ok && data.interview) {
+        setInterview(data.interview)
+        setRefusalModalReqId(null)
+        setRefusalReasonInput('')
+      } else {
+        alert(data.error || 'Erreur lors du traitement de la demande.')
+      }
+    } catch (e) {
+      console.error(e)
+      alert('Erreur réseau lors de la mise à jour.')
+    } finally {
+      setProcessingRescheduleId(null)
+    }
   }
 
   if (loading) return <div className="p-20 text-center animate-pulse">Chargement...</div>
@@ -479,6 +514,180 @@ export default function EntretienDetailPage() {
           
           </>
           )}
+
+          {/* DEMANDES DE REPORT & DISPONIBILITÉS DU CANDIDAT */}
+          {(() => {
+            const requests: any[] = Array.isArray(interview.reschedule_requests)
+              ? interview.reschedule_requests
+              : []
+            const pendingCount = requests.filter(r => r.status === 'pending').length
+
+            return (
+              <div className="glass-card mt-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+                  <div>
+                    <h3 className="text-sm font-black text-discord-muted uppercase tracking-widest flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-discord-blurple" /> Demandes de Report d'Entretien ({requests.length})
+                    </h3>
+                    <p className="text-xs text-discord-muted mt-1">
+                      Historique des demandes d'indisponibilité et propositions de dates formulées par le candidat.
+                    </p>
+                  </div>
+                  {pendingCount > 0 && (
+                    <span className="self-start sm:self-auto px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 text-xs font-black flex items-center gap-1.5 animate-pulse">
+                      <Clock className="w-3.5 h-3.5" /> {pendingCount} en attente
+                    </span>
+                  )}
+                </div>
+
+                {requests.length === 0 ? (
+                  <div className="p-8 text-center bg-white/[0.02] border border-white/5 rounded-2xl">
+                    <Calendar className="w-8 h-8 text-white/10 mx-auto mb-2" />
+                    <p className="text-sm font-bold text-discord-muted">Aucune demande de report enregistrée.</p>
+                    <p className="text-xs text-gray-500 mt-1">Si le candidat indique une indisponibilité depuis l'ENT, sa demande apparaîtra ici.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {requests.slice().reverse().map((req: any, index: number) => {
+                      const isPending = req.status === 'pending'
+                      const isAccepted = req.status === 'accepted'
+                      const isRefused = req.status === 'refused'
+                      const isProcessing = processingRescheduleId === req.id
+
+                      return (
+                        <div 
+                          key={req.id || index}
+                          className={clsx(
+                            "p-5 rounded-2xl border transition-all space-y-4",
+                            isPending ? "bg-yellow-500/[0.07] border-yellow-500/30 shadow-lg shadow-yellow-500/5" :
+                            isAccepted ? "bg-discord-success/[0.06] border-discord-success/30" :
+                            isRefused ? "bg-discord-error/[0.06] border-discord-error/30" :
+                            "bg-white/[0.03] border-white/5 opacity-60"
+                          )}
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
+                            <div className="flex items-center gap-2">
+                              <span className={clsx(
+                                "px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
+                                isPending ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/40" :
+                                isAccepted ? "bg-discord-success/20 text-discord-success border border-discord-success/40" :
+                                isRefused ? "bg-discord-error/20 text-discord-error border border-discord-error/40" :
+                                "bg-white/10 text-discord-muted"
+                              )}>
+                                {isPending ? '⏳ En attente de réponse' :
+                                 isAccepted ? '✅ Acceptée (Date appliquée)' :
+                                 isRefused ? '❌ Refusée' : req.status}
+                              </span>
+                              <span className="text-xs text-discord-muted">
+                                Demandé le {new Date(req.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}
+                              </span>
+                            </div>
+
+                            {req.reviewed_at && (
+                              <span className="text-[11px] text-discord-muted">
+                                Traité le {new Date(req.reviewed_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="p-3.5 rounded-xl bg-black/30 border border-white/5 space-y-1">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-discord-muted">
+                                Date initiale fixée par le staff
+                              </span>
+                              <div className="text-sm font-bold text-gray-300 line-through">
+                                {req.original_date ? new Date(req.original_date).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' }) : 'Non définie'}
+                              </div>
+                            </div>
+
+                            <div className="p-3.5 rounded-xl bg-discord-blurple/10 border border-discord-blurple/30 space-y-1">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-discord-blurple flex items-center gap-1">
+                                <Calendar className="w-3.5 h-3.5" /> Nouvelle date souhaitée par le candidat
+                              </span>
+                              <div className="text-sm font-black text-white">
+                                {new Date(req.proposed_date).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-discord-muted">
+                              Motif d'indisponibilité du candidat :
+                            </span>
+                            <div className="p-3 rounded-xl bg-black/40 border border-white/5 text-sm text-gray-200 italic">
+                              « {req.reason} »
+                            </div>
+                          </div>
+
+                          {req.refusal_reason && (
+                            <div className="p-3 rounded-xl bg-discord-error/10 border border-discord-error/20 text-xs text-discord-error space-y-0.5">
+                              <span className="font-bold">Motif du refus transmis au candidat :</span>
+                              <p className="italic text-gray-200">{req.refusal_reason}</p>
+                            </div>
+                          )}
+
+                          {/* Staff Decision Actions if Pending */}
+                          {isPending && (
+                            <div className="pt-2 border-t border-white/10 flex flex-col gap-3">
+                              {refusalModalReqId === req.id ? (
+                                <div className="p-4 rounded-xl bg-black/40 border border-discord-error/30 space-y-3 animate-fadeIn">
+                                  <label className="text-xs font-bold text-discord-error block">
+                                    Motif du refus (sera envoyé par MP Discord au candidat) :
+                                  </label>
+                                  <input 
+                                    type="text"
+                                    value={refusalReasonInput}
+                                    onChange={e => setRefusalReasonInput(e.target.value)}
+                                    placeholder="Ex: Créneau non disponible pour les jurys, merci de proposer un soir..."
+                                    className="glass-input text-sm w-full py-2"
+                                    autoFocus
+                                  />
+                                  <div className="flex justify-end gap-2">
+                                    <button 
+                                      onClick={() => { setRefusalModalReqId(null); setRefusalReasonInput(''); }}
+                                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-discord-muted hover:text-white"
+                                    >
+                                      Annuler
+                                    </button>
+                                    <button 
+                                      onClick={() => handleRescheduleDecision(req.id, 'refuse', refusalReasonInput)}
+                                      disabled={isProcessing}
+                                      className="px-4 py-1.5 rounded-lg text-xs font-bold bg-discord-error hover:bg-discord-error/80 text-white transition-colors flex items-center gap-1.5"
+                                    >
+                                      {isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                                      Confirmer le Refus
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                                  <button 
+                                    onClick={() => { setRefusalModalReqId(req.id); setRefusalReasonInput(''); }}
+                                    disabled={isProcessing}
+                                    className="px-4 py-2 rounded-xl text-xs font-bold text-discord-error bg-discord-error/10 hover:bg-discord-error/20 border border-discord-error/30 transition-all flex items-center justify-center gap-2"
+                                  >
+                                    <X className="w-4 h-4" /> Refuser cette date
+                                  </button>
+                                  <button 
+                                    onClick={() => handleRescheduleDecision(req.id, 'accept')}
+                                    disabled={isProcessing}
+                                    className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-discord-success hover:bg-discord-success/80 transition-all flex items-center justify-center gap-2 shadow-lg shadow-discord-success/20"
+                                  >
+                                    {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                                    Accepter ce créneau (Mettre à jour la convocation)
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
         </div>
       </div>
     </div>

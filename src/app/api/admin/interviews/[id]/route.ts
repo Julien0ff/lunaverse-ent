@@ -94,11 +94,26 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             const dateStr = data.scheduled_at ? new Date(data.scheduled_at).toLocaleString('fr-FR') : 'à définir'
             const chanStr = data.vocal_channel_name || 'à définir'
             if (data.candidate_discord_id) {
+                const components = [
+                    {
+                        type: 1, // ActionRow
+                        components: [
+                            {
+                                type: 2, // Button
+                                style: 5, // Link
+                                label: '📅 Pas disponible ? Proposer une autre date',
+                                url: 'https://ent.lunaverse.fr/recrutement'
+                            }
+                        ]
+                    }
+                ]
+
                 await sendDiscordDMByDiscordId(data.candidate_discord_id, {
                     title: `📅 Convocation à un Entretien : ${data.target_role}`,
-                    description: `Félicitations, votre dossier a été retenu ! Vous êtes convoqué à un entretien pour le poste de **${data.target_role}**.\n\n**Date :** ${dateStr}\n**Lieu :** Salon Vocal \`${chanStr}\``,
-                    color: 0x5865F2
-                })
+                    description: `Félicitations, votre dossier a été retenu ! Vous êtes convoqué à un entretien pour le poste de **${data.target_role}**.\n\n**Date :** ${dateStr}\n**Lieu :** Salon Vocal \`${chanStr}\`\n\n⚠️ *Vous n'êtes pas disponible ce jour-là ? Cliquez sur le bouton ci-dessous pour proposer directement un autre créneau depuis l'ENT.*`,
+                    color: 0x5865F2,
+                    footer: { text: 'LunaVerse — Recrutement' }
+                }, components)
             }
         }
 

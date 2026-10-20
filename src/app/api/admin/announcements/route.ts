@@ -67,6 +67,7 @@ export async function GET(req: Request) {
 }
 
 // ── POST: Create a new pending announcement ─────────────────────────────────────
+// ── POST: Create a new announcement ─────────────────────────────────────
 export async function POST(req: Request) {
   try {
     const supabase = createSupabaseServer()
@@ -74,24 +75,34 @@ export async function POST(req: Request) {
     if (!user || !(await getAdminStatus(supabase, user.id))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
     const body = await req.json()
-    const { type, target_class, subject, teacher_id, replacement_teacher_id, start_time, end_time, info_status, info_text } = body
+    const { type, target_class, subject, teacher_id, replacement_teacher_id, start_time, end_time, info_status, info_text, publish } = body
 
     if (!type) return NextResponse.json({ error: 'Type is required' }, { status: 400 })
 
     const tId = teacher_id || null
     const rTid = replacement_teacher_id || null
+    const initialStatus = publish ? 'sent' : 'pending'
 
     const { data: announcement, error: insertError } = await supabase
       .from('course_announcements')
       .insert({
-        type, target_class, subject, teacher_id: tId, replacement_teacher_id: rTid,
+        type, target_class: target_class || 'all', subject, teacher_id: tId, replacement_teacher_id: rTid,
         start_time: start_time || null, end_time: end_time || null,
-        info_status, info_text, status: 'pending' // ALWAYS pending initially
+        info_status, info_text, status: initialStatus
       })
       .select('*, teacher:profiles!teacher_id(username, nickname_rp), replacement:profiles!replacement_teacher_id(username, nickname_rp)')
       .single()
 
     if (insertError) throw insertError
+
+    if (initialStatus === 'sent' && announcement.type === 'info') {
+      try {
+        await updateDiscordInfoTraficEmbed(supabase)
+      } catch (err) {
+        console.error('Error syncing Discord on POST:', err)
+      }
+    }
+
     return NextResponse.json({ success: true, item: announcement })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
@@ -189,30 +200,43 @@ async function updateDiscordInfoTraficEmbed(supabase: any) {
   classInfos.set('all', []) // Global
 
   for (const info of infos) {
-    const target = info.target_class || 'all'
+    const target = (info.target_class || 'all').trim()
     if (!classInfos.has(target)) classInfos.set(target, [])
     classInfos.get(target)!.push(info)
   }
 
-  // Get classes from settings
-  const { data: settingsData } = await supabase.from('server_settings').select('key, value').in('key', ['rp_classes', 'info_trafic_msg_id', 'salon_annonces'])
+  // Get classes and settings from server_settings
+  const { data: settingsData } = await supabase
+    .from('server_settings')
+    .select('key, value')
+    .in('key', ['rp_classes', 'info_trafic_msg_id', 'salon_annonces'])
+  
   const settings = (settingsData || []).reduce((acc: any, curr: any) => ({ ...acc, [curr.key]: curr.value }), {})
   
+  // Safely parse classes whether stored as JSONB array, JSON string, or object
   let classes: any[] = []
   try { 
-    const parsed = JSON.parse(settings.rp_classes || '[]') 
-    if (Array.isArray(parsed)) classes = parsed
-  } catch (e) {}
+    const raw = settings.rp_classes
+    if (Array.isArray(raw)) {
+      classes = raw
+    } else if (typeof raw === 'string') {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) classes = parsed
+    }
+  } catch (e) {
+    console.error('Failed to parse rp_classes in updateDiscordInfoTraficEmbed:', e)
+  }
 
-  const annoncesChannel = settings.salon_annonces || INFO_TRAFIC_CHANNEL
+  const rawAnnonces = settings.salon_annonces || INFO_TRAFIC_CHANNEL
+  const annoncesChannel = String(rawAnnonces).replace(/[<#>]/g, '').trim()
 
   // Function to format embeds for a specific target
-  const getPayload = (targetInfos: any[], targetName: string) => {
+  const getPayload = (targetInfos: any[], targetName: string, roleId?: string) => {
     const embeds = []
     if (targetInfos.length === 0) {
       embeds.push({
-        title: '✅ ANNONCES : Fonctionnement Normal',
-        description: 'Aucune annonce en cours pour le moment.',
+        title: targetName === 'all' ? '✅ ANNONCES : Fonctionnement Normal' : `✅ ANNONCES : Fonctionnement Normal (${targetName})`,
+        description: targetName === 'all' ? 'Aucune annonce en cours pour le moment.' : `Aucune perturbation ni annonce pour la classe ${targetName}.`,
         color: 0x57F287,
         timestamp: new Date().toISOString(),
         footer: { text: 'LunaVerse ENT — Administration' }
@@ -258,15 +282,23 @@ async function updateDiscordInfoTraficEmbed(supabase: any) {
       }
     }
     
+    const cleanRoleId = roleId ? String(roleId).replace(/[<@&>]/g, '').trim() : ''
+    const roleMention = cleanRoleId ? `<@&${cleanRoleId}>` : (targetName === 'all' ? `<@&${ROLE_ELEVE}>` : '')
+
     return {
-      content: targetName === 'all' ? `<@&${ROLE_ELEVE}> — Tableau d'affichage des annonces` : `Tableau d'affichage des annonces — Classe ${targetName}`,
+      content: targetName === 'all' 
+        ? `<@&${ROLE_ELEVE}> — Tableau d'affichage des annonces` 
+        : `${roleMention ? `${roleMention} — ` : ''}Tableau d'affichage des annonces — Classe ${targetName}`,
       embeds: embeds.slice(0, 10)
     }
   }
 
-  // Update global channel (target: all)
-  const globalPayload = getPayload(classInfos.get('all') || [], 'Général')
-  const msgId = settings.info_trafic_msg_id
+  // 1. Update global channel (target: all)
+  const globalPayload = getPayload(classInfos.get('all') || [], 'all')
+  const msgId = typeof settings.info_trafic_msg_id === 'string' 
+    ? settings.info_trafic_msg_id 
+    : (settings.info_trafic_msg_id ? String(settings.info_trafic_msg_id).replace(/"/g, '') : null)
+
   try {
     if (msgId && annoncesChannel) {
       const res = await fetch(`https://discord.com/api/v10/channels/${annoncesChannel}/messages/${msgId}`, {
@@ -276,7 +308,7 @@ async function updateDiscordInfoTraficEmbed(supabase: any) {
       })
       if (!res.ok) {
         const errText = await res.text()
-        console.error('Info-Trafic PATCH failed:', errText)
+        console.warn('Info-Trafic PATCH failed:', errText, 'Attempting POST...')
         throw new Error('PATCH failed')
       }
     } else {
@@ -296,42 +328,52 @@ async function updateDiscordInfoTraficEmbed(supabase: any) {
         } else {
           const errText = await res.text()
           console.error('Info-Trafic POST failed:', errText)
-          throw new Error(`Discord API error: ${errText}`)
         }
       } else {
         console.error('No annoncesChannel defined for global info-trafic')
       }
     } catch (e) {
       console.error('Failed to post to global info trafic:', e)
-      // Do not throw the error, otherwise the PUT request fails with 500 even if DB is updated.
-      // throw e 
     }
   }
 
-  // Update class channels
+  // 2. Update each class channel
   for (const c of classes) {
-    if (!c.channelId) continue
-    const targetInfos = classInfos.get(c.name) || []
-    const payload = getPayload(targetInfos, c.name)
+    const cleanChannelId = String(c.channelId || '').trim().replace(/[<#>]/g, '')
+    if (!cleanChannelId) continue
+
+    // Find all announcements matching this class name (case insensitive)
+    const targetInfos: any[] = []
+    classInfos.forEach((list, targetKey) => {
+      if (targetKey.toLowerCase() === c.name.trim().toLowerCase()) {
+        targetInfos.push(...list)
+      }
+    })
+
+    const payload = getPayload(targetInfos, c.name, c.roleId)
     
-    const settingKey = `info_trafic_msg_id_${c.name}`
+    const settingKey = `info_trafic_msg_id_${c.name.trim()}`
     const { data: cSet } = await supabase.from('server_settings').select('value').eq('key', settingKey).maybeSingle()
-    const cMsgId = cSet?.value
+    const cMsgId = typeof cSet?.value === 'string' ? cSet.value : (cSet?.value ? String(cSet.value).replace(/"/g, '') : null)
 
     try {
       if (cMsgId) {
-        const res = await fetch(`https://discord.com/api/v10/channels/${c.channelId}/messages/${cMsgId}`, {
+        const res = await fetch(`https://discord.com/api/v10/channels/${cleanChannelId}/messages/${cMsgId}`, {
           method: 'PATCH',
           headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         })
-        if (!res.ok) throw new Error('PATCH failed')
+        if (!res.ok) {
+          const patchErr = await res.text()
+          console.warn(`Class ${c.name} PATCH failed: ${patchErr}, attempting POST...`)
+          throw new Error('PATCH failed')
+        }
       } else {
         throw new Error('No msgId')
       }
     } catch (err) {
       try {
-        const res = await fetch(`https://discord.com/api/v10/channels/${c.channelId}/messages`, {
+        const res = await fetch(`https://discord.com/api/v10/channels/${cleanChannelId}/messages`, {
           method: 'POST',
           headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -339,6 +381,9 @@ async function updateDiscordInfoTraficEmbed(supabase: any) {
         if (res.ok) {
           const data = await res.json()
           await supabase.from('server_settings').upsert({ key: settingKey, value: data.id, updated_at: new Date().toISOString() })
+        } else {
+          const postErr = await res.text()
+          console.error(`Class ${c.name} POST failed: ${postErr}`)
         }
       } catch (e) {
         console.error(`Failed to post to class ${c.name} info trafic:`, e)

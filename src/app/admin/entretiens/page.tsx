@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
-import { Plus, Users, Search, ChevronRight } from 'lucide-react'
+import { Plus, Users, Search, ChevronRight, Clock } from 'lucide-react'
 import Link from 'next/link'
 import clsx from 'clsx'
 
@@ -87,9 +87,9 @@ export default function EntretiensListPage() {
         <div>
           <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-3">
             <Users className="w-10 h-10 text-discord-blurple drop-shadow-md" />
-            Entretiens de Recrutement
+            Recrutement & Entretiens
           </h1>
-          <p className="text-discord-muted mt-2 font-medium">Gérez les entretiens des professeurs, AED, et autres postes.</p>
+          <p className="text-discord-muted mt-2 font-medium">Gérez les candidatures et entretiens des professeurs, surveillants et autres postes.</p>
         </div>
         <button onClick={handleCreate} className="btn btn-primary px-6 shadow-lg shadow-discord-blurple/20 hover:-translate-y-1">
           <Plus className="w-5 h-5" />
@@ -128,43 +128,52 @@ export default function EntretiensListPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {displayedInterviews.map(inv => (
-              <Link 
-                key={inv.id} 
-                href={`/admin/entretiens/${inv.id}`}
-                className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-discord-blurple/30 transition-all group"
-              >
-                <div className="flex flex-col gap-1">
-                  <div className="flex flex-wrap items-center gap-3">
-                    {inv.profile?.avatar_url ? (
-                      <img src={inv.profile.avatar_url} alt="" className="w-8 h-8 rounded-full" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-discord-blurple flex items-center justify-center text-xs font-bold text-white">
-                        {inv.profile?.username?.[0] || inv.rp_firstname?.[0] || '?'}
-                      </div>
-                    )}
-                    <span className="text-lg font-black text-white">{inv.profile?.nickname_rp || `${inv.rp_firstname} ${inv.rp_lastname}`.trim() || 'Inconnu'}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-md bg-white/10 font-bold uppercase tracking-wider text-discord-muted">
-                      {inv.target_role}
-                    </span>
-                    <span className={clsx("text-[10px] px-2 py-0.5 rounded-full border font-black uppercase tracking-widest", getStatusColor(inv.status))}>
-                      {getStatusLabel(inv.status)}
-                    </span>
+            {displayedInterviews.map(inv => {
+              const hasPendingReschedule = Array.isArray(inv.reschedule_requests) && inv.reschedule_requests.some((r: any) => r.status === 'pending')
+
+              return (
+                <Link 
+                  key={inv.id} 
+                  href={`/admin/entretiens/${inv.id}`}
+                  className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-discord-blurple/30 transition-all group"
+                >
+                  <div className="flex flex-col gap-1">
+                    <div className="flex flex-wrap items-center gap-3">
+                      {inv.profile?.avatar_url ? (
+                        <img src={inv.profile.avatar_url} alt="" className="w-8 h-8 rounded-full" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-discord-blurple flex items-center justify-center text-xs font-bold text-white">
+                          {inv.profile?.username?.[0] || inv.rp_firstname?.[0] || '?'}
+                        </div>
+                      )}
+                      <span className="text-lg font-black text-white">{inv.profile?.nickname_rp || `${inv.rp_firstname} ${inv.rp_lastname}`.trim() || 'Inconnu'}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-md bg-white/10 font-bold uppercase tracking-wider text-discord-muted">
+                        {inv.target_role}
+                      </span>
+                      <span className={clsx("text-[10px] px-2 py-0.5 rounded-full border font-black uppercase tracking-widest", getStatusColor(inv.status))}>
+                        {getStatusLabel(inv.status)}
+                      </span>
+                      {hasPendingReschedule && (
+                        <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 font-black uppercase tracking-wider flex items-center gap-1 animate-pulse">
+                          <Clock className="w-3 h-3" /> Report demandé
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-discord-muted flex items-center gap-2">
+                      <span>Créé le {new Date(inv.created_at).toLocaleDateString()}</span>
+                      {inv.scheduled_at && (
+                        <>
+                          • <span className="text-discord-blurple font-medium">RDV le {new Date(inv.scheduled_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-xs text-discord-muted flex items-center gap-2">
-                    <span>Créé le {new Date(inv.created_at).toLocaleDateString()}</span>
-                    {inv.scheduled_at && (
-                      <>
-                        • <span className="text-discord-blurple">RDV le {new Date(inv.scheduled_at).toLocaleString()}</span>
-                      </>
-                    )}
+                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-discord-blurple group-hover:text-white transition-colors">
+                    <ChevronRight className="w-4 h-4" />
                   </div>
-                </div>
-                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-discord-blurple group-hover:text-white transition-colors">
-                  <ChevronRight className="w-4 h-4" />
-                </div>
-              </Link>
-            ))}
+                </Link>
+              )
+            })}
           </div>
         )}
       </div>

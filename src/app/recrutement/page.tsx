@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Briefcase, ChevronDown, CheckCircle2, Copy, Loader2, Info, Users, MonitorPlay, GraduationCap, Gavel, FileText, Calendar, Clock, Lock, ArrowRight, ShieldCheck, Gamepad2, Mic2, FileSearch, HelpCircle, BookOpen, UserPlus, FileSignature, AlertCircle, Camera, Stethoscope, Scissors, ShieldAlert, FileQuestion, Megaphone, Coffee, Upload, Send, ClipboardCheck, Shield, Heart } from 'lucide-react'
+import { Briefcase, ChevronDown, CheckCircle2, Copy, Loader2, Info, Users, MonitorPlay, GraduationCap, Gavel, FileText, Calendar, Clock, Lock, ArrowRight, ShieldCheck, Gamepad2, Mic2, FileSearch, HelpCircle, BookOpen, UserPlus, FileSignature, AlertCircle, Camera, Stethoscope, Scissors, ShieldAlert, FileQuestion, Megaphone, Coffee, Upload, Send, ClipboardCheck, Shield, Heart, X, CalendarCheck } from 'lucide-react'
 import Link from 'next/link'
 import clsx from 'clsx'
 import { supabase } from '@/lib/supabase'
@@ -54,6 +54,14 @@ export default function RecrutementPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+
+  // Reschedule states
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false)
+  const [rescheduleDate, setRescheduleDate] = useState('')
+  const [rescheduleReason, setRescheduleReason] = useState('')
+  const [isRescheduling, setIsRescheduling] = useState(false)
+  const [rescheduleError, setRescheduleError] = useState('')
+  const [rescheduleSuccess, setRescheduleSuccess] = useState('')
 
   useEffect(() => {
     const fetchEffectifs = async () => {
@@ -185,6 +193,68 @@ export default function RecrutementPage() {
       setErrorMsg(err.message)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleRescheduleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!rescheduleDate || !rescheduleReason.trim()) {
+      setRescheduleError('Veuillez renseigner une date/heure et le motif de votre indisponibilité.')
+      return
+    }
+
+    setIsRescheduling(true)
+    setRescheduleError('')
+    setRescheduleSuccess('')
+
+    try {
+      const res = await fetch('/api/recrutement/reschedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'request',
+          proposed_date: rescheduleDate,
+          reason: rescheduleReason.trim()
+        })
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Erreur lors de la transmission de la demande.')
+      }
+
+      setMyApplication(data.interview)
+      setRescheduleSuccess('Votre demande de report a été transmise au staff avec succès !')
+      setTimeout(() => {
+        setShowRescheduleModal(false)
+        setRescheduleSuccess('')
+        setRescheduleDate('')
+        setRescheduleReason('')
+      }, 1500)
+    } catch (err: any) {
+      setRescheduleError(err.message)
+    } finally {
+      setIsRescheduling(false)
+    }
+  }
+
+  const handleCancelReschedule = async () => {
+    if (!confirm('Voulez-vous annuler votre demande de report ?')) return
+    setIsRescheduling(true)
+    try {
+      const res = await fetch('/api/recrutement/reschedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancel' })
+      })
+      const data = await res.json()
+      if (res.ok && data.interview) {
+        setMyApplication(data.interview)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsRescheduling(false)
     }
   }
 
@@ -513,23 +583,147 @@ export default function RecrutementPage() {
                     </div>
                   )}
 
-                  {/* Convocation (if scheduled but not finished) */}
-                  {!['accepted', 'refused'].includes(myApplication.status) && myApplication.vocal_channel_name && (
-                    <div className="p-6 rounded-2xl border border-discord-blurple/30 bg-discord-blurple/10 shadow-xl">
-                      <h3 className="font-bold text-xl text-discord-blurple">Convocation à l'oral</h3>
-                      <p className="text-discord-muted mt-2">
-                        Veuillez vous rendre dans le salon vocal <strong className="text-white bg-black/30 px-2 py-0.5 rounded">#{myApplication.vocal_channel_name}</strong>.
-                      </p>
-                      {myApplication.scheduled_at && (
-                        <p className="text-discord-muted mt-2">
-                          Heure du rendez-vous : <strong className="text-white">{new Date(myApplication.scheduled_at).toLocaleString('fr-FR')}</strong>.
-                        </p>
-                      )}
-                    </div>
-                  )}
+                  {/* Convocation (if scheduled or vocal channel defined, and not finished) */}
+                  {!['accepted', 'refused'].includes(myApplication.status) && (myApplication.vocal_channel_name || myApplication.scheduled_at) && (() => {
+                    const rescheduleRequests: any[] = Array.isArray(myApplication.reschedule_requests) ? myApplication.reschedule_requests : []
+                    const pendingReschedule = rescheduleRequests.find((r: any) => r.status === 'pending')
+                    const latestRefusedReschedule = !pendingReschedule && rescheduleRequests.slice().reverse().find((r: any) => r.status === 'refused')
 
-                  {/* Pending/Analysis (if no vocal channel yet) */}
-                  {!['accepted', 'refused'].includes(myApplication.status) && !myApplication.vocal_channel_name && (
+                    return (
+                      <div className="p-6 md:p-8 rounded-2xl border border-discord-blurple/30 bg-discord-blurple/10 shadow-xl space-y-5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div>
+                            <h3 className="font-bold text-2xl text-discord-blurple flex items-center gap-2">
+                              <Mic2 className="w-6 h-6 text-discord-blurple" /> Convocation à l'oral
+                            </h3>
+                            <p className="text-discord-muted text-sm mt-1">
+                              Votre dossier a été validé ! Votre entretien oral est planifié.
+                            </p>
+                          </div>
+                          {myApplication.scheduled_at && (
+                            <span className="self-start sm:self-center px-3 py-1 rounded-full bg-discord-blurple/20 text-discord-blurple border border-discord-blurple/30 text-xs font-black uppercase tracking-wider">
+                              Planifié
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                          {myApplication.scheduled_at && (
+                            <div className="p-4 rounded-xl bg-black/30 border border-white/5 space-y-1">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-discord-muted flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5 text-discord-blurple" /> Date et Heure
+                              </span>
+                              <div className="text-base font-bold text-white">
+                                {new Date(myApplication.scheduled_at).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                              </div>
+                              <div className="text-sm font-black text-discord-blurple">
+                                à {new Date(myApplication.scheduled_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="p-4 rounded-xl bg-black/30 border border-white/5 space-y-1">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-discord-muted flex items-center gap-1.5">
+                              <Mic2 className="w-3.5 h-3.5 text-discord-blurple" /> Lieu de rendez-vous
+                            </span>
+                            <div className="text-base font-bold text-white">
+                              {myApplication.vocal_channel_name ? `#${myApplication.vocal_channel_name}` : 'Salon vocal à définir'}
+                            </div>
+                            <div className="text-xs text-discord-muted">
+                              Sur le serveur Discord LunaVerse
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Pending Reschedule Alert */}
+                        {pendingReschedule && (
+                          <div className="p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 backdrop-blur-sm animate-fadeIn">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 text-yellow-400 font-bold text-sm">
+                                <Clock className="w-4 h-4 animate-spin text-yellow-400 shrink-0" />
+                                Demande de report en attente d'approbation par le staff
+                              </div>
+                              <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-300">
+                                En examen
+                              </span>
+                            </div>
+                            <div className="mt-2.5 text-sm text-gray-200">
+                              Créneau souhaité : <strong className="text-white">{new Date(pendingReschedule.proposed_date).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}</strong>
+                            </div>
+                            <div className="mt-2 text-xs text-gray-300 italic bg-black/30 p-3 rounded-lg border border-white/5">
+                              « {pendingReschedule.reason} »
+                            </div>
+                            <div className="mt-3 flex justify-end">
+                              <button 
+                                onClick={handleCancelReschedule} 
+                                disabled={isRescheduling}
+                                className="text-xs text-red-400 hover:text-red-300 hover:underline font-bold transition-colors disabled:opacity-50"
+                              >
+                                Annuler cette proposition de report
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Latest Refused Alert */}
+                        {latestRefusedReschedule && (
+                          <div className="p-4 rounded-xl border border-discord-error/30 bg-discord-error/10 backdrop-blur-sm animate-fadeIn">
+                            <div className="flex items-center gap-2 text-discord-error font-bold text-sm">
+                              <AlertCircle className="w-4 h-4 shrink-0" />
+                              Votre précédente proposition de date n'a pas pu être retenue
+                            </div>
+                            {latestRefusedReschedule.refusal_reason && (
+                              <p className="text-xs text-gray-200 mt-2 bg-black/30 p-2.5 rounded-lg border border-white/5">
+                                <strong className="text-discord-error">Motif du staff :</strong> {latestRefusedReschedule.refusal_reason}
+                              </p>
+                            )}
+                            <div className="mt-3 flex items-center justify-between flex-wrap gap-2">
+                              <span className="text-xs text-discord-muted">
+                                La convocation initiale reste d'actualité. Vous pouvez reformuler une autre proposition ci-dessous si besoin.
+                              </span>
+                              <button 
+                                onClick={() => {
+                                  setRescheduleDate('')
+                                  setRescheduleReason('')
+                                  setRescheduleError('')
+                                  setRescheduleSuccess('')
+                                  setShowRescheduleModal(true)
+                                }}
+                                className="px-3.5 py-1.5 rounded-lg bg-discord-blurple hover:bg-discord-blurple/80 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow"
+                              >
+                                <Calendar className="w-3.5 h-3.5" /> Reproposer une date
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Button to request reschedule if not already pending */}
+                        {!pendingReschedule && !latestRefusedReschedule && (
+                          <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-white/10">
+                            <span className="text-xs text-discord-muted font-medium">
+                              Vous avez un empêchement ou n'êtes pas disponible à cette heure ?
+                            </span>
+                            <button 
+                              onClick={() => {
+                                setRescheduleDate('')
+                                setRescheduleReason('')
+                                setRescheduleError('')
+                                setRescheduleSuccess('')
+                                setShowRescheduleModal(true)
+                              }}
+                              className="px-4 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white transition-all flex items-center gap-2 border border-white/10 hover:border-discord-blurple/50 shadow-md shrink-0 self-start sm:self-auto"
+                            >
+                              <Calendar className="w-4 h-4 text-discord-blurple" />
+                              Indisponible ? Proposer une autre date
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
+
+                  {/* Pending/Analysis (if no scheduled date and no vocal channel yet) */}
+                  {!['accepted', 'refused'].includes(myApplication.status) && !myApplication.vocal_channel_name && !myApplication.scheduled_at && (
                     <div className="p-6 rounded-2xl border border-white/10 bg-white/5 shadow-xl">
                       <h3 className="font-bold text-xl text-white">Dossier en cours d'analyse</h3>
                       <p className="text-discord-muted mt-2">
@@ -622,6 +816,106 @@ export default function RecrutementPage() {
           </div>
         )}
       </div>
+
+      {/* Modal Replanification / Report d'entretien */}
+      {showRescheduleModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="bg-[#1e1e24] border border-white/10 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh] animate-slideUp">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-white/5 flex items-center justify-between shrink-0 bg-white/5">
+              <div>
+                <h3 className="text-xl font-black text-white flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-discord-blurple" /> Proposer une nouvelle date
+                </h3>
+                <p className="text-xs text-discord-muted mt-1">
+                  Indiquez vos disponibilités alternatives et le motif de votre indisponibilité.
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowRescheduleModal(false)}
+                className="p-2 bg-black/20 hover:bg-black/40 rounded-xl text-discord-muted hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto custom-scrollbar bg-black/20">
+              <form id="reschedule-form" onSubmit={handleRescheduleSubmit} className="space-y-5">
+                {myApplication?.scheduled_at && (
+                  <div className="p-3.5 rounded-xl bg-white/5 border border-white/5 text-xs text-discord-muted">
+                    Date actuellement planifiée : <strong className="text-white">{new Date(myApplication.scheduled_at).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}</strong>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">
+                    Nouvelle Date et Heure souhaitées *
+                  </label>
+                  <input 
+                    type="datetime-local" 
+                    value={rescheduleDate}
+                    onChange={e => setRescheduleDate(e.target.value)}
+                    min={new Date(Date.now() + 5 * 60000).toISOString().slice(0, 16)}
+                    className="glass-input w-full bg-white/5 border-white/10"
+                    required
+                  />
+                  <p className="text-[11px] text-discord-muted">
+                    Sélectionnez un jour et une heure où vous êtes certain(e) de pouvoir vous connecter.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">
+                    Motif de votre indisponibilité *
+                  </label>
+                  <textarea 
+                    value={rescheduleReason}
+                    onChange={e => setRescheduleReason(e.target.value)}
+                    className="glass-input w-full bg-white/5 border-white/10 min-h-[110px] resize-y text-sm"
+                    placeholder="Ex: Contrainte professionnelle, cours en présentiel, urgence... Précisez d'autres créneaux si vous en avez."
+                    required
+                  />
+                </div>
+
+                {rescheduleError && (
+                  <div className="p-3 rounded-xl bg-discord-error/10 border border-discord-error/30 text-discord-error text-xs font-bold flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    {rescheduleError}
+                  </div>
+                )}
+
+                {rescheduleSuccess && (
+                  <div className="p-3 rounded-xl bg-discord-success/10 border border-discord-success/30 text-discord-success text-xs font-bold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    {rescheduleSuccess}
+                  </div>
+                )}
+              </form>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-white/5 bg-white/5 shrink-0 flex justify-end gap-3">
+              <button 
+                type="button" 
+                onClick={() => setShowRescheduleModal(false)}
+                className="px-5 py-2.5 rounded-xl font-bold text-discord-muted hover:text-white hover:bg-white/10 transition-colors text-sm"
+              >
+                Annuler
+              </button>
+              <button 
+                type="submit" 
+                form="reschedule-form"
+                disabled={isRescheduling}
+                className="px-5 py-2.5 rounded-xl font-bold bg-discord-blurple hover:bg-discord-blurple/80 text-white transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-discord-blurple/20 text-sm"
+              >
+                {isRescheduling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Transmettre la demande
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

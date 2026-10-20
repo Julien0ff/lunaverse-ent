@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Megaphone, Plus, Trash2, Send, Loader2, X, AlertCircle, Save } from 'lucide-react'
+import { Megaphone, Plus, Trash2, Send, Loader2, X, AlertCircle, Save, Check } from 'lucide-react'
+import Link from 'next/link'
 import clsx from 'clsx'
 
 interface Announcement {
@@ -99,14 +100,14 @@ export default function AdminAnnoncesPage() {
     }
   }
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSave = async (e?: React.FormEvent, publishImmediately: boolean = false) => {
+    if (e) e.preventDefault()
     
     // Check if channelId is missing for specific class
     if (formData.target_class !== 'all') {
-      const cls = classes.find(c => c.name === formData.target_class)
-      if (!cls || !cls.channelId) {
-        alert("⚠️ Cette classe n'a pas de salon Discord (Channel ID) configuré dans l'onglet Effectifs & Classes. L'annonce ne pourra pas être envoyée sur Discord. Veuillez d'abord configurer le salon de la classe.")
+      const cls = classes.find(c => c.name.trim().toLowerCase() === formData.target_class?.trim().toLowerCase())
+      if (!cls || !cls.channelId || !cls.channelId.trim()) {
+        alert("⚠️ Cette classe n'a pas de salon Discord (Channel ID) configuré dans l'onglet Classes. Rendez-vous dans 'Classes' pour configurer son salon.")
         return
       }
     }
@@ -116,7 +117,7 @@ export default function AdminAnnoncesPage() {
       const res = await fetch('/api/admin/announcements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, publish: publishImmediately })
       })
       if (res.ok) {
         setShowModal(false)
@@ -243,15 +244,37 @@ export default function AdminAnnoncesPage() {
                 
                 <div className="flex items-center gap-2">
                   {ann.status === 'pending' ? (
-                    <button onClick={() => handleAction(ann.id, 'publish')} disabled={processingId === ann.id} className="p-3 bg-discord-blurple/10 hover:bg-discord-blurple/20 text-discord-blurple rounded-xl transition-colors">
-                      {processingId === ann.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    <button 
+                      onClick={() => handleAction(ann.id, 'publish')} 
+                      disabled={processingId === ann.id} 
+                      className="px-4 py-2 bg-discord-blurple hover:bg-discord-blurple/80 text-white rounded-xl transition-all font-bold text-xs flex items-center gap-1.5 shadow-md shadow-discord-blurple/20"
+                      title="Publier sur Discord"
+                    >
+                      {processingId === ann.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                      <span>Publier</span>
                     </button>
                   ) : (
-                    <button onClick={() => handleAction(ann.id, 'unpublish')} disabled={processingId === ann.id} className="p-3 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-xl transition-colors" title="Retirer de l'affichage">
-                      {processingId === ann.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
-                    </button>
+                    <>
+                      <button 
+                        onClick={() => handleAction(ann.id, 'publish')} 
+                        disabled={processingId === ann.id} 
+                        className="px-3 py-2 bg-discord-blurple/10 hover:bg-discord-blurple/20 text-discord-blurple rounded-xl transition-colors font-bold text-xs flex items-center gap-1" 
+                        title="Actualiser et synchroniser sur Discord"
+                      >
+                        {processingId === ann.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                        <span>Sync</span>
+                      </button>
+                      <button 
+                        onClick={() => handleAction(ann.id, 'unpublish')} 
+                        disabled={processingId === ann.id} 
+                        className="p-2.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-xl transition-colors" 
+                        title="Retirer de l'affichage (Passer en brouillon)"
+                      >
+                        {processingId === ann.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+                      </button>
+                    </>
                   )}
-                  <button onClick={() => handleAction(ann.id, 'delete')} disabled={processingId === ann.id} className="p-3 bg-discord-error/10 hover:bg-discord-error/20 text-discord-error rounded-xl transition-colors">
+                  <button onClick={() => handleAction(ann.id, 'delete')} disabled={processingId === ann.id} className="p-2.5 bg-discord-error/10 hover:bg-discord-error/20 text-discord-error rounded-xl transition-colors" title="Supprimer">
                     {processingId === ann.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                   </button>
                 </div>
@@ -275,7 +298,7 @@ export default function AdminAnnoncesPage() {
             <div className="p-6 border-b border-white/5 flex items-center justify-between shrink-0 bg-white/5">
               <div>
                 <h3 className="text-xl font-black text-white">Créer une Annonce</h3>
-                <p className="text-sm text-discord-muted mt-1">Diffusez une annonce ciblée ou générale.</p>
+                <p className="text-sm text-discord-muted mt-1">Diffusez une annonce ciblée par classe ou générale.</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-2 bg-black/20 hover:bg-black/40 rounded-xl text-discord-muted hover:text-white transition-colors">
                 <X className="w-5 h-5" />
@@ -284,12 +307,12 @@ export default function AdminAnnoncesPage() {
             
             {/* Body */}
             <div className="p-6 overflow-y-auto custom-scrollbar bg-black/20">
-              <form id="annonce-form" onSubmit={handleSave} className="space-y-6">
+              <form id="annonce-form" onSubmit={(e) => handleSave(e, false)} className="space-y-6">
                 <div className="grid grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Classe ciblée</label>
                     <select value={formData.target_class} onChange={e => setFormData({...formData, target_class: e.target.value})} className="glass-input w-full bg-white/5 border-white/10" required>
-                      <option value="all">Toutes les classes</option>
+                      <option value="all">Toutes les classes (Général)</option>
                       {classes.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
                     </select>
                   </div>
@@ -308,6 +331,26 @@ export default function AdminAnnoncesPage() {
                     </select>
                   </div>
                 </div>
+
+                {/* Class Discord channel preview or warning */}
+                {formData.target_class !== 'all' && (() => {
+                  const targetCls = classes.find(c => c.name.trim().toLowerCase() === formData.target_class?.trim().toLowerCase())
+                  if (!targetCls || !targetCls.channelId || !targetCls.channelId.trim()) {
+                    return (
+                      <div className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-xs flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span>⚠️ Cette classe n'a pas encore de salon Discord configuré. Rendez-vous dans <Link href="/admin/classes" className="underline font-bold">Gestion des Classes</Link> pour configurer son salon.</span>
+                      </div>
+                    )
+                  }
+                  const channelObj = discordChannels.find(ch => ch.id === targetCls.channelId.replace(/[<#>]/g, ''))
+                  return (
+                    <div className="p-2.5 rounded-xl bg-discord-blurple/10 border border-discord-blurple/20 text-discord-blurple text-xs flex items-center gap-2">
+                      <Check className="w-4 h-4 shrink-0" />
+                      <span>Salon Discord cible : <strong>#{channelObj?.name || targetCls.channelId}</strong></span>
+                    </div>
+                  )
+                })()}
 
                 <div className="space-y-2">
                   <label className="text-xs font-black text-discord-muted uppercase tracking-widest block">Matière / Sujet</label>
@@ -373,12 +416,25 @@ export default function AdminAnnoncesPage() {
             </div>
             
             {/* Footer */}
-            <div className="p-6 border-t border-white/5 bg-white/5 shrink-0 flex justify-end gap-3">
-              <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 rounded-xl font-bold text-discord-muted hover:text-white hover:bg-white/10 transition-colors">
+            <div className="p-6 border-t border-white/5 bg-white/5 shrink-0 flex flex-wrap justify-end gap-3">
+              <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 rounded-xl font-bold text-discord-muted hover:text-white hover:bg-white/10 transition-colors text-sm">
                 Annuler
               </button>
-              <button type="submit" form="annonce-form" disabled={saving} className="px-6 py-2.5 rounded-xl font-bold bg-discord-blurple hover:bg-discord-blurple/80 text-white transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-discord-blurple/20">
-                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5" /> Enregistrer le brouillon</>}
+              <button 
+                type="button" 
+                onClick={(e) => handleSave(e, false)} 
+                disabled={saving} 
+                className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 text-white transition-colors disabled:opacity-50 flex items-center gap-2 text-sm border border-white/10"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4" /> Enregistrer brouillon</>}
+              </button>
+              <button 
+                type="button" 
+                onClick={(e) => handleSave(e, true)} 
+                disabled={saving} 
+                className="px-5 py-2.5 rounded-xl font-bold bg-discord-blurple hover:bg-discord-blurple/80 text-white transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-discord-blurple/20 text-sm"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Publier sur Discord</>}
               </button>
             </div>
           </div>
