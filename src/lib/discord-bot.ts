@@ -615,30 +615,6 @@ client.on('ready', async () => {
       } catch (err) { console.error('Cleanup error:', err) }
     }
 
-    // ── Canteen Reminders (J-5 and J-1) ──
-    // We check menus for (today + 1) and (today + 5)
-    try {
-      const tomorrow = (now.getDay() + 1) % 7
-      const inFiveDays = (now.getDay() + 5) % 7
-
-      if (now.getHours() === 10 && now.getMinutes() === 0) {
-        const { data: menus } = await supabase.from('canteen_menus').select('*').or(`day_of_week.eq.${tomorrow},day_of_week.eq.${inFiveDays}`)
-        if (menus && menus.length > 0) {
-          const { data: profiles } = await supabase.from('profiles').select('id').not('discord_id', 'is', null)
-          for (const m of menus) {
-            const isTomorrow = m.day_of_week === tomorrow
-            const label = isTomorrow ? 'Demain' : 'Dans 5 jours'
-            const embed = new EmbedBuilder().setTitle(`🍴 Menu de la Cantine (${label})`).setColor(WARNING)
-              .setDescription(`**${m.starter || 'Entrée'}**\n**${m.main}**\n**${m.dessert || 'Dessert'}**`)
-              .setFooter({ text: `Horaires: ${m.time_start} - ${m.time_end}` })
-            
-            for (const p of profiles || []) {
-              await sendDM(p.id, embed)
-            }
-          }
-        }
-      }
-    } catch {}
 
     // ── Process Pending Transactions ─────────────────────────
     try {
