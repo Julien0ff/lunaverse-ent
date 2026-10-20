@@ -332,6 +332,13 @@ export default function AdminPronotePage() {
                 </button>
               </div>
             </div>
+
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center gap-2.5">
+              <ShieldCheck className="w-4 h-4 shrink-0 text-amber-400" />
+              <span>
+                <strong>Important :</strong> Un QR code Pronote est à <u>usage unique</u> et n'est valable que <strong>10 minutes</strong>. Si vous avez déjà cliqué ou si le temps est écoulé, <strong>fermez la popup QR code sur Pronote et rouvrez-la</strong> pour en générer un nouveau.
+              </span>
+            </div>
           </form>
         )}
       </div>
