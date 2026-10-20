@@ -656,8 +656,92 @@ client.on('ready', async () => {
       console.error('Failed to process pending transactions:', err)
     }
 
-    // ── Course Announcements Scheduler ───────────────────────
+    // ── Automated Timetable & Course Announcements Scheduler ──
     try {
+      // 1. Fetch configured classes
+      const rawClasses = await getServerSetting('rp_classes', [])
+      let classes: any[] = []
+      if (Array.isArray(rawClasses)) {
+        classes = rawClasses.map((c: any) => typeof c === 'string' ? { name: c, roleId: '', channelId: '' } : c)
+      } else if (typeof rawClasses === 'object' && Array.isArray((rawClasses as any)?.classes)) {
+        classes = (rawClasses as any).classes
+      }
+
+      const getClassInfo = (targetClassName: string) => {
+        const found = classes.find((c: any) => c.name?.toLowerCase().trim() === targetClassName?.toLowerCase().trim())
+        if (found) {
+          return {
+            channelId: String(found.channelId || '').trim().replace(/[<#>]/g, ''),
+            roleMention: found.roleId ? `<@&${String(found.roleId).trim().replace(/[<@&>]/g, '')}>` : ''
+          }
+        }
+        return { channelId: '', roleMention: '' }
+      }
+
+      // 2. Automated Weekend Timetable Announcements (Samedi=6, Dimanche=0, entre 12h00 et 19h30)
+      const currentDay = now.getDay()
+      if (currentDay === 6 || currentDay === 0) {
+        const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`
+        const todayStr = now.toISOString().split('T')[0]
+
+        // Fetch courses starting now
+        const { data: activeCourses } = await supabase
+          .from('timetable_courses')
+          .select('*')
+          .eq('day_of_week', currentDay)
+          .lte('start_time', currentTimeStr)
+          .gte('end_time', currentTimeStr)
+          .or(`last_announced_date.is.null,last_announced_date.neq.${todayStr}`)
+
+        for (const course of activeCourses || []) {
+          const { channelId, roleMention } = getClassInfo(course.target_class)
+          if (channelId) {
+            const channel = client.channels.cache.get(channelId)
+            if (channel && channel.isTextBased()) {
+              const startStr = course.start_time?.slice(0, 5)
+              const endStr = course.end_time?.slice(0, 5)
+
+              let embed
+              if (course.status === 'annule' || course.status === 'prof_absent') {
+                embed = new EmbedBuilder()
+                  .setTitle(`🚫 COURS ANNULÉ : ${course.subject.toUpperCase()}`)
+                  .setColor(0xED4245)
+                  .setDescription(`⚠️ **Le cours prévu de ${startStr} à ${endStr} n'aura pas lieu !**\n\n**Motif :** ${course.status_note || (course.status === 'prof_absent' ? 'Professeur absent' : 'Cours annulé')}`)
+                  .setFooter({ text: 'LunaVerse ENT — Emploi du Temps' })
+                  .setTimestamp()
+              } else if (course.status === 'modifie' || course.status === 'deplace') {
+                embed = new EmbedBuilder()
+                  .setTitle(`⚠️ COURS MODIFIÉ : ${course.subject.toUpperCase()}`)
+                  .setColor(0xFEE75C)
+                  .setDescription(`**Attention, modification pour votre cours de ${startStr} à ${endStr} :**\n\n**Salle :** **${course.room}**\n**Professeur :** ${course.teacher_name || 'Non spécifié'}\n${course.status_note ? `*${course.status_note}*` : ''}`)
+                  .setFooter({ text: 'LunaVerse ENT — Emploi du Temps' })
+                  .setTimestamp()
+              } else {
+                embed = new EmbedBuilder()
+                  .setTitle(`📚 DÉBUT DU COURS : ${course.subject.toUpperCase()}`)
+                  .setColor(0x5865F2)
+                  .setDescription(
+                    `**Horaire :** ${startStr} - ${endStr}\n` +
+                    `**Salle :** ${course.room}\n` +
+                    `**Professeur :** ${course.teacher_name || 'Non spécifié'}`
+                  )
+                  .setFooter({ text: 'LunaVerse ENT — Emploi du Temps' })
+                  .setTimestamp()
+              }
+
+              await (channel as any).send({
+                content: roleMention ? `${roleMention} Information cours :` : undefined,
+                embeds: [embed]
+              }).catch(() => null)
+            }
+          }
+
+          // Mark as announced for today
+          await supabase.from('timetable_courses').update({ last_announced_date: todayStr }).eq('id', course.id)
+        }
+      }
+
+      // 3. Manual Course Announcements Scheduler (course_announcements table)
       const { data: announcements } = await supabase
         .from('course_announcements')
         .select('*, teacher:profiles!course_announcements_teacher_id_fkey(username, nickname_rp)')
@@ -666,20 +750,7 @@ client.on('ready', async () => {
         .lte('start_time', now.toISOString())
 
       for (const ann of announcements || []) {
-        let channelId = ''
-        let classText = ''
-        let roleMention = ''
-
-        if (ann.target_class === 'nova') {
-          channelId = '1491538879059070986'
-          classText = 'Classe Nova'
-          roleMention = `<@&1487572001542508626>`
-        } else if (ann.target_class === 'nebuleuse') {
-          channelId = '1491538962114805863'
-          classText = 'Classe Nébuleuse'
-          roleMention = `<@&1487571897364254841>`
-        }
-
+        const { channelId, roleMention } = getClassInfo(ann.target_class)
         if (channelId) {
           const channel = client.channels.cache.get(channelId)
           if (channel && channel.isTextBased()) {
@@ -697,7 +768,6 @@ client.on('ready', async () => {
           }
         }
         
-        // Mark as sent
         await supabase.from('course_announcements').update({ status: 'sent' }).eq('id', ann.id)
       }
     } catch (err) {
@@ -824,6 +894,55 @@ client.on('ready', async () => {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'canteen_menus' }, async () => {
         try { await updateCanteenMenuMessage() } catch (err) { console.error('canteen sync fail', err) }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'timetable_courses' }, async (payload: any) => {
+        try {
+          const n = payload.new
+          const o = payload.old
+          // Si le statut a changé ou si la salle a changé
+          if (n && o && (n.status !== o.status || n.room !== o.room)) {
+            const rawClasses = await getServerSetting('rp_classes', [])
+            let classes: any[] = []
+            if (Array.isArray(rawClasses)) {
+              classes = rawClasses.map((c: any) => typeof c === 'string' ? { name: c, roleId: '', channelId: '' } : c)
+            } else if (typeof rawClasses === 'object' && Array.isArray((rawClasses as any)?.classes)) {
+              classes = (rawClasses as any).classes
+            }
+            const found = classes.find((c: any) => c.name?.toLowerCase().trim() === n.target_class?.toLowerCase().trim())
+            const channelId = found?.channelId ? String(found.channelId).trim().replace(/[<#>]/g, '') : null
+            if (channelId) {
+              const channel = client.channels.cache.get(channelId)
+              if (channel && channel.isTextBased()) {
+                const roleMention = found?.roleId ? `<@&${String(found.roleId).trim().replace(/[<@&>]/g, '')}>` : ''
+                const dayName = n.day_of_week === 6 ? 'Samedi' : 'Dimanche'
+                const startStr = n.start_time?.slice(0, 5)
+                const endStr = n.end_time?.slice(0, 5)
+
+                let embed
+                if (n.status === 'annule' || n.status === 'prof_absent') {
+                  embed = new EmbedBuilder()
+                    .setTitle(`🚫 ALERTE : COURS ANNULÉ (${n.subject.toUpperCase()})`)
+                    .setColor(0xED4245)
+                    .setDescription(`⚠️ **Le cours du ${dayName} (${startStr} - ${endStr}) est ANNULÉ !**\n\n**Motif :** ${n.status_note || (n.status === 'prof_absent' ? 'Professeur absent' : 'Cours annulé')}`)
+                    .setFooter({ text: 'LunaVerse ENT — Alerte Emploi du Temps' })
+                    .setTimestamp()
+                } else {
+                  embed = new EmbedBuilder()
+                    .setTitle(`⚠️ ALERTE : COURS MODIFIÉ (${n.subject.toUpperCase()})`)
+                    .setColor(0xFEE75C)
+                    .setDescription(`**Changement pour le cours du ${dayName} (${startStr} - ${endStr}) :**\n\n**Salle :** **${n.room}**\n**Professeur :** ${n.teacher_name || 'Non spécifié'}\n${n.status_note ? `*${n.status_note}*` : ''}`)
+                    .setFooter({ text: 'LunaVerse ENT — Alerte Emploi du Temps' })
+                    .setTimestamp()
+                }
+
+                await (channel as any).send({
+                  content: roleMention ? `${roleMention} ALERTE MODIFICATION DE COURS :` : undefined,
+                  embeds: [embed]
+                }).catch(() => null)
+              }
+            }
+          }
+        } catch (err) { console.error('timetable realtime alert error', err) }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'houses' }, async (payload: any) => {
         try {

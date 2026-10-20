@@ -23,7 +23,9 @@ const CATEGORIES = [
     title: 'Scolarité et quotidien',
     items: [
       { href: '/dashboard', icon: LayoutDashboard, labelKey: 'nav.dashboard', emoji: '🏠' },
-      { href: 'PRONOTE', icon: BookOpen, labelKey: 'nav.pronote', emoji: '📚', isExternal: true },
+      { href: '/edt', icon: Calendar, labelKey: 'nav.edt', emoji: '🗓️' },
+      { href: '/devoirs', icon: BookOpen, labelKey: 'nav.devoirs', emoji: '📖' },
+      { href: 'PRONOTE', icon: ExternalLink, labelKey: 'nav.pronote', emoji: '📚', isExternal: true },
       { href: '/cantine', icon: Utensils, labelKey: 'nav.cantine', emoji: '🍱' },
       { href: '/absences', icon: Calendar, labelKey: 'nav.absences', emoji: '📅' },
       { href: '/satisfaction', icon: ClipboardList, labelKey: 'nav.satisfaction', emoji: '📝' },
