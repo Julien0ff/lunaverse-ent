@@ -390,6 +390,53 @@ export async function syncPronoteData() {
     }
   }
 
+function getClassNotificationTarget(
+  targetClass: string,
+  registeredClasses: Array<{ name: string; roleId?: string; channelId?: string }>
+) {
+  const cleanTarget = (targetClass || '').trim().toLowerCase()
+  const found = registeredClasses.find(c => {
+    const cName = (c.name || '').trim().toLowerCase()
+    return cName === cleanTarget || cleanTarget.includes(cName) || cName.includes(cleanTarget)
+  })
+  if (found && found.channelId) {
+    const channelId = String(found.channelId).trim().replace(/[<#>]/g, '')
+    const roleMention = found.roleId ? `<@&${String(found.roleId).trim().replace(/[<@&>]/g, '')}>` : ''
+    return { channelId, roleMention, name: found.name }
+  }
+  return null
+}
+
+async function sendDiscordNotification({
+  channelId,
+  roleMention,
+  embed,
+}: {
+  channelId: string
+  roleMention?: string
+  embed: any
+}) {
+  const token = process.env.DISCORD_BOT_TOKEN
+  if (!token || !channelId) return false
+  try {
+    const res = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bot ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        content: roleMention ? `${roleMention} Notification Pronote :` : undefined,
+        embeds: [embed],
+      }),
+    })
+    return res.ok
+  } catch (err) {
+    console.error(`[PronoteSync] Erreur lors de l'envoi de l'alerte Discord au salon ${channelId}:`, err)
+    return false
+  }
+}
+
   // Appliquer les changements et déclencher les alertes Discord via l'API de synchronisation interne
   let results = { updatedCourses: 0, alertsSent: 0, updatedHomeworks: 0 }
 
@@ -416,6 +463,11 @@ export async function syncPronoteData() {
     }
 
     if (existing) {
+      const hasStatusChanged = existing.status !== item.status
+      const hasRoomChanged = existing.room !== item.room
+      const hasTeacherChanged = existing.teacher_name !== item.teacher_name
+      const hasChanged = hasStatusChanged || hasRoomChanged || hasTeacherChanged
+
       await admin
         .from('timetable_courses')
         .update({
@@ -430,6 +482,54 @@ export async function syncPronoteData() {
         })
         .eq('id', existing.id)
       results.updatedCourses++
+
+      // Si un changement est survenu sur Pronote, alerter immédiatement le salon Discord de la classe
+      if (hasChanged) {
+        const target = getClassNotificationTarget(item.target_class, registeredClasses)
+        if (target) {
+          const dayName = item.day_of_week === 6 ? 'Samedi' : item.day_of_week === 0 ? 'Dimanche' : `Jour ${item.day_of_week}`
+          const startStr = item.start_time.slice(0, 5)
+          const endStr = item.end_time.slice(0, 5)
+
+          let embedTitle = `⚠️ MODIFICATION PRONOTE : ${item.subject.toUpperCase()}`
+          let embedDesc = `**Changement détecté sur Pronote pour la classe ${target.name} !**\n\n` +
+            `**Cours :** ${item.subject}\n` +
+            `**Horaire :** ${dayName} (${startStr} - ${endStr})\n` +
+            `**Salle :** **${item.room}**` + (hasRoomChanged ? ` *(auparavant: ${existing.room})*` : '') + `\n` +
+            `**Professeur :** ${item.teacher_name || 'Non spécifié'}` + (hasTeacherChanged ? ` *(auparavant: ${existing.teacher_name})*` : '') + `\n` +
+            (item.status_note ? `*${item.status_note}*` : '')
+          let embedColor = 0xFEE75C // Yellow
+
+          if (item.status === 'annule' || item.status === 'prof_absent') {
+            embedTitle = `🚫 ALERTE PRONOTE : COURS ANNULÉ (${item.subject.toUpperCase()})`
+            embedDesc = `⚠️ **Le cours est annulé sur Pronote pour la classe ${target.name} !**\n\n` +
+              `**Cours :** ${item.subject}\n` +
+              `**Horaire :** ${dayName} (${startStr} - ${endStr})\n` +
+              `**Motif :** ${item.status_note || (item.status === 'prof_absent' ? 'Professeur absent' : 'Cours annulé')}\n` +
+              `**Professeur :** ${item.teacher_name || 'Non spécifié'}`
+            embedColor = 0xED4245 // Red
+          } else if (hasStatusChanged && item.status === 'normal') {
+            embedTitle = `✅ COURS MAINTENU : ${item.subject.toUpperCase()}`
+            embedDesc = `Le cours de **${item.subject}** (${dayName} ${startStr} - ${endStr}) pour la classe ${target.name} est de nouveau programmé normalement en salle **${item.room}**.`
+            embedColor = 0x57F287 // Green
+          }
+
+          const embed = {
+            title: embedTitle,
+            description: embedDesc,
+            color: embedColor,
+            footer: { text: 'LunaVerse ENT — Synchronisation Pronote' },
+            timestamp: new Date().toISOString(),
+          }
+
+          const sent = await sendDiscordNotification({
+            channelId: target.channelId,
+            roleMention: target.roleMention,
+            embed,
+          })
+          if (sent) results.alertsSent++
+        }
+      }
     } else {
       await admin.from('timetable_courses').insert([
         {
@@ -447,6 +547,39 @@ export async function syncPronoteData() {
         },
       ])
       results.updatedCourses++
+
+      // Si le cours nouvellement importé est déjà annulé ou modifié
+      if (item.status === 'annule' || item.status === 'prof_absent' || item.status === 'modifie' || item.status === 'deplace') {
+        const target = getClassNotificationTarget(item.target_class, registeredClasses)
+        if (target) {
+          const dayName = item.day_of_week === 6 ? 'Samedi' : item.day_of_week === 0 ? 'Dimanche' : `Jour ${item.day_of_week}`
+          const startStr = item.start_time.slice(0, 5)
+          const endStr = item.end_time.slice(0, 5)
+          const isCancel = item.status === 'annule' || item.status === 'prof_absent'
+
+          const embed = {
+            title: isCancel
+              ? `🚫 ALERTE PRONOTE : COURS ANNULÉ (${item.subject.toUpperCase()})`
+              : `⚠️ MODIFICATION PRONOTE : ${item.subject.toUpperCase()}`,
+            description: `**Nouveau cours détecté sur Pronote pour la classe ${target.name} :**\n\n` +
+              `**Cours :** ${item.subject}\n` +
+              `**Horaire :** ${dayName} (${startStr} - ${endStr})\n` +
+              `**Salle :** **${item.room}**\n` +
+              `**Professeur :** ${item.teacher_name || 'Non spécifié'}\n` +
+              `**Statut :** ${item.status_note || (isCancel ? 'Annulé' : item.status)}`,
+            color: isCancel ? 0xED4245 : 0xFEE75C,
+            footer: { text: 'LunaVerse ENT — Synchronisation Pronote' },
+            timestamp: new Date().toISOString(),
+          }
+
+          const sent = await sendDiscordNotification({
+            channelId: target.channelId,
+            roleMention: target.roleMention,
+            embed,
+          })
+          if (sent) results.alertsSent++
+        }
+      }
     }
   }
 
@@ -486,6 +619,35 @@ export async function syncPronoteData() {
         },
       ])
       results.updatedHomeworks++
+
+      // Alerte Discord pour le nouveau devoir !
+      const target = getClassNotificationTarget(hw.target_class, registeredClasses)
+      if (target) {
+        const formattedDate = new Date(hw.due_date).toLocaleDateString('fr-FR', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+        })
+
+        const embed = {
+          title: `📝 NOUVEAU DEVOIR : ${hw.subject.toUpperCase()}`,
+          description: `**Un travail à faire a été publié sur Pronote pour la classe ${target.name} !**\n\n` +
+            `**Matière :** ${hw.subject}\n` +
+            `**Titre :** ${hw.title}\n` +
+            (hw.description && hw.description !== hw.title ? `**Consigne :**\n${hw.description.slice(0, 400)}\n\n` : '') +
+            `📅 **À rendre pour :** ${formattedDate}`,
+          color: 0x5865F2,
+          footer: { text: 'LunaVerse ENT — Cahier de Textes Pronote' },
+          timestamp: new Date().toISOString(),
+        }
+
+        const sent = await sendDiscordNotification({
+          channelId: target.channelId,
+          roleMention: target.roleMention,
+          embed,
+        })
+        if (sent) results.alertsSent++
+      }
     }
   }
 
@@ -506,6 +668,7 @@ export async function syncPronoteData() {
     success: true,
     coursesCount: results.updatedCourses,
     homeworksCount: results.updatedHomeworks,
+    alertsSent: results.alertsSent,
     syncedAt: nowIso,
   }
 }

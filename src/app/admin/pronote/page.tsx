@@ -102,7 +102,7 @@ export default function AdminPronotePage() {
       if (!res.ok) throw new Error(data.error || 'Erreur lors de la synchronisation.')
       setFeedbackMsg({
         type: 'success',
-        text: `Synchronisation réussie ! (${data.coursesCount} cours traités, ${data.homeworksCount} devoirs)`,
+        text: `Synchronisation réussie ! (${data.coursesCount} cours traités, ${data.homeworksCount} devoirs${typeof data.alertsSent === 'number' ? `, ${data.alertsSent} alerte(s) Discord envoyée(s)` : ''})`,
       })
       await loadPronoteStatus()
     } catch (err: any) {
@@ -197,7 +197,7 @@ export default function AdminPronotePage() {
               <Smartphone className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-lg font-bold text-white">Liaison Pronote Directe</h3>
                 <span
                   className={clsx(
@@ -209,6 +209,11 @@ export default function AdminPronotePage() {
                 >
                   {status?.isConnected ? 'Connecté' : 'Non associé'}
                 </span>
+                {status?.isConnected && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-discord-blurple/20 text-discord-blurple border border-discord-blurple/30 flex items-center gap-1">
+                    ⚡ Auto-Synchro (10 min)
+                  </span>
+                )}
               </div>
               <p className="text-xs text-discord-muted mt-0.5">
                 {status?.isConnected

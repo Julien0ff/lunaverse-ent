@@ -774,6 +774,21 @@ client.on('ready', async () => {
       console.error('Failed to process course announcements:', err)
     }
 
+    // ── Automated Pronote Sync (Runs every 10 minutes) ──
+    if (now.getMinutes() % 10 === 0) {
+      try {
+        const { syncPronoteData } = await import('./pronote-sync')
+        const syncRes = await syncPronoteData()
+        if (syncRes && syncRes.alertsSent > 0) {
+          console.log(`[PronoteSync] Sync auto bot : ${syncRes.coursesCount} cours traités, ${syncRes.homeworksCount} devoirs, ${syncRes.alertsSent} alertes Discord envoyées.`)
+        }
+      } catch (err: any) {
+        if (!err?.message?.includes("n'est pas encore appairé")) {
+          console.error('[PronoteSync] Erreur sync auto bot:', err?.message || err)
+        }
+      }
+    }
+
   }, 60_000) // check every minute
 
   // ── Realtime social sync ──────────────────────────────────────────
