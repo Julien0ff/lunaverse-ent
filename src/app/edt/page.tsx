@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import {
   Calendar, Clock, MapPin, User, AlertTriangle, XCircle, CheckCircle2,
@@ -38,17 +38,34 @@ function areClassesMatching(targetClass: string, selectedClass: string): boolean
   if (!targetClass || !selectedClass) return false
   if (selectedClass === 'all' || targetClass === 'all') return true
 
-  const cleanTarget = targetClass.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
-  const cleanSelected = selectedClass.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
+  const cleanTarget = targetClass.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
+  const cleanSelected = selectedClass.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
 
   if (cleanTarget === cleanSelected) return true
 
+  // Mots-clés universels (cours pour toute l'école / tout le monde)
+  const universal = ['all', 'tous', 'toutes', 'general', 'generale', 'commun', 'commune', 'tout']
+  const targetAlnum = cleanTarget.replace(/[^a-z0-9]/g, '')
+  const selectedAlnum = cleanSelected.replace(/[^a-z0-9]/g, '')
+
+  if (universal.includes(targetAlnum) || universal.includes(selectedAlnum)) return true
+  if (targetAlnum === selectedAlnum) return true
+
   // Groupe d'alias 3ème Générale A
-  const is3A_Target = ['3ga', '3a', '3ea', '3emea', '3eme'].includes(cleanTarget)
-  const is3A_Selected = ['3ga', '3a', '3ea', '3emea', '3eme'].includes(cleanSelected)
+  const is3A_Target = ['3ga', '3a', '3ea', '3emea', '3eme', 'troisieme'].some(t => targetAlnum.includes(t))
+  const is3A_Selected = ['3ga', '3a', '3ea', '3emea', '3eme', 'troisieme'].some(t => selectedAlnum.includes(t))
   if (is3A_Target && is3A_Selected) return true
 
-  return cleanTarget.includes(cleanSelected) || cleanSelected.includes(cleanTarget)
+  // Nettoyage des préfixes "classe", "groupe"
+  const strip = (s: string) => s.replace(/^(classe|groupe|niveau)/i, '').replace(/[^a-z0-9]/g, '').trim()
+  const sTarget = strip(cleanTarget)
+  const sSelected = strip(cleanSelected)
+  if (sTarget && sSelected) {
+    if (sTarget === sSelected) return true
+    if (sTarget.includes(sSelected) || sSelected.includes(sTarget)) return true
+  }
+
+  return targetAlnum.includes(selectedAlnum) || selectedAlnum.includes(targetAlnum)
 }
 
 export default function TimetablePage() {
@@ -66,9 +83,11 @@ export default function TimetablePage() {
   const [loading, setLoading] = useState(true)
   const [courses, setCourses] = useState<Course[]>([])
   const [classes, setClasses] = useState<{ name: string; roleId?: string; channelId?: string }[]>([])
-  const [selectedClass, setSelectedClass] = useState<string>('')
-  const [selectedDay, setSelectedDay] = useState<number>(6) // Samedi (6) par défaut
+  const [selectedClass, setSelectedClass] = useState<string>('all')
+  const [selectedDay, setSelectedDay] = useState<number>(6) // Samedi (6) par défaut, ou -1 pour tous
   const [lastSync, setLastSync] = useState<string>('')
+  const initialClassSet = useRef(false)
+  const initialDaySet = useRef(false)
 
   // Heure actuelle pour le badge "En cours"
   const [now, setNow] = useState(new Date())
@@ -77,15 +96,13 @@ export default function TimetablePage() {
     return () => clearInterval(timer)
   }, [])
 
-  // Déterminer la classe personnelle de l'élève
-  const studentClass = useMemo(() => {
-    // 1. Recherche par rôle concordant avec une classe visible
+  // Détection d'une classe assignée via les rôles Discord
+  const explicitClass = useMemo(() => {
     const matchedClass = classes.find(c =>
       roles.some(r => areClassesMatching(r.name, c.name))
     )
     if (matchedClass) return matchedClass.name
 
-    // 2. Recherche par indicateur 3ème / 3A dans les rôles
     const has3A = roles.some(r => {
       const clean = r.name.toLowerCase().replace(/[^a-z0-9]/g, '')
       return clean.includes('3a') || clean.includes('3ga') || clean.includes('3ea')
@@ -95,9 +112,29 @@ export default function TimetablePage() {
       if (class3) return class3.name
     }
 
-    // 3. Fallback sur la première classe active (ex: 3GA)
-    return classes[0]?.name || '3GA'
+    return null
   }, [roles, classes])
+
+  const studentClass = explicitClass || classes[0]?.name || '3GA'
+
+  // Déterminer les jours disponibles (Samedi, Dimanche, et tout autre jour ayant des cours enregistrés)
+  const availableDays = useMemo(() => {
+    const courseDays = new Set(courses.map(c => c.day_of_week))
+    courseDays.add(6) // Samedi
+    courseDays.add(0) // Dimanche
+
+    const ALL_DAYS = [
+      { day: 6, label: 'Samedi' },
+      { day: 0, label: 'Dimanche' },
+      { day: 1, label: 'Lundi' },
+      { day: 2, label: 'Mardi' },
+      { day: 3, label: 'Mercredi' },
+      { day: 4, label: 'Jeudi' },
+      { day: 5, label: 'Vendredi' },
+    ]
+
+    return ALL_DAYS.filter(d => courseDays.has(d.day))
+  }, [courses])
 
   const loadData = async () => {
     try {
@@ -127,16 +164,37 @@ export default function TimetablePage() {
     loadData()
   }, [])
 
-  // Initialisation de la classe sélectionnée
+  // Initialisation de la classe sélectionnée une seule fois
   useEffect(() => {
-    if (classes.length > 0) {
-      if (isStudent) {
-        setSelectedClass(studentClass)
-      } else if (!selectedClass) {
+    if (!initialClassSet.current && classes.length > 0) {
+      if (explicitClass) {
+        setSelectedClass(explicitClass)
+      } else {
         setSelectedClass('all')
       }
+      initialClassSet.current = true
     }
-  }, [classes, isStudent, studentClass, selectedClass])
+  }, [classes, explicitClass])
+
+  // Sélection intelligente du jour initial dès que les cours sont chargés
+  useEffect(() => {
+    if (!initialDaySet.current && courses.length > 0) {
+      const today = new Date().getDay()
+      const hasTodayCourses = courses.some(c => c.day_of_week === today && !isHiddenClass(c.target_class))
+      if (hasTodayCourses) {
+        setSelectedDay(today)
+      } else {
+        const hasSaturdayCourses = courses.some(c => c.day_of_week === 6 && !isHiddenClass(c.target_class))
+        if (!hasSaturdayCourses) {
+          const firstDayWithCourses = courses.find(c => !isHiddenClass(c.target_class))
+          if (firstDayWithCourses) {
+            setSelectedDay(firstDayWithCourses.day_of_week)
+          }
+        }
+      }
+      initialDaySet.current = true
+    }
+  }, [courses])
 
   // Filtrer les cours pour le jour et la classe sélectionnés
   const filteredCourses = useMemo(() => {
@@ -144,26 +202,20 @@ export default function TimetablePage() {
       // Exclure formellement les cours des classes masquées (2GT1, 3PM, 2PRO1)
       if (isHiddenClass(c.target_class)) return false
 
-      const matchesDay = c.day_of_week === selectedDay
+      const matchesDay = selectedDay === -1 || c.day_of_week === selectedDay
 
-      // Cas 1 : L'élève ne voit strictement QUE sa classe personnelle
-      if (isStudent) {
-        const isStudentOwnClass = areClassesMatching(c.target_class, studentClass)
-        return matchesDay && isStudentOwnClass
-      }
-
-      // Cas 2 : Enseignant filtrant sur ses propres cours
+      // Enseignant filtrant sur ses propres cours
       if (isTeacher && selectedClass === 'my_courses') {
         const teacherName = (profile?.nickname_rp || profile?.username || '').toLowerCase().trim()
         const isMyCourse = teacherName && c.teacher_name?.toLowerCase().includes(teacherName)
         return matchesDay && isMyCourse
       }
 
-      // Cas 3 : Administrateur ou enseignant consultant une classe ou toutes
+      // Filtrage par classe (ou toutes si 'all')
       const matchesClass = !selectedClass || selectedClass === 'all' || areClassesMatching(c.target_class, selectedClass)
       return matchesDay && matchesClass
     })
-  }, [courses, selectedDay, selectedClass, isStudent, studentClass, isTeacher, profile])
+  }, [courses, selectedDay, selectedClass, isTeacher, profile])
 
   // Détection du cours actuellement en cours
   const isCourseOngoing = (c: Course) => {
@@ -190,7 +242,11 @@ export default function TimetablePage() {
               </h1>
               <p className="text-discord-muted text-sm font-medium">
                 {isStudent ? (
-                  <>Planning personnel des cours • <span className="text-white font-bold">Classe {studentClass}</span></>
+                  explicitClass ? (
+                    <>Planning personnel des cours • <span className="text-white font-bold">Classe {explicitClass}</span></>
+                  ) : (
+                    <>Planning des cours de l&apos;établissement</>
+                  )
                 ) : (
                   <>Planning des cours • <span className="text-white font-bold">Samedi & Dimanche</span> (12h00 - 19h30)</>
                 )}
@@ -219,96 +275,90 @@ export default function TimetablePage() {
 
       {/* Barre de sélection : Jour & Vue */}
       <div className="glass-card p-4 flex flex-col lg:flex-row items-center justify-between gap-4">
-        {/* Sélecteur de Jour (Samedi / Dimanche) */}
-        <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5 w-full sm:w-auto">
+        {/* Sélecteur de Jour */}
+        <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5 w-full sm:w-auto overflow-x-auto">
+          {availableDays.map(d => (
+            <button
+              key={d.day}
+              onClick={() => setSelectedDay(d.day)}
+              className={clsx(
+                "flex-1 sm:flex-initial px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shrink-0",
+                selectedDay === d.day
+                  ? "bg-discord-blurple text-white shadow-lg shadow-discord-blurple/30"
+                  : "text-discord-muted hover:text-white hover:bg-white/5"
+              )}
+            >
+              <Calendar className="w-4 h-4" />
+              {d.label}
+              {now.getDay() === d.day && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-1" title="Aujourd'hui" />
+              )}
+            </button>
+          ))}
           <button
-            onClick={() => setSelectedDay(6)}
+            onClick={() => setSelectedDay(-1)}
             className={clsx(
-              "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2",
-              selectedDay === 6
+              "flex-1 sm:flex-initial px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shrink-0",
+              selectedDay === -1
                 ? "bg-discord-blurple text-white shadow-lg shadow-discord-blurple/30"
                 : "text-discord-muted hover:text-white hover:bg-white/5"
             )}
           >
-            <Calendar className="w-4 h-4" />
-            Samedi
-            {now.getDay() === 6 && (
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-1" title="Aujourd'hui" />
-            )}
-          </button>
-          <button
-            onClick={() => setSelectedDay(0)}
-            className={clsx(
-              "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2",
-              selectedDay === 0
-                ? "bg-discord-blurple text-white shadow-lg shadow-discord-blurple/30"
-                : "text-discord-muted hover:text-white hover:bg-white/5"
-            )}
-          >
-            <Calendar className="w-4 h-4" />
-            Dimanche
-            {now.getDay() === 0 && (
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-1" title="Aujourd'hui" />
-            )}
+            Tous les jours
           </button>
         </div>
 
-        {/* Contrôles de filtrage : Mode Élève vs Mode Admin / Professeur */}
-        {isStudent ? (
-          // Affichage dédié à l'élève : Badge personnel sans possibilité de changer de classe
-          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-xs font-bold text-gray-200">
-            <GraduationCap className="w-4 h-4 text-discord-blurple" />
-            <span>Emploi du temps personnel :</span>
-            <span className="px-2.5 py-1 rounded-xl bg-discord-blurple text-white font-black uppercase text-xs shadow-md shadow-discord-blurple/30">
-              Classe {studentClass}
+        {/* Contrôles de filtrage par classe : accessible à tous */}
+        <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0">
+          {explicitClass && (
+            <span className="px-3 py-1.5 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-300 font-bold text-xs shrink-0 flex items-center gap-1.5">
+              <GraduationCap className="w-3.5 h-3.5 text-purple-400" />
+              Ma classe : {explicitClass}
             </span>
-          </div>
-        ) : (
-          // Affichage Admin & Enseignants : Choix des classes actives
-          <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0">
-            {isTeacher && (
-              <button
-                onClick={() => setSelectedClass('my_courses')}
-                className={clsx(
-                  "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 flex items-center gap-1.5",
-                  selectedClass === 'my_courses'
-                    ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
-                    : "bg-white/5 text-discord-muted hover:text-white hover:bg-white/10 border border-white/5"
-                )}
-              >
-                <User className="w-3.5 h-3.5" />
-                Mes cours
-              </button>
-            )}
+          )}
 
+          {isTeacher && (
             <button
-              onClick={() => setSelectedClass('all')}
+              onClick={() => setSelectedClass('my_courses')}
               className={clsx(
-                "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0",
-                selectedClass === 'all'
-                  ? "bg-white/20 text-white border border-white/20 shadow-md"
+                "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 flex items-center gap-1.5",
+                selectedClass === 'my_courses'
+                  ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
                   : "bg-white/5 text-discord-muted hover:text-white hover:bg-white/10 border border-white/5"
               )}
             >
-              Toutes les classes
+              <User className="w-3.5 h-3.5" />
+              Mes cours
             </button>
+          )}
 
-            {classes.map(c => (
-              <button
-                key={c.name}
-                onClick={() => setSelectedClass(c.name)}
-                className={clsx(
-                  "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0",
-                  areClassesMatching(selectedClass, c.name) && selectedClass !== 'all' && selectedClass !== 'my_courses'
-                    ? "bg-discord-blurple text-white border border-discord-blurple shadow-lg shadow-discord-blurple/20"
-                    : "bg-white/5 text-discord-muted hover:text-white hover:bg-white/10 border border-white/5"
-                )}
-              >
-                {c.name}
-              </button>
-            ))}
-          </div>
-        )}
+          <button
+            onClick={() => setSelectedClass('all')}
+            className={clsx(
+              "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0",
+              selectedClass === 'all'
+                ? "bg-white/20 text-white border border-white/20 shadow-md"
+                : "bg-white/5 text-discord-muted hover:text-white hover:bg-white/10 border border-white/5"
+            )}
+          >
+            Toutes les classes
+          </button>
+
+          {classes.map(c => (
+            <button
+              key={c.name}
+              onClick={() => setSelectedClass(c.name)}
+              className={clsx(
+                "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0",
+                areClassesMatching(selectedClass, c.name) && selectedClass !== 'all' && selectedClass !== 'my_courses'
+                  ? "bg-discord-blurple text-white border border-discord-blurple shadow-lg shadow-discord-blurple/20"
+                  : "bg-white/5 text-discord-muted hover:text-white hover:bg-white/10 border border-white/5"
+              )}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Grille des Cours */}
@@ -324,8 +374,31 @@ export default function TimetablePage() {
           </div>
           <h3 className="text-xl font-bold text-white mb-1">Aucun cours programmé</h3>
           <p className="text-discord-muted text-sm max-w-md">
-            Il n'y a aucun cours sur l'emploi du temps pour le {selectedDay === 6 ? 'Samedi' : 'Dimanche'} {isStudent ? `pour votre classe (${studentClass})` : selectedClass && selectedClass !== 'all' ? `en ${selectedClass}` : ''}.
+            {selectedDay === -1
+              ? `Il n'y a aucun cours programmé sur l'ensemble de la semaine${selectedClass && selectedClass !== 'all' ? ` pour la classe ${selectedClass}` : ''}.`
+              : `Il n'y a aucun cours sur l'emploi du temps pour ce jour${selectedClass && selectedClass !== 'all' ? ` pour la classe ${selectedClass}` : ''}.`
+            }
           </p>
+          {(selectedClass !== 'all' || selectedDay !== -1) && (
+            <div className="mt-4 flex flex-wrap gap-2 justify-center">
+              {selectedClass !== 'all' && (
+                <button
+                  onClick={() => setSelectedClass('all')}
+                  className="px-4 py-2 rounded-xl bg-discord-blurple/20 hover:bg-discord-blurple/30 text-discord-blurple font-bold text-xs transition-all border border-discord-blurple/30"
+                >
+                  Voir toutes les classes
+                </button>
+              )}
+              {selectedDay !== -1 && (
+                <button
+                  onClick={() => setSelectedDay(-1)}
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-all border border-white/10"
+                >
+                  Voir tous les jours
+                </button>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

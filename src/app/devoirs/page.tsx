@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import {
   BookOpen, Calendar, CheckCircle2, Clock, Trash2,
@@ -35,16 +35,33 @@ function areClassesMatching(targetClass: string, selectedClass: string): boolean
   if (!targetClass || !selectedClass) return false
   if (selectedClass === 'all' || targetClass === 'all') return true
 
-  const cleanTarget = targetClass.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
-  const cleanSelected = selectedClass.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
+  const cleanTarget = targetClass.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
+  const cleanSelected = selectedClass.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
 
   if (cleanTarget === cleanSelected) return true
 
-  const is3A_Target = ['3ga', '3a', '3ea', '3emea', '3eme'].includes(cleanTarget)
-  const is3A_Selected = ['3ga', '3a', '3ea', '3emea', '3eme'].includes(cleanSelected)
+  // Mots-clés universels (devoirs pour toute l'école / tout le monde)
+  const universal = ['all', 'tous', 'toutes', 'general', 'generale', 'commun', 'commune', 'tout']
+  const targetAlnum = cleanTarget.replace(/[^a-z0-9]/g, '')
+  const selectedAlnum = cleanSelected.replace(/[^a-z0-9]/g, '')
+
+  if (universal.includes(targetAlnum) || universal.includes(selectedAlnum)) return true
+  if (targetAlnum === selectedAlnum) return true
+
+  const is3A_Target = ['3ga', '3a', '3ea', '3emea', '3eme', 'troisieme'].some(t => targetAlnum.includes(t))
+  const is3A_Selected = ['3ga', '3a', '3ea', '3emea', '3eme', 'troisieme'].some(t => selectedAlnum.includes(t))
   if (is3A_Target && is3A_Selected) return true
 
-  return cleanTarget.includes(cleanSelected) || cleanSelected.includes(cleanTarget)
+  // Nettoyage des préfixes "classe", "groupe"
+  const strip = (s: string) => s.replace(/^(classe|groupe|niveau)/i, '').replace(/[^a-z0-9]/g, '').trim()
+  const sTarget = strip(cleanTarget)
+  const sSelected = strip(cleanSelected)
+  if (sTarget && sSelected) {
+    if (sTarget === sSelected) return true
+    if (sTarget.includes(sSelected) || sSelected.includes(sTarget)) return true
+  }
+
+  return targetAlnum.includes(selectedAlnum) || selectedAlnum.includes(targetAlnum)
 }
 
 export default function DevoirsPage() {
@@ -63,9 +80,10 @@ export default function DevoirsPage() {
   const [homeworks, setHomeworks] = useState<Homework[]>([])
   const [classes, setClasses] = useState<{ name: string }[]>([])
   const [selectedClass, setSelectedClass] = useState<string>('all')
+  const initialClassSet = useRef(false)
 
-  // Déterminer la classe personnelle de l'élève
-  const studentClass = useMemo(() => {
+  // Détection d'une classe assignée via les rôles Discord
+  const explicitClass = useMemo(() => {
     const matchedClass = classes.find(c =>
       roles.some(r => areClassesMatching(r.name, c.name))
     )
@@ -80,8 +98,10 @@ export default function DevoirsPage() {
       if (class3) return class3.name
     }
 
-    return classes[0]?.name || '3GA'
+    return null
   }, [roles, classes])
+
+  const studentClass = explicitClass || classes[0]?.name || '3GA'
 
   const loadData = async () => {
     try {
@@ -110,16 +130,17 @@ export default function DevoirsPage() {
     loadData()
   }, [])
 
-  // Initialisation de la classe sélectionnée
+  // Initialisation de la classe sélectionnée une seule fois
   useEffect(() => {
-    if (classes.length > 0) {
-      if (isStudent) {
-        setSelectedClass(studentClass)
-      } else if (selectedClass === 'all' && !isAdmin) {
-        setSelectedClass(classes[0]?.name || 'all')
+    if (!initialClassSet.current && classes.length > 0) {
+      if (explicitClass) {
+        setSelectedClass(explicitClass)
+      } else {
+        setSelectedClass('all')
       }
+      initialClassSet.current = true
     }
-  }, [classes, isStudent, studentClass, isAdmin, selectedClass])
+  }, [classes, explicitClass])
 
   const handleToggleComplete = async (hw: Homework) => {
     const nextCompleted = !hw.completed
@@ -151,20 +172,16 @@ export default function DevoirsPage() {
     }
   }
 
-  // Filtrage selon le rôle : l'élève ne voit STRICTEMENT que sa classe
+  // Filtrage selon la classe sélectionnée (ou toutes si 'all')
   const filteredHomeworks = useMemo(() => {
     return homeworks.filter(hw => {
       // Exclure classes masquées
       if (isHiddenClass(hw.target_class)) return false
 
-      if (isStudent) {
-        return areClassesMatching(hw.target_class, studentClass)
-      }
-
       if (selectedClass === 'all') return true
       return areClassesMatching(hw.target_class, selectedClass)
     })
-  }, [homeworks, selectedClass, isStudent, studentClass])
+  }, [homeworks, selectedClass])
 
   const stats = useMemo(() => {
     const total = filteredHomeworks.length
@@ -187,7 +204,11 @@ export default function DevoirsPage() {
               </h1>
               <p className="text-discord-muted text-sm font-medium">
                 {isStudent ? (
-                  <>Travaux synchronisés depuis Pronote pour la <span className="text-white font-bold">Classe {studentClass}</span></>
+                  explicitClass ? (
+                    <>Travaux synchronisés depuis Pronote pour la <span className="text-white font-bold">Classe {explicitClass}</span></>
+                  ) : (
+                    <>Travaux et devoirs de l&apos;établissement</>
+                  )
                 ) : (
                   <>Consultez les devoirs synchronisés automatiquement depuis Pronote.</>
                 )}
@@ -232,47 +253,42 @@ export default function DevoirsPage() {
           </div>
         </div>
 
-        {/* Stat 3 / Contrôle classe : Badge personnel pour l'élève, sélecteur pour l'admin/prof */}
-        {isStudent ? (
-          <div className="glass-card p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
-              <GraduationCap className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-discord-muted">Classe assignée</p>
-              <p className="text-xl font-black text-white">Classe {studentClass}</p>
-            </div>
-          </div>
-        ) : (
-          <div className="glass-card p-4 flex flex-col justify-center">
-            <label className="text-[10px] font-black uppercase tracking-widest text-discord-muted block mb-1.5">
+        {/* Stat 3 / Contrôle classe : Sélecteur de classe accessible à tous */}
+        <div className="glass-card p-4 flex flex-col justify-center">
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-[10px] font-black uppercase tracking-widest text-discord-muted block">
               Filtrer par classe
             </label>
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {explicitClass && (
+              <span className="text-[10px] font-black uppercase tracking-wider text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-md border border-purple-500/20">
+                Ma classe : {explicitClass}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <button
+              onClick={() => setSelectedClass('all')}
+              className={clsx(
+                "px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider shrink-0 transition-colors",
+                selectedClass === 'all' ? "bg-purple-600 text-white" : "bg-white/5 text-discord-muted hover:text-white"
+              )}
+            >
+              Toutes
+            </button>
+            {classes.map(c => (
               <button
-                onClick={() => setSelectedClass('all')}
+                key={c.name}
+                onClick={() => setSelectedClass(c.name)}
                 className={clsx(
                   "px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider shrink-0 transition-colors",
-                  selectedClass === 'all' ? "bg-purple-600 text-white" : "bg-white/5 text-discord-muted hover:text-white"
+                  areClassesMatching(selectedClass, c.name) && selectedClass !== 'all' ? "bg-purple-600 text-white" : "bg-white/5 text-discord-muted hover:text-white"
                 )}
               >
-                Toutes
+                {c.name}
               </button>
-              {classes.map(c => (
-                <button
-                  key={c.name}
-                  onClick={() => setSelectedClass(c.name)}
-                  className={clsx(
-                    "px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider shrink-0 transition-colors",
-                    areClassesMatching(selectedClass, c.name) && selectedClass !== 'all' ? "bg-purple-600 text-white" : "bg-white/5 text-discord-muted hover:text-white"
-                  )}
-                >
-                  {c.name}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Liste des devoirs */}
@@ -288,8 +304,16 @@ export default function DevoirsPage() {
           </div>
           <h3 className="text-xl font-bold text-white mb-1">Aucun devoir à rendre</h3>
           <p className="text-discord-muted text-sm max-w-md">
-            Super ! Aucun devoir n'est programmé actuellement pour {isStudent ? `votre classe (${studentClass})` : selectedClass !== 'all' ? `la ${selectedClass}` : 'les classes sélectionnées'}.
+            Super ! Aucun devoir n&apos;est programmé actuellement {selectedClass !== 'all' ? `pour la classe ${selectedClass}` : 'sur l\'établissement'}.
           </p>
+          {selectedClass !== 'all' && (
+            <button
+              onClick={() => setSelectedClass('all')}
+              className="mt-4 px-4 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 font-bold text-xs transition-all border border-purple-500/30"
+            >
+              Voir toutes les classes
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
