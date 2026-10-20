@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import {
-  BookOpen, Calendar, CheckCircle2, Clock, Plus, Trash2,
-  Loader2, Filter, AlertCircle, CheckSquare, Square, Info
+  BookOpen, Calendar, CheckCircle2, Clock, Trash2,
+  Loader2, GraduationCap, RefreshCw
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -19,30 +19,69 @@ interface Homework {
   completed?: boolean
 }
 
+// Classes masquées temporairement
+const HIDDEN_CLASSES = ['2gt1', '3pm', '2pro1']
+
+function isHiddenClass(className: string): boolean {
+  if (!className) return false
+  const clean = className.toLowerCase().replace(/[^a-z0-9]/g, '')
+  return HIDDEN_CLASSES.includes(clean)
+}
+
+/**
+ * Compare deux dénominations de classe en tenant compte des alias courants (3GA, 3A, 3ea, 3ème A, etc.)
+ */
+function areClassesMatching(targetClass: string, selectedClass: string): boolean {
+  if (!targetClass || !selectedClass) return false
+  if (selectedClass === 'all' || targetClass === 'all') return true
+
+  const cleanTarget = targetClass.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
+  const cleanSelected = selectedClass.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
+
+  if (cleanTarget === cleanSelected) return true
+
+  const is3A_Target = ['3ga', '3a', '3ea', '3emea', '3eme'].includes(cleanTarget)
+  const is3A_Selected = ['3ga', '3a', '3ea', '3emea', '3eme'].includes(cleanSelected)
+  if (is3A_Target && is3A_Selected) return true
+
+  return cleanTarget.includes(cleanSelected) || cleanSelected.includes(cleanTarget)
+}
+
 export default function DevoirsPage() {
   const { roles, profile } = useAuth()
-  const isStaff = roles.some(r => ['admin', 'professeur', 'direction', 'cpe'].includes(r.name.toLowerCase()))
+
+  // Détection des rôles
+  const isAdmin = roles.some(r =>
+    ['admin', 'direction', 'cpe', 'principal', 'nova'].includes(r.name.toLowerCase().trim())
+  )
+  const isTeacher = !isAdmin && roles.some(r =>
+    ['professeur', 'prof'].includes(r.name.toLowerCase().trim())
+  )
+  const isStudent = !isAdmin && !isTeacher
 
   const [loading, setLoading] = useState(true)
   const [homeworks, setHomeworks] = useState<Homework[]>([])
   const [classes, setClasses] = useState<{ name: string }[]>([])
   const [selectedClass, setSelectedClass] = useState<string>('all')
 
-  // Modale ajout
-  const [showModal, setShowModal] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [feedback, setFeedback] = useState<string>('')
+  // Déterminer la classe personnelle de l'élève
+  const studentClass = useMemo(() => {
+    const matchedClass = classes.find(c =>
+      roles.some(r => areClassesMatching(r.name, c.name))
+    )
+    if (matchedClass) return matchedClass.name
 
-  // Formulaire
-  const [formData, setFormData] = useState({
-    target_class: '',
-    subject: 'Mathématiques',
-    title: '',
-    description: '',
-    due_date: '',
-    teacher_name: '',
-    notify_discord: true
-  })
+    const has3A = roles.some(r => {
+      const clean = r.name.toLowerCase().replace(/[^a-z0-9]/g, '')
+      return clean.includes('3a') || clean.includes('3ga') || clean.includes('3ea')
+    })
+    if (has3A) {
+      const class3 = classes.find(c => areClassesMatching(c.name, '3GA'))
+      if (class3) return class3.name
+    }
+
+    return classes[0]?.name || '3GA'
+  }, [roles, classes])
 
   const loadData = async () => {
     try {
@@ -59,19 +98,8 @@ export default function DevoirsPage() {
 
       if (clsRes.ok) {
         const cData = await clsRes.json()
-        const clsList = cData.classes || []
+        const clsList = (cData.classes || []).filter((c: any) => !isHiddenClass(c.name))
         setClasses(clsList)
-        if (clsList.length > 0 && selectedClass === 'all') {
-          const userClass = clsList.find((c: any) => 
-            roles.some(r => r.name.toLowerCase().includes(c.name.toLowerCase()))
-          )
-          if (userClass) {
-            setSelectedClass(userClass.name)
-            setFormData(prev => ({ ...prev, target_class: userClass.name }))
-          } else {
-            setFormData(prev => ({ ...prev, target_class: clsList[0].name }))
-          }
-        }
       }
     } catch (e) {
       console.error(e)
@@ -84,9 +112,20 @@ export default function DevoirsPage() {
     loadData()
   }, [])
 
+  // Initialisation de la classe sélectionnée
+  useEffect(() => {
+    if (classes.length > 0) {
+      if (isStudent) {
+        setSelectedClass(studentClass)
+      } else if (selectedClass === 'all' && !isAdmin) {
+        setSelectedClass(classes[0]?.name || 'all')
+      }
+    }
+  }, [classes, isStudent, studentClass, isAdmin, selectedClass])
+
   const handleToggleComplete = async (hw: Homework) => {
     const nextCompleted = !hw.completed
-    // Optimistic update
+    // Mise à jour optimiste
     setHomeworks(prev => prev.map(item => item.id === hw.id ? { ...item, completed: nextCompleted } : item))
 
     try {
@@ -102,54 +141,6 @@ export default function DevoirsPage() {
     }
   }
 
-  const handleOpenAdd = () => {
-    // Calculer la date du prochain samedi
-    const d = new Date()
-    const diff = (6 - d.getDay() + 7) % 7 || 7
-    d.setDate(d.getDate() + diff)
-    const nextSat = d.toISOString().split('T')[0]
-
-    setFormData({
-      target_class: selectedClass !== 'all' ? selectedClass : (classes[0]?.name || ''),
-      subject: 'Mathématiques',
-      title: '',
-      description: '',
-      due_date: nextSat,
-      teacher_name: profile?.nickname_rp || profile?.username || '',
-      notify_discord: true
-    })
-    setShowModal(true)
-  }
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.title || !formData.due_date) return
-    setSaving(true)
-    setFeedback('')
-
-    try {
-      const res = await fetch('/api/devoirs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      })
-
-      if (res.ok) {
-        setShowModal(false)
-        setFeedback('✅ Devoir ajouté et publié sur Discord !')
-        loadData()
-        setTimeout(() => setFeedback(''), 4000)
-      } else {
-        const err = await res.json()
-        setFeedback(`❌ Erreur: ${err.error || 'Impossible d\'ajouter le devoir'}`)
-      }
-    } catch (e) {
-      setFeedback('❌ Erreur de communication avec le serveur.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   const handleDelete = async (id: string) => {
     if (!confirm('Supprimer ce devoir ?')) return
     try {
@@ -162,11 +153,20 @@ export default function DevoirsPage() {
     }
   }
 
+  // Filtrage selon le rôle : l'élève ne voit STRICTEMENT que sa classe
   const filteredHomeworks = useMemo(() => {
     return homeworks.filter(hw => {
-      return selectedClass === 'all' || hw.target_class.toLowerCase() === selectedClass.toLowerCase() || hw.target_class === 'all'
+      // Exclure classes masquées
+      if (isHiddenClass(hw.target_class)) return false
+
+      if (isStudent) {
+        return areClassesMatching(hw.target_class, studentClass)
+      }
+
+      if (selectedClass === 'all') return true
+      return areClassesMatching(hw.target_class, selectedClass)
     })
-  }, [homeworks, selectedClass])
+  }, [homeworks, selectedClass, isStudent, studentClass])
 
   const stats = useMemo(() => {
     const total = filteredHomeworks.length
@@ -184,38 +184,35 @@ export default function DevoirsPage() {
               <BookOpen className="w-8 h-8 text-purple-400" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-white tracking-tight">Devoirs & Cahier de Textes</h1>
+              <h1 className="text-3xl font-black text-white tracking-tight">
+                {isStudent ? 'Mes Devoirs & Travaux' : 'Devoirs & Cahier de Textes'}
+              </h1>
               <p className="text-discord-muted text-sm font-medium">
-                Consultez vos travaux à rendre pour le week-end et suivez votre progression.
+                {isStudent ? (
+                  <>Travaux synchronisés depuis Pronote pour la <span className="text-white font-bold">Classe {studentClass}</span></>
+                ) : (
+                  <>Consultez les devoirs synchronisés automatiquement depuis Pronote.</>
+                )}
               </p>
             </div>
           </div>
         </div>
 
-        {isStaff && (
-          <button
-            onClick={handleOpenAdd}
-            className="btn bg-purple-600 hover:bg-purple-500 text-white flex items-center gap-2 shadow-lg shadow-purple-600/20 font-bold"
-          >
-            <Plus className="w-5 h-5" />
-            Ajouter un Devoir
-          </button>
-        )}
+        {/* Bouton rafraîchir */}
+        <button
+          onClick={loadData}
+          disabled={loading}
+          className="btn bg-white/5 hover:bg-white/10 text-discord-muted hover:text-white p-2.5 rounded-xl border border-white/10 transition-colors flex items-center gap-2 text-xs font-bold self-start md:self-auto"
+          title="Actualiser les devoirs"
+        >
+          <RefreshCw className={clsx("w-4 h-4", loading && "animate-spin")} />
+          Actualiser
+        </button>
       </div>
 
-      {feedback && (
-        <div className={clsx(
-          "p-4 rounded-2xl font-bold flex items-center gap-3 animate-fadeIn",
-          feedback.includes('✅') ? "bg-discord-success/10 text-discord-success border border-discord-success/20" : "bg-discord-error/10 text-discord-error border border-discord-error/20"
-        )}>
-          {feedback.includes('✅') ? <CheckCircle2 className="w-5 h-5" /> : <Info className="w-5 h-5" />}
-          {feedback}
-        </div>
-      )}
-
-      {/* Barre d'état & filtre classe */}
+      {/* Barre d'état & filtres */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Stat 1 : Restants */}
+        {/* Stat 1 : À faire */}
         <div className="glass-card p-5 flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
             <Clock className="w-6 h-6" />
@@ -237,35 +234,47 @@ export default function DevoirsPage() {
           </div>
         </div>
 
-        {/* Filtre Classe */}
-        <div className="glass-card p-4 flex flex-col justify-center">
-          <label className="text-[10px] font-black uppercase tracking-widest text-discord-muted block mb-1.5">
-            Filtrer par classe
-          </label>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            <button
-              onClick={() => setSelectedClass('all')}
-              className={clsx(
-                "px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider shrink-0 transition-colors",
-                selectedClass === 'all' ? "bg-purple-600 text-white" : "bg-white/5 text-discord-muted hover:text-white"
-              )}
-            >
-              Toutes
-            </button>
-            {classes.map(c => (
+        {/* Stat 3 / Contrôle classe : Badge personnel pour l'élève, sélecteur pour l'admin/prof */}
+        {isStudent ? (
+          <div className="glass-card p-5 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
+              <GraduationCap className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-discord-muted">Classe assignée</p>
+              <p className="text-xl font-black text-white">Classe {studentClass}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="glass-card p-4 flex flex-col justify-center">
+            <label className="text-[10px] font-black uppercase tracking-widest text-discord-muted block mb-1.5">
+              Filtrer par classe
+            </label>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
               <button
-                key={c.name}
-                onClick={() => setSelectedClass(c.name)}
+                onClick={() => setSelectedClass('all')}
                 className={clsx(
                   "px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider shrink-0 transition-colors",
-                  selectedClass.toLowerCase() === c.name.toLowerCase() ? "bg-purple-600 text-white" : "bg-white/5 text-discord-muted hover:text-white"
+                  selectedClass === 'all' ? "bg-purple-600 text-white" : "bg-white/5 text-discord-muted hover:text-white"
                 )}
               >
-                {c.name}
+                Toutes
               </button>
-            ))}
+              {classes.map(c => (
+                <button
+                  key={c.name}
+                  onClick={() => setSelectedClass(c.name)}
+                  className={clsx(
+                    "px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider shrink-0 transition-colors",
+                    areClassesMatching(selectedClass, c.name) && selectedClass !== 'all' ? "bg-purple-600 text-white" : "bg-white/5 text-discord-muted hover:text-white"
+                  )}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Liste des devoirs */}
@@ -281,7 +290,7 @@ export default function DevoirsPage() {
           </div>
           <h3 className="text-xl font-bold text-white mb-1">Aucun devoir à rendre</h3>
           <p className="text-discord-muted text-sm max-w-md">
-            Super ! Aucun devoir n'est programmé actuellement pour {selectedClass !== 'all' ? `la ${selectedClass}` : 'les classes sélectionnées'}.
+            Super ! Aucun devoir n'est programmé actuellement pour {isStudent ? `votre classe (${studentClass})` : selectedClass !== 'all' ? `la ${selectedClass}` : 'les classes sélectionnées'}.
           </p>
         </div>
       ) : (
@@ -347,7 +356,7 @@ export default function DevoirsPage() {
                   </div>
                 </div>
 
-                {/* Échéance & Actions */}
+                {/* Échéance & Actions (Suppression admin uniquement) */}
                 <div className="flex md:flex-col items-center md:items-end justify-between gap-3 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-white/5">
                   <div className="text-right">
                     <p className="text-[10px] font-black uppercase tracking-widest text-discord-muted">Pour le</p>
@@ -359,7 +368,7 @@ export default function DevoirsPage() {
                     </p>
                   </div>
 
-                  {isStaff && (
+                  {isAdmin && (
                     <button
                       onClick={() => handleDelete(hw.id)}
                       className="p-2 rounded-xl text-rose-400/60 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
@@ -372,131 +381,6 @@ export default function DevoirsPage() {
               </div>
             )
           })}
-        </div>
-      )}
-
-      {/* Modal Ajout de Devoir */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-          <div className="glass-card w-full max-w-lg p-6 space-y-6 max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <h3 className="text-xl font-black text-white flex items-center gap-2">
-                <BookOpen className="w-6 h-6 text-purple-400" />
-                Nouveau Devoir
-              </h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-1.5 text-discord-muted hover:text-white rounded-lg hover:bg-white/10"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest block mb-1.5">Classe</label>
-                  <select
-                    value={formData.target_class}
-                    onChange={e => setFormData({ ...formData, target_class: e.target.value })}
-                    className="glass-input w-full bg-[#18191c] text-white"
-                    required
-                  >
-                    {classes.map(c => (
-                      <option key={c.name} value={c.name}>{c.name}</option>
-                    ))}
-                    <option value="all">Toutes les classes</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest block mb-1.5">Matière</label>
-                  <input
-                    type="text"
-                    value={formData.subject}
-                    onChange={e => setFormData({ ...formData, subject: e.target.value })}
-                    placeholder="ex: Mathématiques"
-                    className="glass-input w-full"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-black text-discord-muted uppercase tracking-widest block mb-1.5">Titre du devoir</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={e => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="ex: Exercices 12 et 14 p. 45"
-                  className="glass-input w-full"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest block mb-1.5">Date limite</label>
-                  <input
-                    type="date"
-                    value={formData.due_date}
-                    onChange={e => setFormData({ ...formData, due_date: e.target.value })}
-                    className="glass-input w-full"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-black text-discord-muted uppercase tracking-widest block mb-1.5">Professeur</label>
-                  <input
-                    type="text"
-                    value={formData.teacher_name}
-                    onChange={e => setFormData({ ...formData, teacher_name: e.target.value })}
-                    placeholder="Nom du professeur"
-                    className="glass-input w-full"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-black text-discord-muted uppercase tracking-widest block mb-1.5">Consignes détaillées</label>
-                <textarea
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Détails, consignes à respecter, matériel nécessaire..."
-                  rows={4}
-                  className="glass-input w-full"
-                />
-              </div>
-
-              <label className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={formData.notify_discord}
-                  onChange={e => setFormData({ ...formData, notify_discord: e.target.checked })}
-                  className="w-4 h-4 rounded text-purple-600 focus:ring-purple-600"
-                />
-                <span className="text-xs font-bold text-white">
-                  Publier l'annonce sur le salon Discord de la classe (avec ping du rôle)
-                </span>
-              </label>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-5 py-2.5 rounded-xl font-bold text-discord-muted hover:text-white hover:bg-white/10 transition-colors text-sm"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="btn bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 flex items-center gap-2 text-sm font-bold"
-                >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Publier le devoir'}
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
       )}
     </div>

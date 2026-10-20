@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import {
   Calendar, Clock, MapPin, User, AlertTriangle, XCircle, CheckCircle2,
-  Loader2, Sparkles, Filter, RefreshCw, Check
+  Loader2, RefreshCw, Shield, GraduationCap
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -22,8 +22,46 @@ interface Course {
   status_note?: string
 }
 
+// Classes masquées temporairement à la demande de l'utilisateur
+const HIDDEN_CLASSES = ['2gt1', '3pm', '2pro1']
+
+function isHiddenClass(className: string): boolean {
+  if (!className) return false
+  const clean = className.toLowerCase().replace(/[^a-z0-9]/g, '')
+  return HIDDEN_CLASSES.includes(clean)
+}
+
+/**
+ * Compare deux dénominations de classe en tenant compte des alias courants (3GA, 3A, 3ea, 3ème A, etc.)
+ */
+function areClassesMatching(targetClass: string, selectedClass: string): boolean {
+  if (!targetClass || !selectedClass) return false
+  if (selectedClass === 'all' || targetClass === 'all') return true
+
+  const cleanTarget = targetClass.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
+  const cleanSelected = selectedClass.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
+
+  if (cleanTarget === cleanSelected) return true
+
+  // Groupe d'alias 3ème Générale A
+  const is3A_Target = ['3ga', '3a', '3ea', '3emea', '3eme'].includes(cleanTarget)
+  const is3A_Selected = ['3ga', '3a', '3ea', '3emea', '3eme'].includes(cleanSelected)
+  if (is3A_Target && is3A_Selected) return true
+
+  return cleanTarget.includes(cleanSelected) || cleanSelected.includes(cleanTarget)
+}
+
 export default function TimetablePage() {
-  const { roles } = useAuth()
+  const { roles, profile } = useAuth()
+
+  // Détection des rôles
+  const isAdmin = roles.some(r =>
+    ['admin', 'direction', 'cpe', 'principal', 'nova'].includes(r.name.toLowerCase().trim())
+  )
+  const isTeacher = !isAdmin && roles.some(r =>
+    ['professeur', 'prof'].includes(r.name.toLowerCase().trim())
+  )
+  const isStudent = !isAdmin && !isTeacher
 
   const [loading, setLoading] = useState(true)
   const [courses, setCourses] = useState<Course[]>([])
@@ -39,6 +77,28 @@ export default function TimetablePage() {
     return () => clearInterval(timer)
   }, [])
 
+  // Déterminer la classe personnelle de l'élève
+  const studentClass = useMemo(() => {
+    // 1. Recherche par rôle concordant avec une classe visible
+    const matchedClass = classes.find(c =>
+      roles.some(r => areClassesMatching(r.name, c.name))
+    )
+    if (matchedClass) return matchedClass.name
+
+    // 2. Recherche par indicateur 3ème / 3A dans les rôles
+    const has3A = roles.some(r => {
+      const clean = r.name.toLowerCase().replace(/[^a-z0-9]/g, '')
+      return clean.includes('3a') || clean.includes('3ga') || clean.includes('3ea')
+    })
+    if (has3A) {
+      const class3 = classes.find(c => areClassesMatching(c.name, '3GA'))
+      if (class3) return class3.name
+    }
+
+    // 3. Fallback sur la première classe active (ex: 3GA)
+    return classes[0]?.name || '3GA'
+  }, [roles, classes])
+
   const loadData = async () => {
     try {
       setLoading(true)
@@ -46,21 +106,11 @@ export default function TimetablePage() {
       if (res.ok) {
         const data = await res.json()
         setCourses(data.courses || [])
-        const dynamicClasses = data.classes || []
+
+        // Filtrer les classes pour exclure les classes masquées (2GT1, 3PM, 2PRO1)
+        const dynamicClasses = (data.classes || []).filter((c: any) => !isHiddenClass(c.name))
         setClasses(dynamicClasses)
 
-        // Définir la classe par défaut dynamiquement
-        if (dynamicClasses.length > 0 && !selectedClass) {
-          // Si l'utilisateur possède un rôle correspondant à une classe dynamique
-          const userClass = dynamicClasses.find((c: any) =>
-            roles.some(r => r.name.toLowerCase().trim() === c.name.toLowerCase().trim())
-          )
-          if (userClass) {
-            setSelectedClass(userClass.name)
-          } else {
-            setSelectedClass(dynamicClasses[0].name)
-          }
-        }
         setLastSync(new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))
       }
     } catch (e) {
@@ -74,16 +124,43 @@ export default function TimetablePage() {
     loadData()
   }, [])
 
+  // Initialisation de la classe sélectionnée
+  useEffect(() => {
+    if (classes.length > 0) {
+      if (isStudent) {
+        setSelectedClass(studentClass)
+      } else if (!selectedClass) {
+        setSelectedClass('all')
+      }
+    }
+  }, [classes, isStudent, studentClass, selectedClass])
+
   // Filtrer les cours pour le jour et la classe sélectionnés
   const filteredCourses = useMemo(() => {
     return courses.filter(c => {
+      // Exclure formellement les cours des classes masquées (2GT1, 3PM, 2PRO1)
+      if (isHiddenClass(c.target_class)) return false
+
       const matchesDay = c.day_of_week === selectedDay
-      const matchesClass = !selectedClass || selectedClass === 'all' || 
-        c.target_class.toLowerCase().trim() === selectedClass.toLowerCase().trim() || 
-        c.target_class === 'all'
+
+      // Cas 1 : L'élève ne voit strictement QUE sa classe personnelle
+      if (isStudent) {
+        const isStudentOwnClass = areClassesMatching(c.target_class, studentClass)
+        return matchesDay && isStudentOwnClass
+      }
+
+      // Cas 2 : Enseignant filtrant sur ses propres cours
+      if (isTeacher && selectedClass === 'my_courses') {
+        const teacherName = (profile?.nickname_rp || profile?.username || '').toLowerCase().trim()
+        const isMyCourse = teacherName && c.teacher_name?.toLowerCase().includes(teacherName)
+        return matchesDay && isMyCourse
+      }
+
+      // Cas 3 : Administrateur ou enseignant consultant une classe ou toutes
+      const matchesClass = !selectedClass || selectedClass === 'all' || areClassesMatching(c.target_class, selectedClass)
       return matchesDay && matchesClass
     })
-  }, [courses, selectedDay, selectedClass])
+  }, [courses, selectedDay, selectedClass, isStudent, studentClass, isTeacher, profile])
 
   // Détection du cours actuellement en cours
   const isCourseOngoing = (c: Course) => {
@@ -105,15 +182,21 @@ export default function TimetablePage() {
               <Calendar className="w-8 h-8 text-discord-blurple" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-white tracking-tight">Emploi du Temps</h1>
+              <h1 className="text-3xl font-black text-white tracking-tight">
+                {isStudent ? 'Mon Emploi du Temps' : 'Emploi du Temps'}
+              </h1>
               <p className="text-discord-muted text-sm font-medium">
-                Planning des cours • <span className="text-white font-bold">Samedi & Dimanche</span> (12h00 - 19h30)
+                {isStudent ? (
+                  <>Planning personnel des cours • <span className="text-white font-bold">Classe {studentClass}</span></>
+                ) : (
+                  <>Planning des cours • <span className="text-white font-bold">Samedi & Dimanche</span> (12h00 - 19h30)</>
+                )}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Indicateur de synchro Pronote */}
+        {/* Indicateur de synchro Pronote & Bouton Actualiser */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-discord-muted">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -131,7 +214,7 @@ export default function TimetablePage() {
         </div>
       </div>
 
-      {/* Barre de sélection : Jour & Classe */}
+      {/* Barre de sélection : Jour & Vue */}
       <div className="glass-card p-4 flex flex-col lg:flex-row items-center justify-between gap-4">
         {/* Sélecteur de Jour (Samedi / Dimanche) */}
         <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5 w-full sm:w-auto">
@@ -167,34 +250,62 @@ export default function TimetablePage() {
           </button>
         </div>
 
-        {/* Filtre Classes Dynamiques (Page Classes) */}
-        <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0">
-          <button
-            onClick={() => setSelectedClass('all')}
-            className={clsx(
-              "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0",
-              selectedClass === 'all'
-                ? "bg-white/20 text-white border border-white/20 shadow-md"
-                : "bg-white/5 text-discord-muted hover:text-white hover:bg-white/10 border border-white/5"
+        {/* Contrôles de filtrage : Mode Élève vs Mode Admin / Professeur */}
+        {isStudent ? (
+          // Affichage dédié à l'élève : Badge personnel sans possibilité de changer de classe
+          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-xs font-bold text-gray-200">
+            <GraduationCap className="w-4 h-4 text-discord-blurple" />
+            <span>Emploi du temps personnel :</span>
+            <span className="px-2.5 py-1 rounded-xl bg-discord-blurple text-white font-black uppercase text-xs shadow-md shadow-discord-blurple/30">
+              Classe {studentClass}
+            </span>
+          </div>
+        ) : (
+          // Affichage Admin & Enseignants : Choix des classes actives
+          <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0">
+            {isTeacher && (
+              <button
+                onClick={() => setSelectedClass('my_courses')}
+                className={clsx(
+                  "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 flex items-center gap-1.5",
+                  selectedClass === 'my_courses'
+                    ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
+                    : "bg-white/5 text-discord-muted hover:text-white hover:bg-white/10 border border-white/5"
+                )}
+              >
+                <User className="w-3.5 h-3.5" />
+                Mes cours
+              </button>
             )}
-          >
-            Toutes les classes
-          </button>
-          {classes.map(c => (
+
             <button
-              key={c.name}
-              onClick={() => setSelectedClass(c.name)}
+              onClick={() => setSelectedClass('all')}
               className={clsx(
                 "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0",
-                selectedClass.toLowerCase().trim() === c.name.toLowerCase().trim()
-                  ? "bg-discord-blurple text-white border border-discord-blurple shadow-lg shadow-discord-blurple/20"
+                selectedClass === 'all'
+                  ? "bg-white/20 text-white border border-white/20 shadow-md"
                   : "bg-white/5 text-discord-muted hover:text-white hover:bg-white/10 border border-white/5"
               )}
             >
-              {c.name}
+              Toutes les classes
             </button>
-          ))}
-        </div>
+
+            {classes.map(c => (
+              <button
+                key={c.name}
+                onClick={() => setSelectedClass(c.name)}
+                className={clsx(
+                  "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0",
+                  areClassesMatching(selectedClass, c.name) && selectedClass !== 'all' && selectedClass !== 'my_courses'
+                    ? "bg-discord-blurple text-white border border-discord-blurple shadow-lg shadow-discord-blurple/20"
+                    : "bg-white/5 text-discord-muted hover:text-white hover:bg-white/10 border border-white/5"
+                )}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Grille des Cours */}
@@ -210,7 +321,7 @@ export default function TimetablePage() {
           </div>
           <h3 className="text-xl font-bold text-white mb-1">Aucun cours programmé</h3>
           <p className="text-discord-muted text-sm max-w-md">
-            Il n'y a aucun cours sur l'emploi du temps pour le {selectedDay === 6 ? 'Samedi' : 'Dimanche'} {selectedClass && selectedClass !== 'all' ? `en ${selectedClass}` : ''}.
+            Il n'y a aucun cours sur l'emploi du temps pour le {selectedDay === 6 ? 'Samedi' : 'Dimanche'} {isStudent ? `pour votre classe (${studentClass})` : selectedClass && selectedClass !== 'all' ? `en ${selectedClass}` : ''}.
           </p>
         </div>
       ) : (

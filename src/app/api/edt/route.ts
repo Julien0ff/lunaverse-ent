@@ -26,6 +26,13 @@ export async function GET(request: NextRequest) {
     const targetClass = searchParams.get('class')
     const day = searchParams.get('day') // '6' for Samedi, '0' for Dimanche
 
+    // Normalisation à la volée des dénominations de classe si nécessaire
+    try {
+      await admin.from('timetable_courses')
+        .update({ target_class: '3GA' })
+        .in('target_class', ['3ea', '3EA', '3a', '3A', '3-GA', '3-A', '3ème A', '3eme A'])
+    } catch (ign) {}
+
     let query = admin
       .from('timetable_courses')
       .select('*')
@@ -33,7 +40,12 @@ export async function GET(request: NextRequest) {
       .order('start_time', { ascending: true })
 
     if (targetClass && targetClass !== 'all') {
-      query = query.or(`target_class.eq.${targetClass},target_class.eq.all`)
+      const clean = targetClass.toLowerCase().replace(/[^a-z0-9]/g, '')
+      if (['3ga', '3a', '3ea', '3emea'].includes(clean)) {
+        query = query.or('target_class.eq.3GA,target_class.eq.3ga,target_class.eq.3ea,target_class.eq.3EA,target_class.eq.3a,target_class.eq.3A,target_class.eq.all')
+      } else {
+        query = query.or(`target_class.eq.${targetClass},target_class.eq.all`)
+      }
     }
 
     if (day !== null && day !== undefined && day !== '') {
@@ -62,7 +74,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ courses: courses || [], classes })
+    // Exclure temporairement les classes masquées (2GT1, 3PM, 2PRO1)
+    const HIDDEN_CLASSES = ['2gt1', '3pm', '2pro1']
+    const visibleClasses = classes.filter((c: any) => {
+      const clean = (c.name || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+      return !HIDDEN_CLASSES.includes(clean)
+    })
+
+    return NextResponse.json({ courses: courses || [], classes: visibleClasses })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

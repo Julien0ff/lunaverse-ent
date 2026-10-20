@@ -33,61 +33,61 @@ export function matchPronoteToEntClass(
   pronoteName: string,
   registeredClasses: Array<{ name: string }>
 ): string {
-  if (!pronoteName) return 'Générale'
+  if (!pronoteName) return '3GA'
   const trimmed = pronoteName.trim()
   const upper = trimmed.toUpperCase()
+  const clean = upper.replace(/[^A-Z0-9]/g, '')
 
-  // 1. Mappings connus déclarés par le serveur
-  // 3GA / 3-GA / 3ème Générale A -> 3ea
-  if (upper === '3GA' || upper === '3-GA' || upper === '3EA' || upper === '3-EA' || upper === '3A') {
+  // 1. Mappings connus pour la classe de 3ème (3GA, 3A, 3EA, 3ème A, 3eme A, 3°A, 3-GA, 3-A, etc.)
+  const is3A =
+    ['3GA', '3A', '3EA', '3EMEA', '3MEA', '3E', '3'].includes(clean) ||
+    (clean.startsWith('3') && (clean.includes('A') || clean.includes('GA') || clean.includes('EA'))) ||
+    upper.includes('3EME') || upper.includes('3ÈME') || upper.includes('3È') || upper.includes('3°') || upper.includes('TROISIEME')
+
+  if (is3A) {
     const found = registeredClasses.find(c => {
-      const low = c.name.toLowerCase()
-      return low === '3ea' || low === '3e-a' || low === '3ga' || low === '3a'
+      const low = c.name.toLowerCase().replace(/[^a-z0-9]/g, '')
+      return low === '3ga' || low === '3a' || low === '3ea' || low === '3emea'
     })
     if (found) return found.name
-    return '3ea'
+    return '3GA'
   }
 
-  // 3PM -> 3pm
-  if (upper === '3PM' || upper === '3-PM') {
+  // 2. 3PM
+  if (clean === '3PM' || upper.includes('3PM')) {
+    const found = registeredClasses.find(c => c.name.toLowerCase().replace(/[^a-z0-9]/g, '') === '3pm')
+    if (found) return found.name
+    return '3PM'
+  }
+
+  // 3. 2PRO1
+  if (clean === '2PRO1' || clean === '2PRO' || upper.includes('2PRO')) {
     const found = registeredClasses.find(c => {
-      const low = c.name.toLowerCase()
-      return low === '3pm' || low === '3-pm'
+      const low = c.name.toLowerCase().replace(/[^a-z0-9]/g, '')
+      return low === '2pro1' || low === '2pro'
     })
     if (found) return found.name
-    return '3pm'
+    return '2PRO1'
   }
 
-  // 2PRO1 -> 2pro1
-  if (upper === '2PRO1' || upper === '2-PRO-1' || upper === '2PRO-1' || upper === '2PRO') {
+  // 4. 2GT1
+  if (clean === '2GT1' || clean === '2GT' || upper.includes('2GT')) {
     const found = registeredClasses.find(c => {
-      const low = c.name.toLowerCase()
-      return low === '2pro1' || low === '2pro-1' || low === '2pro'
+      const low = c.name.toLowerCase().replace(/[^a-z0-9]/g, '')
+      return low === '2gt1' || low === '2gt'
     })
     if (found) return found.name
-    return '2pro1'
+    return '2GT1'
   }
 
-  // 2GT1 -> 2gt1
-  if (upper === '2GT1' || upper === '2-GT-1' || upper === '2GT-1' || upper === '2GT') {
-    const found = registeredClasses.find(c => {
-      const low = c.name.toLowerCase()
-      return low === '2gt1' || low === '2gt-1' || low === '2gt'
-    })
-    if (found) return found.name
-    return '2gt1'
-  }
-
-  // 2. Recherche exacte insensible à la casse
+  // 5. Recherche exacte insensible à la casse
   const exact = registeredClasses.find(c => c.name.toLowerCase() === trimmed.toLowerCase())
   if (exact) return exact.name
 
-  // 3. Recherche sans tirets ni espaces
-  const cleanPronote = upper.replace(/[^A-Z0-9]/g, '')
-  const fuzzy = registeredClasses.find(c => c.name.toUpperCase().replace(/[^A-Z0-9]/g, '') === cleanPronote)
+  // 6. Recherche floue sans caractères spéciaux
+  const fuzzy = registeredClasses.find(c => c.name.toUpperCase().replace(/[^A-Z0-9]/g, '') === clean)
   if (fuzzy) return fuzzy.name
 
-  // 4. Par défaut : garder le libellé (utile pour les options ex: Cybersecurite-3G, Droit-3G, etc.)
   return trimmed
 }
 
@@ -292,15 +292,29 @@ export async function syncPronoteData() {
     }
   }
 
-  // Calcul des semaines à synchroniser
+  // Normalisation automatique des anciennes dénominations vers la classe canonique 3GA
+  try {
+    await admin.from('timetable_courses')
+      .update({ target_class: '3GA' })
+      .in('target_class', ['3ea', '3EA', '3a', '3A', '3-GA', '3-A', '3ème A', '3eme A'])
+
+    await admin.from('homeworks')
+      .update({ target_class: '3GA' })
+      .in('target_class', ['3ea', '3EA', '3a', '3A', '3-GA', '3-A', '3ème A', '3eme A'])
+  } catch (e) {
+    console.warn('[PronoteSync] Notice normalisation classes DB:', e)
+  }
+
+  // Calcul des semaines à synchroniser (semaine passée, en cours, et les 3 prochaines)
   const now = new Date()
   const currentWeek = translateToWeekNumber(now, session.instance.firstMonday)
-  const weeksToFetch = [currentWeek]
-
-  // Si on est en semaine, on s'assure de récupérer le week-end qui arrive
-  if (now.getDay() !== 0 && now.getDay() !== 6) {
-    weeksToFetch.push(currentWeek + 1)
-  }
+  const weeksToFetch = Array.from(new Set([
+    Math.max(1, currentWeek - 1),
+    currentWeek,
+    currentWeek + 1,
+    currentWeek + 2,
+    currentWeek + 3
+  ]))
 
   const preparedCourses: any[] = []
   const preparedHomeworks: any[] = []
@@ -318,11 +332,6 @@ export async function syncPronoteData() {
 
         // Strictement Samedi (6) ou Dimanche (0)
         if (dayOfWeek !== 6 && dayOfWeek !== 0) continue
-
-        // Plage horaire LunaVerse : 12h00 à 19h30
-        const startHours = start.getHours() + start.getMinutes() / 60
-        const endHours = end.getHours() + end.getMinutes() / 60
-        if (endHours < 12 || startHours > 19.5) continue
 
         // Statut du cours
         let status = 'normal'
@@ -374,7 +383,12 @@ export async function syncPronoteData() {
         if (!assign.deadline) continue
         const dueDate = new Date(assign.deadline).toISOString().split('T')[0]
         const rawGroup = assign.themes?.[0]?.name || ''
-        const targetClass = matchPronoteToEntClass(rawGroup, registeredClasses)
+        let targetClass = matchPronoteToEntClass(rawGroup, registeredClasses)
+        if (targetClass === 'all' || targetClass === rawGroup) {
+          // Attribuer à la classe active principale (3GA)
+          const defaultClass = registeredClasses.find(c => !['2gt1', '3pm', '2pro1'].includes(c.name.toLowerCase()))?.name || '3GA'
+          targetClass = defaultClass
+        }
 
         preparedHomeworks.push({
           pronote_id: assign.id ? String(assign.id) : undefined,

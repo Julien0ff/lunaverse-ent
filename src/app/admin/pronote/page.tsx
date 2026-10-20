@@ -280,8 +280,8 @@ export default function AdminPronotePage() {
               <p className="text-sm font-semibold text-white mt-1">Samedi & Dimanche (12h00 - 19h30)</p>
             </div>
             <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-              <span className="text-[10px] uppercase font-bold text-discord-muted block">Classes Mappées</span>
-              <p className="text-sm font-semibold text-discord-blurple mt-1">3GA ↔ 3ea, 3PM, 2PRO1, 2GT1, Options</p>
+              <span className="text-[10px] uppercase font-bold text-discord-muted block">Classes Synchronisées</span>
+              <p className="text-sm font-semibold text-discord-blurple mt-1">3GA (2GT1, 3PM, 2PRO1 masquées)</p>
             </div>
           </div>
         ) : (
