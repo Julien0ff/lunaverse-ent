@@ -66,10 +66,15 @@ export default function Bank() {
   const loadDeclarations = useCallback(async () => {
     if (!profile?.id) return
     try {
-      const res = await fetch('/api/admin/declarations')
-      const data = await res.json()
-      if (data.declarations) {
-        setDeclarations(data.declarations.filter((d: any) => d.user_id === profile.id))
+      const res = await fetch('/api/bank/declare')
+      if (res.ok) {
+        const contentType = res.headers.get('content-type')
+        if (contentType && contentType.includes('application/json')) {
+          const data = await res.json()
+          if (data.declarations) {
+            setDeclarations(data.declarations)
+          }
+        }
       }
     } catch (err) {
       console.error('Error loading declarations:', err)

@@ -104,14 +104,17 @@ export default function TimetablePage() {
       setLoading(true)
       const res = await fetch('/api/edt')
       if (res.ok) {
-        const data = await res.json()
-        setCourses(data.courses || [])
+        const contentType = res.headers.get('content-type')
+        if (contentType && contentType.includes('application/json')) {
+          const data = await res.json()
+          setCourses(data.courses || [])
 
-        // Filtrer les classes pour exclure les classes masquées (2GT1, 3PM, 2PRO1)
-        const dynamicClasses = (data.classes || []).filter((c: any) => !isHiddenClass(c.name))
-        setClasses(dynamicClasses)
+          // Filtrer les classes pour exclure les classes masquées (2GT1, 3PM, 2PRO1)
+          const dynamicClasses = (data.classes || []).filter((c: any) => !isHiddenClass(c.name))
+          setClasses(dynamicClasses)
 
-        setLastSync(new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))
+          setLastSync(new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))
+        }
       }
     } catch (e) {
       console.error('Erreur chargement EDT:', e)

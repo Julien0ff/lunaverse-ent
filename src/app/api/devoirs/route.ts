@@ -81,7 +81,28 @@ export async function GET(request: NextRequest) {
         completed: !!statusMap[hw.id]
       }))
 
-    return NextResponse.json({ homeworks: formatted })
+    // Get classes from server_settings
+    const { data: classSetting } = await admin
+      .from('server_settings')
+      .select('value')
+      .eq('key', 'rp_classes')
+      .maybeSingle()
+
+    let classes: any[] = []
+    if (classSetting?.value) {
+      if (Array.isArray(classSetting.value)) {
+        classes = classSetting.value.map((c: any) => typeof c === 'string' ? { name: c, roleId: '', channelId: '' } : c)
+      } else if (typeof classSetting.value === 'object' && Array.isArray((classSetting.value as any).classes)) {
+        classes = (classSetting.value as any).classes
+      }
+    }
+
+    const visibleClasses = classes.filter((c: any) => {
+      const clean = (c.name || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+      return !HIDDEN_CLASSES.includes(clean)
+    })
+
+    return NextResponse.json({ homeworks: formatted, classes: visibleClasses })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

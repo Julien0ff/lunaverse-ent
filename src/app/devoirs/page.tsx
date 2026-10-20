@@ -86,23 +86,21 @@ export default function DevoirsPage() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const [hwRes, clsRes] = await Promise.all([
-        fetch('/api/devoirs'),
-        fetch('/api/admin/classes')
-      ])
+      const res = await fetch('/api/devoirs')
 
-      if (hwRes.ok) {
-        const data = await hwRes.json()
-        setHomeworks(data.homeworks || [])
-      }
-
-      if (clsRes.ok) {
-        const cData = await clsRes.json()
-        const clsList = (cData.classes || []).filter((c: any) => !isHiddenClass(c.name))
-        setClasses(clsList)
+      if (res.ok) {
+        const contentType = res.headers.get('content-type')
+        if (contentType && contentType.includes('application/json')) {
+          const data = await res.json()
+          setHomeworks(data.homeworks || [])
+          if (data.classes) {
+            const clsList = (data.classes || []).filter((c: any) => !isHiddenClass(c.name))
+            setClasses(clsList)
+          }
+        }
       }
     } catch (e) {
-      console.error(e)
+      console.error('Erreur chargement devoirs:', e)
     } finally {
       setLoading(false)
     }

@@ -7,7 +7,7 @@ import { NextResponse, type NextRequest } from 'next/server'
  * Everything else (pages and API routes) requires a valid Supabase session.
  */
 const PUBLIC_ROUTES = ['/', '/unauthorized', '/recrutement']
-const PUBLIC_API_PREFIXES = ['/api/auth/', '/api/cron/', '/api/recrutement/']
+const PUBLIC_API_PREFIXES = ['/api/auth/', '/api/cron/', '/api/recrutement/', '/api/edt', '/api/devoirs']
 
 function isPublicRoute(pathname: string): boolean {
     if (PUBLIC_ROUTES.includes(pathname)) return true
@@ -18,8 +18,8 @@ export async function middleware(request: NextRequest) {
     let supabaseResponse = NextResponse.next({ request })
 
     const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key',
         {
             cookies: {
                 getAll() {
@@ -61,6 +61,10 @@ export async function middleware(request: NextRequest) {
 
     // ── Protected routes: require authentication ─────────────────────────
     if (!user) {
+        // Never redirect API routes to an HTML page, return JSON 401 instead
+        if (pathname.startsWith('/api/')) {
+            return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
+        }
         const loginUrl = request.nextUrl.clone()
         loginUrl.pathname = '/'
         loginUrl.searchParams.set('error', 'unauthenticated')
@@ -69,8 +73,17 @@ export async function middleware(request: NextRequest) {
 
     // ── Admin routes: require 'admin' role ────────────────────────────────
     if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin/')) {
+        // Exception: allow non-admin POST to suggestions (all authenticated users can submit suggestions)
+        if (pathname === '/api/admin/suggestions' && request.method === 'POST') {
+            return supabaseResponse
+        }
+
         const isAdmin = await checkAdminRole(user.id, user)
         if (!isAdmin) {
+            // Never redirect API routes to an HTML page, return JSON 403 instead
+            if (pathname.startsWith('/api/')) {
+                return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+            }
             const unauthorizedUrl = request.nextUrl.clone()
             unauthorizedUrl.pathname = '/unauthorized'
             unauthorizedUrl.searchParams.set('reason', 'admin_required')

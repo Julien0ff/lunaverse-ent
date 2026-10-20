@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Settings, Save, AlertCircle, Loader2 } from 'lucide-react'
 import clsx from 'clsx'
-import { createBrowserClient } from '@supabase/ssr'
+import { supabase } from '@/lib/supabase'
 
 const DISCORD_CONFIG_KEYS = [
   { key: 'salon_inscription', label: 'Salon Inscription (Embed)' },
@@ -18,11 +18,6 @@ export default function AdminDiscordPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
 
   useEffect(() => {
     fetchSettings()
