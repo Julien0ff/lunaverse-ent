@@ -367,6 +367,16 @@ export async function syncPronoteData() {
 
   syncLogs.push(`Credentials: username=${creds.username}, kind=${creds.kind}, url=${creds.url}`)
   syncLogs.push(`Session: user=${session.user?.name} (id=${session.user?.id}), userResource=${session.userResource?.name} (id=${session.userResource?.id}), firstMonday=${session.instance?.firstMonday}, currentWeek=${currentWeek}`)
+  if ((session as any).paramError) syncLogs.push(`ParamError: ${(session as any).paramError}`)
+  if ((session as any).rawUserData) {
+    const rawKeys = Object.keys((session as any).rawUserData).join(', ')
+    syncLogs.push(`ParamUserData keys: ${rawKeys}`)
+    const tabs = session.user?.authorizations?.tabs || []
+    syncLogs.push(`Authorized tabs: [${tabs.join(', ')}]`)
+    if ((session as any).rawUserData.ressource) {
+      syncLogs.push(`Raw ressource: ${JSON.stringify((session as any).rawUserData.ressource)}`)
+    }
+  }
 
   for (const weekNum of weeksToFetch) {
     try {

@@ -22373,15 +22373,19 @@ var oe = async (e2, s2) => {
   }
   return i2;
 };
-var ce = (e2, s2) => {
-  const t2 = e2.AvecDiscussion ?? false, n2 = t2 && !e2.discussionInterdit, i2 = n2 && (e2.AvecDiscussionPersonnels ?? false), a2 = n2 && (e2.AvecDiscussionParents ?? false), r2 = n2 && (e2.AvecDiscussionEleves ?? false), o2 = n2 && (e2.AvecDiscussionProfesseurs ?? false), c2 = [];
-  if (s2.length > 0) {
+var ce = (e2 = {}, s2 = []) => {
+  const t2 = e2?.AvecDiscussion ?? false, n2 = t2 && !e2?.discussionInterdit, i2 = n2 && (e2?.AvecDiscussionPersonnels ?? false), a2 = n2 && (e2?.AvecDiscussionParents ?? false), r2 = n2 && (e2?.AvecDiscussionEleves ?? false), o2 = n2 && (e2?.AvecDiscussionProfesseurs ?? false), c2 = [];
+  const tabItems = Array.isArray(s2) ? s2 : (s2?.V && Array.isArray(s2.V) ? s2.V : []);
+  if (tabItems.length > 0) {
     const e3 = (s3) => {
-      "G" in s3 && c2.push(s3.G), "Onglet" in s3 && s3.Onglet.forEach(e3);
+      if (!s3) return;
+      "G" in s3 && c2.push(s3.G);
+      if ("Onglet" in s3 && Array.isArray(s3.Onglet)) s3.Onglet.forEach(e3);
+      if (s3.Onglet?.V && Array.isArray(s3.Onglet.V)) s3.Onglet.V.forEach(e3);
     };
-    s2.forEach(e3);
+    tabItems.forEach(e3);
   }
-  return { canReadDiscussions: t2, canDiscuss: n2, canDiscussWithStaff: i2, canDiscussWithParents: a2, canDiscussWithStudents: r2, canDiscussWithTeachers: o2, hasAdvancedDiscussionEditor: e2.AvecDiscussionAvancee ?? false, maxAssignmentFileUploadSize: e2.tailleMaxRenduTafEleve, tabs: c2 };
+  return { canReadDiscussions: t2, canDiscuss: n2, canDiscussWithStaff: i2, canDiscussWithParents: a2, canDiscussWithStudents: r2, canDiscussWithTeachers: o2, hasAdvancedDiscussionEditor: e2?.AvecDiscussionAvancee ?? false, maxAssignmentFileUploadSize: e2?.tailleMaxRenduTafEleve, tabs: c2 };
 };
 var ue = (e2, s2, t2 = {}) => {
   const n2 = e2.L ?? "", i2 = e2.G, a2 = e2.N;
@@ -22398,22 +22402,28 @@ var le = (e2, s2) => {
   return { defaultPeriod: n2, location: e2.G, periods: i2 };
 };
 var de = (e2, s2) => {
-  let t2;
+  let t2 = [];
+  const fallbackRes = { N: 0, G: s2.information.accountKind, L: s2.user?.name || "Vie Scolaire" };
+  const primaryRes = e2.ressource || e2.utilisateur || fallbackRes;
   switch (s2.information.accountKind) {
     case M.STUDENT:
     case M.TEACHER:
     case M.VIE_SCOLAIRE:
-      t2 = e2.ressource ? [e2.ressource] : [];
+      t2 = e2.ressource ? [e2.ressource] : (e2.listeRessources?.V || e2.listeRessources || [primaryRes]);
       break;
     case M.PARENT:
-      t2 = e2.ressource?.listeRessources || [];
+      t2 = e2.ressource?.listeRessources || e2.listeRessources?.V || e2.listeRessources || [primaryRes];
   }
-  return { id: e2.ressource.N, kind: e2.ressource.G, name: e2.ressource.L, resources: t2.map((e3) => ((e4, s3) => {
+  if (!Array.isArray(t2)) t2 = [primaryRes];
+  return { id: primaryRes.N ?? 0, kind: primaryRes.G ?? s2.information.accountKind, name: primaryRes.L ?? "Utilisateur", resources: t2.map((e3) => ((e4, s3) => {
     let t3 = null;
-    e4.avecPhoto && (t3 = ue({ G: 1, N: e4.N, L: "photo.jpg" }, s3));
+    e4?.avecPhoto && (t3 = ue({ G: 1, N: e4.N, L: "photo.jpg" }, s3));
     const n2 = /* @__PURE__ */ new Map();
-    for (const t4 of e4.listeOngletsPourPeriodes?.V ?? []) n2.set(t4.G, le(t4, s3.instance.periods));
-    return { id: e4.N, kind: e4.G, name: e4.L, establishmentName: e4.Etablissement.V.L, className: e4.classeDEleve?.L, profilePicture: t3, tabs: n2, isDirector: e4.estDirecteur ?? false, isDelegate: e4.estDelegue ?? false, isMemberCA: e4.estMembreCA ?? false };
+    const tabsList = e4?.listeOngletsPourPeriodes?.V || e4?.listeOngletsPourPeriodes || [];
+    if (Array.isArray(tabsList)) {
+      for (const t4 of tabsList) n2.set(t4.G, le(t4, s3.instance.periods));
+    }
+    return { id: e4?.N ?? 0, kind: e4?.G ?? s3.information.accountKind, name: e4?.L ?? "", establishmentName: e4?.Etablissement?.V?.L || e4?.Etablissement?.L || "", className: e4?.classeDEleve?.L || "", profilePicture: t3, tabs: n2, isDirector: e4?.estDirecteur ?? false, isDelegate: e4?.estDelegue ?? false, isMemberCA: e4?.estMembreCA ?? false };
   })(e3, s2)), authorizations: ce(e2.autorisations, e2.listeOnglets) };
 };
 var pe = (e2) => {
@@ -22432,7 +22442,12 @@ var pe = (e2) => {
   }
 };
 function me(e2, s2) {
-  e2.userResource = "number" == typeof s2 ? e2.user.resources[s2] : s2;
+  if (e2.user?.resources && e2.user.resources.length > 0) {
+    e2.userResource = "number" == typeof s2 ? e2.user.resources[s2] : s2;
+  }
+  if (!e2.userResource) {
+    e2.userResource = { id: e2.user?.id ?? 0, kind: e2.user?.kind ?? e2.information.accountKind, name: e2.user?.name ?? "Utilisateur" };
+  }
 }
 var fe = { fd: 1, login: true };
 var he = async (e2, s2) => {
@@ -22470,12 +22485,18 @@ var ve = async (e2, s2, t2, n2) => {
   try {
     const uReq = new Y(e2, "ParametresUtilisateur", {}), uRes = await uReq.send();
     if (uRes?.data?.[W(e2).data]) {
+      e2.rawUserData = uRes.data[W(e2).data];
       e2.user = de(uRes.data[W(e2).data], e2);
     }
   } catch (ign) {
+    e2.paramError = String(ign?.message || ign);
   }
   if (!e2.user) {
-    e2.user = { id: 0, kind: e2.information.accountKind, name: t2.login ?? n2, resources: [], authorizations: {} };
+    const defRes = { id: 0, kind: e2.information.accountKind, name: t2.login ?? n2 };
+    e2.user = { id: 0, kind: e2.information.accountKind, name: t2.login ?? n2, resources: [defRes], authorizations: { tabs: [] } };
+  }
+  if (!e2.user.resources || e2.user.resources.length === 0) {
+    e2.user.resources = [{ id: e2.user.id ?? 0, kind: e2.user.kind ?? e2.information.accountKind, name: e2.user.name ?? t2.login ?? n2 }];
   }
   me(e2, 0);
   return { token: s2.jetonConnexionAppliMobile ?? s2.token ?? n2, username: t2.login ?? n2, kind: e2.information.accountKind, url: e2.information.url, navigatorIdentifier: e2.instance.navigatorIdentifier };
@@ -22893,8 +22914,28 @@ var Us = (e2, s2) => ({ absences: e2.absences, withCanceledClasses: e2.avecCours
   return e4.AvecCdT && e4.cahierDeTextes && (c2 = e4.cahierDeTextes.V.N), { is: "lesson", ..._s(e4, s3), kind: e4.G, status: e4.Statut, canceled: e4.estAnnule ?? false, exempted: e4.dispenseEleve ?? false, test: e4.cahierDeTextes?.V.estDevoir ?? false, virtualClassrooms: t2, personalNames: i2, teacherNames: n2, classrooms: a2, groupNames: r2, subject: o2, lessonResourceID: c2 };
 })(e3, s2)).sort((e3, s3) => e3.startDate.getTime() - s3.startDate.getTime()) });
 var Gs = async (e2, s2 = {}) => {
-  const t2 = W(e2), n2 = new Y(e2, "PageEmploiDuTemps", { [t2.signature]: { onglet: G.Timetable }, [t2.data]: { estEDTAnnuel: false, estEDTPermanence: false, avecAbsencesEleve: false, avecRessourcesLibrePiedHoraire: false, avecAbsencesRessource: true, avecInfosPrefsGrille: true, avecConseilDeClasse: true, avecCoursSortiePeda: true, avecDisponibilites: true, avecRetenuesEleve: true, edt: { G: 16, L: "Emploi du temps" }, ...Fs("ressource", (i2 = e2.userResource, { G: i2.kind, L: i2.name, N: i2.id })), ...s2 } });
-  var i2;
+  const t2 = W(e2);
+  const resObj = e2.userResource
+    ? { G: e2.userResource.kind, L: e2.userResource.name, N: e2.userResource.id }
+    : { G: e2.information.accountKind, L: e2.user?.name || "Vie Scolaire", N: 0 };
+  const n2 = new Y(e2, "PageEmploiDuTemps", {
+    [t2.signature]: { onglet: G.Timetable },
+    [t2.data]: {
+      estEDTAnnuel: false,
+      estEDTPermanence: false,
+      avecAbsencesEleve: false,
+      avecRessourcesLibrePiedHoraire: false,
+      avecAbsencesRessource: true,
+      avecInfosPrefsGrille: true,
+      avecConseilDeClasse: true,
+      avecCoursSortiePeda: true,
+      avecDisponibilites: true,
+      avecRetenuesEleve: true,
+      edt: { G: 16, L: "Emploi du temps" },
+      ...Fs("ressource", resObj),
+      ...s2
+    }
+  });
   const a2 = await n2.send();
   return Us(a2.data[t2.data], e2);
 };
@@ -22922,8 +22963,33 @@ exports.AccessDeniedError = u, exports.AccountDisabledError = l, exports.Account
   const n2 = await Ge(e2, G.Assignments, s2, t2);
   return Be(e2, n2).filter((e3) => s2 <= e3.deadline && e3.deadline <= t2);
 }, exports.assignmentsFromWeek = async (e2, s2, t2) => {
-  const n2 = await Ue(e2, G.Assignments, s2, t2);
-  return Be(e2, n2);
+  try {
+    const n2 = await Ue(e2, G.Assignments, s2, t2);
+    return Be(e2, n2);
+  } catch (err) {
+    try {
+      const cdt = await exports.resourcesFromWeek(e2, s2, t2);
+      const hwList = [];
+      for (const item of cdt || []) {
+        if (item.haveAssignment && item.id) {
+          try {
+            const hws = await exports.resourceAssignments(e2, item.id);
+            if (Array.isArray(hws)) {
+              for (const hw of hws) {
+                if (!hw.themes || hw.themes.length === 0) {
+                  hw.themes = (item.groups || []).map((g) => ({ name: g }));
+                }
+                hwList.push(hw);
+              }
+            }
+          } catch (ignHw) {}
+        }
+      }
+      return hwList;
+    } catch (cdtErr) {
+      throw err;
+    }
+  }
 }, exports.cleanURL = r, exports.clearPresenceInterval = Ve, exports.createSessionHandle = (s2 = e.defaultFetcher) => ({ information: null, instance: null, user: null, queue: new Se(), fetcher: s2, presence: null }), exports.discussionCreateDraft = async (e2, s2, t2, n2 = s2.messages?.defaultReplyMessageID) => {
   await qe(e2, V.brouillon, { id: Te(), content: t2, replyMessageID: n2 }), await He(e2, s2.cache), await ze(e2, s2);
 }, exports.discussionDelete = async (e2, s2) => {
@@ -23010,20 +23076,35 @@ exports.AccessDeniedError = u, exports.AccountDisabledError = l, exports.Account
 }, exports.newDiscussionRecipients = async (e2, s2) => {
   const t2 = W(e2), n2 = e2.userResource, i2 = new Y(e2, "ListeRessourcesPourCommunication", { [t2.signature]: { onglet: G.Discussions }, [t2.data]: { filtreElement: { G: n2.kind, L: n2.name, N: n2.id }, onglet: { N: 0, G: s2 } } });
   return (await i2.send()).data[t2.data].listeRessourcesPourCommunication.V.filter((e3) => e3.avecDiscussion).map(As);
-}, exports.news = async (e2) => {
-  const s2 = W(e2), t2 = new Y(e2, "PageActualites", { [s2.signature]: { onglet: G.News }, [s2.data]: { modesAffActus: { _T: 26, V: Cs([0]) } } });
-  return ((e3, s3) => {
-    const t3 = e3.listeCategories.V.map(Vs);
-    return { categories: t3, items: e3.listeModesAff[0].listeActualites.V.map((e4) => {
-      let n2;
-      if (e4.estInformation) n2 = xs;
-      else {
-        if (!e4.estSondage) throw new v("decodeNews");
-        n2 = Ss;
+}, exports.news = async (e2, requestedModes) => {
+  const s2 = W(e2);
+  const modesToTry = requestedModes ? [requestedModes] : [[0], [1], [0, 1]];
+  let lastErr = null;
+  for (const modes of modesToTry) {
+    try {
+      const t2 = new Y(e2, "PageActualites", { [s2.signature]: { onglet: G.News }, [s2.data]: { modesAffActus: { _T: 26, V: Cs(modes) } } });
+      const resp = await t2.send();
+      const e3 = resp.data[s2.data];
+      if (!e3) continue;
+      const t3 = (e3.listeCategories?.V || e3.listeCategories || []).map(Vs);
+      const allItems = [];
+      const modesAffList = e3.listeModesAff || [];
+      for (const m of modesAffList) {
+        const actList = m.listeActualites?.V || m.listeActualites || [];
+        for (const e4 of actList) {
+          let n2;
+          if (e4.estInformation) n2 = xs;
+          else if (e4.estSondage) n2 = Ss;
+          else continue;
+          allItems.push(n2(e4, e2, t3));
+        }
       }
-      return n2(e4, s3, t3);
-    }) };
-  })((await t2.send()).data[s2.data], e2);
+      return { categories: t3, items: allItems };
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr;
 }, exports.newsDelete = async (e2, s2) => {
   await vs(e2, s2, { onlyMarkAsRead: false, markAsRead: false, delete: true });
 }, exports.newsInformationAcknowledge = async (e2, s2, t2 = true) => {
