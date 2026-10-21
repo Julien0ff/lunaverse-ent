@@ -102,7 +102,7 @@ export default function AdminPronotePage() {
       if (!res.ok) throw new Error(data.error || 'Erreur lors de la synchronisation.')
       setFeedbackMsg({
         type: 'success',
-        text: `Synchronisation réussie ! (${data.coursesCount} cours traités, ${data.homeworksCount} devoirs${typeof data.alertsSent === 'number' ? `, ${data.alertsSent} alerte(s) Discord envoyée(s)` : ''})`,
+        text: `Synchronisation réussie ! (${data.coursesCount} cours traités, ${data.homeworksCount} devoirs${data.newsSent ? `, ${data.newsSent} annonce(s)/sondage(s)` : ''}${typeof data.alertsSent === 'number' ? `, ${data.alertsSent} alerte(s) Discord` : ''})`,
       })
       await loadPronoteStatus()
     } catch (err: any) {

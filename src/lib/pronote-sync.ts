@@ -7,6 +7,7 @@ import {
   translateToWeekNumber,
   TimetableClassLesson,
   AccountKind,
+  news,
 } from './pawnote/index.js'
 import { createSupabaseAdmin } from './supabase-admin'
 import { randomUUID } from 'crypto'
@@ -477,8 +478,266 @@ async function sendDiscordNotification({
   }
 }
 
+function cleanPronoteHtml(html: string): string {
+  if (!html) return ''
+  return html
+    .replace(/<br\s*[\/]?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<p[^>]*>/gi, '')
+    .replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**')
+    .replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**')
+    .replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*')
+    .replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*')
+    .replace(/<u[^>]*>(.*?)<\/u>/gi, '__$1__')
+    .replace(/<a\s+[^>]*href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi, '[$2]($1)')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/<[^>]+>/g, '')
+    .trim()
+}
+
+function extractImagesFromHtml(html: string): string[] {
+  if (!html) return []
+  const imgRegex = /<img[^>]+src=["']([^"']+)["']/gi
+  const urls: string[] = []
+  let match
+  while ((match = imgRegex.exec(html)) !== null) {
+    if (match[1]) urls.push(match[1])
+  }
+  return urls
+}
+
+function extractPronoteMedia(item: any): {
+  images: Array<{ name: string; url: string }>
+  files: Array<{ name: string; url: string }>
+} {
+  const allAttachments: any[] = []
+  if (Array.isArray(item.attachments)) {
+    allAttachments.push(...item.attachments)
+  }
+  if (item.question?.attachments && Array.isArray(item.question.attachments)) {
+    allAttachments.push(...item.question.attachments)
+  }
+  if (Array.isArray(item.questions)) {
+    for (const q of item.questions) {
+      if (Array.isArray(q.attachments)) {
+        allAttachments.push(...q.attachments)
+      }
+    }
+  }
+
+  const contentHtml = item.content || item.question?.content || ''
+  const inlineImages = extractImagesFromHtml(contentHtml)
+  for (const src of inlineImages) {
+    allAttachments.push({
+      name: 'image_annonce.png',
+      url: src,
+    })
+  }
+
+  const seenUrls = new Set<string>()
+  const images: Array<{ name: string; url: string }> = []
+  const files: Array<{ name: string; url: string }> = []
+  const IMAGE_EXTS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg']
+
+  for (const att of allAttachments) {
+    if (!att || !att.url || seenUrls.has(att.url)) continue
+    seenUrls.add(att.url)
+
+    const name = (att.name || '').trim()
+    const lowerName = name.toLowerCase()
+    const isImage = IMAGE_EXTS.some(ext => lowerName.endsWith(ext)) || att.url.toLowerCase().includes('.jpg') || att.url.toLowerCase().includes('.png')
+
+    if (isImage) {
+      images.push({ name: name || 'image.png', url: att.url })
+    } else {
+      files.push({ name: name || 'Document joint', url: att.url })
+    }
+  }
+
+  return { images, files }
+}
+
+function buildPronoteNewsEmbed(
+  item: any,
+  media: { images: Array<{ name: string; url: string }>; files: Array<{ name: string; url: string }> }
+) {
+  const isSurvey = item.is === 'survey'
+  const title = (item.title || (isSurvey ? 'Sondage de l\'établissement' : 'Information de l\'établissement')).trim()
+  const author = (item.author || 'Direction / Vie Scolaire').trim()
+  const category = (item.category?.name || (isSurvey ? 'Sondage' : 'Information générale')).trim()
+
+  const creationDate = item.creationDate ? new Date(item.creationDate) : new Date()
+  const dateFormatted = creationDate.toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+
+  const descriptionLines: string[] = []
+
+  descriptionLines.push(`👤 **Auteur :** ${author}`)
+  descriptionLines.push(`📁 **Catégorie :** ${category}`)
+  if (isSurvey && item.isAnonymous !== undefined) {
+    descriptionLines.push(`🔒 **Type :** ${item.isAnonymous ? 'Sondage anonyme' : 'Sondage nominatif'}`)
+  }
+  if (item.endDate) {
+    const endFormatted = new Date(item.endDate).toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    })
+    descriptionLines.push(`⏳ **Date limite :** ${endFormatted}`)
+  } else {
+    descriptionLines.push(`📅 **Date :** ${dateFormatted}`)
+  }
+  descriptionLines.push('───────────────────────────────')
+
+  if (!isSurvey) {
+    const rawContent = item.content || item.question?.content || ''
+    const cleanContent = cleanPronoteHtml(rawContent)
+    if (cleanContent) {
+      const maxLen = 3000
+      descriptionLines.push(cleanContent.length > maxLen ? cleanContent.slice(0, maxLen) + '\n\n*(Texte tronqué...)*' : cleanContent)
+    }
+  } else {
+    if (Array.isArray(item.questions) && item.questions.length > 0) {
+      item.questions.forEach((q: any, qIdx: number) => {
+        const qTitle = (q.fullTitle || q.title || `Question ${qIdx + 1}`).trim()
+        descriptionLines.push(`**❓ Question ${qIdx + 1} : ${qTitle}**`)
+        const qContent = cleanPronoteHtml(q.content || '')
+        if (qContent && qContent !== qTitle) {
+          descriptionLines.push(qContent)
+        }
+        if (Array.isArray(q.choices) && q.choices.length > 0) {
+          descriptionLines.push(`*Choix proposés :*`)
+          q.choices.forEach((c: any) => {
+            descriptionLines.push(`▫️ ${c.value}`)
+          })
+        }
+        descriptionLines.push('')
+      })
+      descriptionLines.push(`👉 *Rendez-vous sur votre espace Pronote pour voter !*`)
+    }
+  }
+
+  if (media.files.length > 0) {
+    descriptionLines.push('')
+    descriptionLines.push('📎 **Documents joints :**')
+    media.files.forEach(f => {
+      descriptionLines.push(`• [${f.name}](${f.url})`)
+    })
+  }
+
+  if (media.images.length > 1) {
+    descriptionLines.push('')
+    descriptionLines.push('🖼️ **Autres images :**')
+    media.images.slice(1).forEach((img, idx) => {
+      descriptionLines.push(`• [Image ${idx + 2} : ${img.name}](${img.url})`)
+    })
+  }
+
+  const embed: any = {
+    title: isSurvey ? `📊 SONDAGE PRONOTE : ${title.toUpperCase()}` : `📢 INFORMATION PRONOTE : ${title.toUpperCase()}`,
+    description: descriptionLines.join('\n'),
+    color: isSurvey ? 0xFEE75C : 0x5865F2,
+    footer: {
+      text: isSurvey ? 'LunaVerse ENT — Sondage Pronote' : 'LunaVerse ENT — Actualités Pronote',
+    },
+    timestamp: creationDate.toISOString(),
+  }
+
+  return embed
+}
+
+async function sendDiscordNewsNotification({
+  channelId,
+  roleMention,
+  embed,
+  primaryImage,
+}: {
+  channelId: string
+  roleMention?: string
+  embed: any
+  primaryImage?: { name: string; url: string }
+}) {
+  const token = process.env.DISCORD_BOT_TOKEN
+  if (!token || !channelId) return false
+
+  // Tenter de télécharger l'image et l'envoyer comme pièce jointe directe dans Discord
+  if (primaryImage?.url) {
+    try {
+      const imgRes = await fetch(primaryImage.url, {
+        headers: {
+          'User-Agent': "Mozilla/5.0 (iPhone; CPU iPhone OS 19_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 PRONOTE Mobile APP Version/2.0.11",
+        },
+      })
+
+      if (imgRes.ok) {
+        const ab = await imgRes.arrayBuffer()
+        const buf = Buffer.from(ab)
+        if (buf.length > 0 && buf.length < 8 * 1024 * 1024) {
+          const safeName = primaryImage.name.replace(/[^a-zA-Z0-9._-]/g, '_') || 'image.png'
+          const finalEmbed = {
+            ...embed,
+            image: { url: `attachment://${safeName}` },
+          }
+
+          const formData = new FormData()
+          formData.append(
+            'payload_json',
+            JSON.stringify({
+              content: roleMention || undefined,
+              embeds: [finalEmbed],
+            })
+          )
+          const blob = new Blob([buf], { type: imgRes.headers.get('content-type') || 'image/png' })
+          formData.append('files[0]', blob, safeName)
+
+          const postRes = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bot ${token}`,
+            },
+            body: formData,
+          })
+
+          if (postRes.ok) return true
+        }
+      }
+    } catch (fetchErr) {
+      console.warn('[PronoteSync] Impossible de joindre l\'image en direct, fallback embed URL:', fetchErr)
+    }
+
+    embed.image = { url: primaryImage.url }
+  }
+
+  // Envoi standard en JSON
+  try {
+    const res = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bot ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        content: roleMention || undefined,
+        embeds: [embed],
+      }),
+    })
+    return res.ok
+  } catch (err) {
+    console.error(`[PronoteSync] Erreur lors de l'envoi de l'annonce Pronote au salon ${channelId}:`, err)
+    return false
+  }
+}
+
   // Appliquer les changements et déclencher les alertes Discord via l'API de synchronisation interne
-  let results = { updatedCourses: 0, alertsSent: 0, updatedHomeworks: 0 }
+  let results = { updatedCourses: 0, alertsSent: 0, updatedHomeworks: 0, newsSent: 0 }
 
   // 1. Insertion / Upsert des cours
   for (const item of preparedCourses) {
@@ -691,6 +950,115 @@ async function sendDiscordNotification({
     }
   }
 
+  // 3. Récupération et synchronisation des Informations / Annonces / Sondages Pronote
+  let pronoteNewsItems: any[] = []
+  try {
+    const newsData = await news(session)
+    if (newsData && Array.isArray(newsData.items)) {
+      pronoteNewsItems = newsData.items
+    }
+  } catch (newsErr: any) {
+    console.warn('[PronoteSync] Actualités Pronote non disponibles ou erreur:', newsErr?.message || newsErr)
+  }
+
+  if (pronoteNewsItems.length > 0) {
+    const { data: announcedNewsSetting } = await admin
+      .from('server_settings')
+      .select('value')
+      .eq('key', 'pronote_announced_news')
+      .maybeSingle()
+
+    const isFirstNewsSync = !announcedNewsSetting || !announcedNewsSetting.value
+    const announcedIds = new Set<string>(
+      Array.isArray(announcedNewsSetting?.value) ? announcedNewsSetting.value : []
+    )
+
+    const { data: channelSettings } = await admin
+      .from('server_settings')
+      .select('key, value')
+      .in('key', ['salon_annonces_generales', 'salon_annonces'])
+
+    const channelMap = (channelSettings || []).reduce((acc: any, curr: any) => ({ ...acc, [curr.key]: curr.value }), {})
+    const generalAnnoncesChannel = String(
+      channelMap.salon_annonces_generales ||
+      channelMap.salon_annonces ||
+      process.env.DISCORD_ANNONCES_CHANNEL_ID ||
+      '1504976034750271678'
+    ).replace(/[<#>]/g, '').trim()
+
+    // Trier les annonces par date de création croissante (plus ancienne à plus récente)
+    const sortedNews = [...pronoteNewsItems].sort((a, b) => {
+      const dateA = a.creationDate ? new Date(a.creationDate).getTime() : 0
+      const dateB = b.creationDate ? new Date(b.creationDate).getTime() : 0
+      return dateA - dateB
+    })
+
+    const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000
+
+    for (const item of sortedNews) {
+      if (!item || !item.id) continue
+      const itemId = String(item.id)
+
+      if (announcedIds.has(itemId)) {
+        continue
+      }
+
+      const itemCreationTime = item.creationDate ? new Date(item.creationDate).getTime() : 0
+
+      // Si c'est la toute première synchronisation, ne publier que les annonces récentes (< 3 jours)
+      if (isFirstNewsSync && itemCreationTime > 0 && itemCreationTime < threeDaysAgo) {
+        announcedIds.add(itemId)
+        continue
+      }
+
+      const media = extractPronoteMedia(item)
+      const embed = buildPronoteNewsEmbed(item, media)
+      const primaryImage = media.images[0]
+
+      // Détecter si l'annonce cible une classe spécifique
+      const itemTitle = (item.title || '').toLowerCase()
+      const itemCat = (item.category?.name || '').toLowerCase()
+      const targetClassMatch = registeredClasses.find(c => {
+        const cLow = c.name.toLowerCase().replace(/[^a-z0-9]/g, '')
+        return itemTitle.includes(cLow) || itemCat.includes(cLow)
+      })
+
+      // 1. Envoyer sur le salon d'annonces générales
+      if (generalAnnoncesChannel) {
+        const sent = await sendDiscordNewsNotification({
+          channelId: generalAnnoncesChannel,
+          embed,
+          primaryImage,
+        })
+        if (sent) results.alertsSent++
+      }
+
+      // 2. Si une classe spécifique est ciblée et a son propre salon, envoyer également dans le salon de la classe
+      if (targetClassMatch && targetClassMatch.channelId) {
+        const classChannel = String(targetClassMatch.channelId).replace(/[<#>]/g, '').trim()
+        if (classChannel && classChannel !== generalAnnoncesChannel) {
+          const classRoleMention = targetClassMatch.roleId ? `<@&${String(targetClassMatch.roleId).replace(/[<@&>]/g, '')}>` : ''
+          await sendDiscordNewsNotification({
+            channelId: classChannel,
+            roleMention: classRoleMention,
+            embed,
+            primaryImage,
+          })
+        }
+      }
+
+      announcedIds.add(itemId)
+      results.newsSent++
+    }
+
+    // Sauvegarder les annonces traitées dans server_settings
+    await admin.from('server_settings').upsert({
+      key: 'pronote_announced_news',
+      value: Array.from(announcedIds),
+      updated_at: new Date().toISOString(),
+    })
+  }
+
   // Mettre à jour la date de dernière synchronisation
   const nowIso = new Date().toISOString()
   await admin
@@ -709,6 +1077,7 @@ async function sendDiscordNotification({
     coursesCount: results.updatedCourses,
     homeworksCount: results.updatedHomeworks,
     alertsSent: results.alertsSent,
+    newsSent: results.newsSent,
     syncedAt: nowIso,
   }
 }

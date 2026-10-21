@@ -6,10 +6,11 @@ import clsx from 'clsx'
 import { supabase } from '@/lib/supabase'
 
 const DISCORD_CONFIG_KEYS = [
+  { key: 'salon_annonces_generales', label: 'Salon Annonces Générales (Pronote Infos & Sondages)' },
+  { key: 'salon_annonces', label: 'Salon Alertes Pronote / Info-Trafic' },
   { key: 'salon_inscription', label: 'Salon Inscription (Embed)' },
   { key: 'cantine_channel_id', label: 'Salon Cantine (RP)' },
   { key: 'discord_canteen_menu_channel_id', label: 'Salon Menu Cantine' },
-  { key: 'salon_annonces', label: 'Salon Alertes Pronote' },
   { key: 'social_feed_channel_id', label: 'Salon Réseau Social' }
 ]
 
