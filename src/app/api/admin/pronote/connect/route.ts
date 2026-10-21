@@ -38,8 +38,22 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'sync') {
-      const syncResult = await syncPronoteData()
-      return NextResponse.json(syncResult)
+      try {
+        const syncResult = await syncPronoteData()
+        return NextResponse.json(syncResult)
+      } catch (syncErr: any) {
+        if (
+          syncErr?.name === 'RateLimitedError' ||
+          syncErr?.message?.toLowerCase().includes('rate-limit') ||
+          syncErr?.message?.toLowerCase().includes('requêtes')
+        ) {
+          return NextResponse.json(
+            { error: "Pronote a temporairement limité les requêtes (sécurité anti-flood). Veuillez patienter 1 à 2 minutes avant de relancer la synchronisation." },
+            { status: 429 }
+          )
+        }
+        return NextResponse.json({ error: syncErr?.message || 'Erreur lors de la synchronisation.' }, { status: 500 })
+      }
     }
 
     if (action === 'verify_pin') {
@@ -65,8 +79,29 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString(),
       }).eq('key', 'pronote_credentials')
 
-      const syncResult = await syncPronoteData()
-      return NextResponse.json({ success: true, message: 'Code PIN enregistré et synchronisation exécutée.', sync: syncResult })
+      let syncResult = null
+      let syncWarning: string | null = null
+      try {
+        syncResult = await syncPronoteData()
+      } catch (syncErr: any) {
+        console.warn('[PronoteConnect] Sync error after PIN save:', syncErr?.message || syncErr)
+        if (
+          syncErr?.name === 'RateLimitedError' ||
+          syncErr?.message?.toLowerCase().includes('rate-limit') ||
+          syncErr?.message?.toLowerCase().includes('requêtes')
+        ) {
+          syncWarning = "Code PIN enregistré avec succès ! Pronote applique une pause anti-flood temporaire : la synchronisation automatique s'exécutera d'ici 1 à 2 minutes."
+        } else {
+          syncWarning = `Code PIN enregistré, mais la synchronisation a retourné : ${syncErr?.message || syncErr}`
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: syncWarning || 'Code PIN enregistré et synchronisation exécutée avec succès.',
+        warning: syncWarning || undefined,
+        sync: syncResult,
+      })
     }
 
     if (action === 'disconnect') {

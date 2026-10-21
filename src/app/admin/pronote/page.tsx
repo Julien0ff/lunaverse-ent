@@ -136,8 +136,8 @@ export default function AdminPronotePage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erreur lors de la validation du code PIN.')
       setFeedbackMsg({
-        type: data.sync?.syncErrors?.length && data.sync?.coursesCount === 0 ? 'error' : 'success',
-        text: `Code PIN validé avec succès ! Synchronisation terminée (${data.sync?.coursesCount ?? 0} cours, ${data.sync?.homeworksCount ?? 0} devoirs${data.sync?.newsSent ? `, ${data.sync.newsSent} actualité(s)` : ''}).`,
+        type: data.sync?.syncErrors?.length && data.coursesCount === 0 ? 'error' : 'success',
+        text: data.message || `Code PIN validé avec succès ! Synchronisation terminée (${data.sync?.coursesCount ?? 0} cours, ${data.sync?.homeworksCount ?? 0} devoirs${data.sync?.newsSent ? `, ${data.sync.newsSent} actualité(s)` : ''}).`,
       })
       setPinUnlockInput('')
       await loadPronoteStatus()

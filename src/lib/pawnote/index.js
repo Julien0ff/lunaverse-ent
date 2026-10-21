@@ -22145,7 +22145,7 @@ var w = class extends Error {
 };
 var A = class extends Error {
   constructor() {
-    super("You've been rate-limited"), this.name = "RateLimitedError";
+    super("Pronote a temporairement limité les requêtes (sécurité anti-flood). Veuillez patienter 1 à 2 minutes avant de relancer."), this.name = "RateLimitedError";
   }
 };
 var C = class extends Error {
@@ -22260,6 +22260,7 @@ var z = class {
       }
       if (this.data = e3[t2.secureData], this.session.information.skipEncryption || this.decrypt(), this.session.information.skipCompression || this.decompress(), "string" == typeof this.data && (this.data = JSON.parse(this.data)), void 0 !== this.data?.[t2.signature]?.Erreur) throw new C(this.data[t2.signature].MessageErreur);
     } catch (e3) {
+      if (e3 instanceof C) throw e3;
       if (n2.includes("La page a expir")) throw new D();
       if (n2.includes("Votre adresse IP ")) throw new g();
       if (n2.includes("La page dem") || n2.includes("Impossible d'a")) throw new b();
@@ -22591,9 +22592,17 @@ var Se = class {
     if (this.pendingPromise) return false;
     const e2 = this.queue.shift();
     return !!e2 && (this.pendingPromise = true, e2.promise().then((s2) => {
-      e2.resolve(s2), this.pendingPromise = false, this.dequeue();
+      e2.resolve(s2);
+      setTimeout(() => {
+        this.pendingPromise = false;
+        this.dequeue();
+      }, 150);
     }).catch((s2) => {
-      e2.reject(s2), this.pendingPromise = false, this.dequeue();
+      e2.reject(s2);
+      setTimeout(() => {
+        this.pendingPromise = false;
+        this.dequeue();
+      }, 150);
     }), true);
   }
 };

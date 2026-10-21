@@ -313,6 +313,13 @@ export async function syncPronoteData() {
     }
   } catch (err: any) {
     if (
+      err?.name === 'RateLimitedError' ||
+      err?.message?.toLowerCase().includes('rate-limit') ||
+      err?.message?.toLowerCase().includes('requêtes')
+    ) {
+      throw new Error("Pronote a temporairement limité les requêtes (sécurité anti-flood). Veuillez patienter 1 à 2 minutes avant de relancer la synchronisation.")
+    }
+    if (
       err?.name === 'BadCredentialsError' ||
       err?.message?.includes('challenge') ||
       err?.message?.includes('credentials')
@@ -355,91 +362,16 @@ export async function syncPronoteData() {
   const now = new Date()
   const currentWeek = translateToWeekNumber(now, session.instance.firstMonday)
   const weeksToFetch = Array.from(new Set([
-    Math.max(1, currentWeek - 2),
     Math.max(1, currentWeek - 1),
     currentWeek,
     currentWeek + 1,
     currentWeek + 2,
-    currentWeek + 3,
-    currentWeek + 4,
-    currentWeek + 5,
   ]))
 
   const preparedCourses: any[] = []
   const preparedHomeworks: any[] = []
   const syncLogs: string[] = []
   const syncErrors: string[] = []
-
-  syncLogs.push(`Credentials: username=${creds.username}, kind=${creds.kind}, url=${creds.url}`)
-  syncLogs.push(`Session: user=${session.user?.name} (id=${session.user?.id}), userResource=${session.userResource?.name} (id=${session.userResource?.id}), firstMonday=${session.instance?.firstMonday}, currentWeek=${currentWeek}`)
-  if ((session as any).paramError) syncLogs.push(`ParamError: ${(session as any).paramError}`)
-  if ((session as any).authData) {
-    const authKeys = Object.keys((session as any).authData).filter(k => k !== 'cle').join(', ')
-    syncLogs.push(`AuthData keys: ${authKeys}`)
-    const safeAuth: any = {}
-    for (const [k, v] of Object.entries((session as any).authData)) {
-      if (['cle', 'jetonConnexionAppliMobile'].includes(k)) continue
-      safeAuth[k] = v
-    }
-    syncLogs.push(`AuthData: ${JSON.stringify(safeAuth).slice(0, 300)}`)
-  }
-  if ((session as any).identData) {
-    const identKeys = Object.keys((session as any).identData).join(', ')
-    syncLogs.push(`IdentData keys: ${identKeys}`)
-  }
-  if ((session as any).rawUserData) {
-    const rawKeys = Object.keys((session as any).rawUserData).join(', ')
-    syncLogs.push(`ParamUserData keys: ${rawKeys}`)
-    const tabs = session.user?.authorizations?.tabs || []
-    syncLogs.push(`Authorized tabs: [${tabs.join(', ')}]`)
-    if ((session as any).rawUserData.ressource) {
-      syncLogs.push(`Raw ressource: ${JSON.stringify((session as any).rawUserData.ressource)}`)
-    }
-  }
-
-  try {
-    const hp = await homepage(session)
-    syncLogs.push(`Homepage success: ${JSON.stringify(hp).slice(0, 200)}`)
-  } catch (hpErr: any) {
-    syncLogs.push(`Homepage error: ${hpErr?.message || hpErr}`)
-  }
-
-  // Diagnostic probe for Pronote functions
-  try {
-    const resNav = await callPronoteFunction(session, "Navigation", { onglet: 16, ongletPrec: 16 }, 16)
-    syncLogs.push(`Probe Navigation: ok, ${JSON.stringify(resNav).slice(0, 100)}`)
-  } catch (e: any) {
-    syncLogs.push(`Probe Navigation: error ${e?.message || e}`)
-  }
-
-  try {
-    const resEDTNoRes = await callPronoteFunction(session, "PageEmploiDuTemps", {
-      estEDTAnnuel: false,
-      edt: { G: 16, L: "Emploi du temps" },
-      numeroSemaine: currentWeek,
-    }, 16)
-    syncLogs.push(`Probe EDT without ressource: ok, keys=${Object.keys(resEDTNoRes || {}).join(',')}`)
-  } catch (e: any) {
-    syncLogs.push(`Probe EDT without ressource: error ${e?.message || e}`)
-  }
-
-  try {
-    const resActus = await callPronoteFunction(session, "PageActualites", {
-      modesAffActus: { _T: 26, V: "[1]" }
-    }, 8)
-    syncLogs.push(`Probe Actus mode 1: ok, keys=${Object.keys(resActus || {}).join(',')}`)
-  } catch (e: any) {
-    syncLogs.push(`Probe Actus mode 1: error ${e?.message || e}`)
-  }
-
-  try {
-    const resCDT89 = await callPronoteFunction(session, "PageCahierDeTexte", {
-      domaine: { _T: 8, V: `[${currentWeek}]` }
-    }, 89)
-    syncLogs.push(`Probe CDT tab 89: ok, keys=${Object.keys(resCDT89 || {}).join(',')}`)
-  } catch (e: any) {
-    syncLogs.push(`Probe CDT tab 89: error ${e?.message || e}`)
-  }
 
   for (const weekNum of weeksToFetch) {
     try {
