@@ -22490,7 +22490,7 @@ var he = async (e2, s2) => {
   }
   return ve(e2, u2, a2, s2.username);
 };
-var ge = (e2, s2) => he(e2, { url: e2.information.url, kind: e2.information.accountKind, username: s2.username, token: s2.token, deviceUUID: s2.deviceUUID, navigatorIdentifier: e2.instance.navigatorIdentifier });
+var ge = (e2, s2) => he(e2, { url: e2.information.url, kind: e2.information.accountKind, username: s2.username, token: s2.token, deviceUUID: s2.deviceUUID, navigatorIdentifier: e2.instance.navigatorIdentifier, pin: s2.pin });
 var De = (e2, s2, t2) => {
   const n2 = i.default.md.sha256.create().update(e2.alea ?? "").update(i.default.util.encodeUtf8(t2)).digest().toHex().toUpperCase();
   return new i.default.util.ByteStringBuffer(i.default.util.encodeUtf8(s2.toLowerCase() + n2));
@@ -23094,20 +23094,24 @@ exports.AccessDeniedError = u, exports.AccountDisabledError = l, exports.Account
   e2.information = o2, e2.instance = { version: c2 }, e2.instance = await ae(e2, s2.navigatorIdentifier);
   const u2 = await re(e2, { username: r2.username, deviceUUID: s2.deviceUUID, requestFirstMobileAuthentication: true, reuseMobileAuthentication: false, requestFromQRCode: true, useCAS: false });
   be(r2, "token", u2);
+  const l2 = De(u2, r2.username, r2.token), d2 = we(e2, u2, l2), p2 = await oe(e2, d2);
   Ae(e2, p2, l2);
-  if (Ce(p2) && s2.pin) {
-    try {
-      const savedTok = await securitySaveInternal(e2, { context: { authentication: p2 } }, {
-        pin: s2.pin,
-        deviceName: "LunaVerse ENT",
-        mode: p2.modeSecurisationParDefaut || 3
-      });
-      if (savedTok) p2.jetonConnexionAppliMobile = savedTok;
-    } catch (secErr) {
+  if (Ce(p2)) {
+    if (s2.pin) {
       try {
-        await securityCheckPINInternal(e2, s2.pin);
-      } catch (pinErr) {}
+        const savedTok = await securitySaveInternal(e2, { context: { authentication: p2 } }, {
+          pin: s2.pin,
+          deviceName: "LunaVerse ENT",
+          mode: p2.modeSecurisationParDefaut || 3
+        });
+        if (savedTok) p2.jetonConnexionAppliMobile = savedTok;
+      } catch (secErr) {
+        try {
+          await securityCheckPINInternal(e2, s2.pin);
+        } catch (pinErr) {}
+      }
     }
+    return ge(e2, { token: p2.jetonConnexionAppliMobile, username: u2.login ?? r2.username, deviceUUID: s2.deviceUUID, pin: s2.pin });
   }
   return ve(e2, p2, u2, r2.username);
 }, exports.loginToken = he, exports.menus = async (e2, s2 = /* @__PURE__ */ new Date()) => {
