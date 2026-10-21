@@ -370,75 +370,107 @@ export async function syncPronoteData() {
     currentWeek + 2,
   ]))
 
-  const isVieScolaire = Number(creds.kind) === 14
-  let pronoteClassesToFetch: Array<{ id: string | number; name: string; kind: number }> = []
-
-  if (isVieScolaire) {
-    try {
-      const resEDT = await timetableResources(session)
-      const resList = Array.isArray(resEDT?.listeRessources)
-        ? resEDT.listeRessources
-        : (resEDT?.listeRessources?.V || [])
-
-      for (const group of resList) {
-        const subList = Array.isArray(group?.liste)
-          ? group.liste
-          : (group?.liste?.V || (group?.G === 1 ? [group] : []))
-        for (const item of subList) {
-          if (item && item.N !== undefined && item.L) {
-            pronoteClassesToFetch.push({
-              id: item.N,
-              name: item.L,
-              kind: item.G || 1,
-            })
-          }
-        }
-      }
-      if (pronoteClassesToFetch.length > 0) {
-        console.log(`[PronoteSync] ${pronoteClassesToFetch.length} classes détectées sur Pronote via RessourceEDT : ${pronoteClassesToFetch.map(c => `${c.name} (#${c.id})`).join(', ')}`)
-      }
-    } catch (resErr: any) {
-      console.warn('[PronoteSync] RessourceEDT non accessible, tentative via listeClassesGroupes:', resErr?.message || resErr)
-      try {
-        const cAndG = await classesAndGroups(session)
-        const cList = Array.isArray(cAndG?.listeClasses) ? cAndG.listeClasses : (cAndG?.listeClasses?.V || [])
-        for (const item of cList) {
-          if (item && item.N !== undefined && item.L) {
-            pronoteClassesToFetch.push({
-              id: item.N,
-              name: item.L,
-              kind: item.G || 1,
-            })
-          }
-        }
-        if (pronoteClassesToFetch.length > 0) {
-          console.log(`[PronoteSync] ${pronoteClassesToFetch.length} classes détectées sur Pronote via listeClassesGroupes : ${pronoteClassesToFetch.map(c => `${c.name} (#${c.id})`).join(', ')}`)
-        }
-      } catch (cgErr: any) {
-        console.warn('[PronoteSync] listeClassesGroupes non accessible:', cgErr?.message || cgErr)
-      }
-    }
-
-    // Fallback : si Pronote n'a pas retourné de liste, utiliser les classes déclarées dans LunaVerse ENT
-    if (pronoteClassesToFetch.length === 0 && registeredClasses.length > 0) {
-      console.log('[PronoteSync] Utilisation des classes LunaVerse ENT comme cibles de consultation EDT.')
-      pronoteClassesToFetch = registeredClasses.map(rc => ({
-        id: rc.name,
-        name: rc.name,
-        kind: 1,
-      }))
-    }
-  }
-
   const preparedCourses: any[] = []
   const preparedHomeworks: any[] = []
   const syncLogs: string[] = []
   const syncErrors: string[] = []
 
+  const isStaff = Number(creds.kind) === 14 || Number(creds.kind) === 15 || Number(creds.kind) === 16
+  let pronoteClassesToFetch: Array<{ id: string | number; name: string; kind: number }> = []
+
+  if (isStaff) {
+    // 1. Récupérer les classes fournies lors de l'authentification Pronote (session.classes)
+    const rawSessionClasses = (session as any).classes || []
+    const availablePronoteClasses: Array<{ id: string | number; name: string; kind: number }> = []
+
+    for (const item of rawSessionClasses) {
+      if (item && item.id !== undefined && item.name) {
+        availablePronoteClasses.push({
+          id: item.id,
+          name: item.name,
+          kind: item.kind || 1,
+        })
+      }
+    }
+
+    // 2. Si aucune classe dans session.classes, tenter via RessourceEDT ou classesAndGroups
+    if (availablePronoteClasses.length === 0) {
+      try {
+        const resEDT = await timetableResources(session)
+        const resList = Array.isArray(resEDT?.listeRessources)
+          ? resEDT.listeRessources
+          : (resEDT?.listeRessources?.V || [])
+
+        for (const group of resList) {
+          const subList = Array.isArray(group?.liste)
+            ? group.liste
+            : (group?.liste?.V || (group?.G === 1 || group?.G === 26 ? [group] : []))
+          for (const item of subList) {
+            if (item && item.N !== undefined && item.L) {
+              availablePronoteClasses.push({
+                id: item.N,
+                name: item.L,
+                kind: item.G || 1,
+              })
+            }
+          }
+        }
+      } catch (resErr: any) {
+        try {
+          const cAndG = await classesAndGroups(session)
+          const cList = Array.isArray(cAndG?.listeClasses) ? cAndG.listeClasses : (cAndG?.listeClasses?.V || [])
+          for (const item of cList) {
+            if (item && item.N !== undefined && item.L) {
+              availablePronoteClasses.push({
+                id: item.N,
+                name: item.L,
+                kind: item.G || 1,
+              })
+            }
+          }
+        } catch (cgErr: any) {}
+      }
+    }
+
+    if (availablePronoteClasses.length > 0) {
+      syncLogs.push(`Pronote: ${availablePronoteClasses.length} classe(s) détectée(s) : ${availablePronoteClasses.map(c => `${c.name} (#${c.id})`).join(', ')}`)
+
+      // Mapper les classes enregistrées dans LunaVerse ENT vers les identifiants numériques réels de Pronote
+      const clean = (s: string) => String(s || '').toLowerCase().replace(/[\s\-_]/g, '')
+      for (const entClass of registeredClasses) {
+        const entClean = clean(entClass.name)
+        let found = availablePronoteClasses.find(pc => clean(pc.name) === entClean)
+        if (!found) {
+          found = availablePronoteClasses.find(pc => clean(pc.name).includes(entClean) || entClean.includes(clean(pc.name)))
+        }
+        if (found) {
+          pronoteClassesToFetch.push({
+            id: found.id,
+            name: entClass.name,
+            kind: found.kind || 1,
+          })
+        }
+      }
+
+      // Si aucune classe n'a été spécifiquement appairée, prendre toutes les classes disponibles de Pronote
+      if (pronoteClassesToFetch.length === 0) {
+        pronoteClassesToFetch = availablePronoteClasses
+      }
+      syncLogs.push(`Classes ciblées pour la consultation EDT : ${pronoteClassesToFetch.map(c => `${c.name} (#${c.id})`).join(', ')}`)
+    } else {
+      const authKeys = Object.keys((session as any).authData || {}).join(', ')
+      syncLogs.push(`Compte ${Number(creds.kind) === 14 ? 'Vie Scolaire' : 'Staff'} connecté (champs: [${authKeys}]). Aucune classe n'a pu être résolue avec les droits de ce profil.`)
+      console.warn('[PronoteSync] Aucune classe avec ID numérique détectée sur le compte Pronote.')
+    }
+  }
+
   for (const weekNum of weeksToFetch) {
-    if (isVieScolaire && pronoteClassesToFetch.length > 0) {
-      // Pour un compte Vie Scolaire, interroger l'emploi du temps de chaque classe
+    if (isStaff && pronoteClassesToFetch.length > 0) {
+      // Pour un compte Vie Scolaire / Direction, interroger l'emploi du temps de chaque classe
       for (const pClass of pronoteClassesToFetch) {
+        if (pClass.id === undefined || (typeof pClass.id === 'string' && isNaN(Number(pClass.id)))) {
+          continue
+        }
         try {
           const classResource = { G: pClass.kind, N: pClass.id, L: pClass.name }
           const timetable = await timetableFromWeek(session, weekNum, classResource)
@@ -592,7 +624,7 @@ export async function syncPronoteData() {
         })
       }
     } catch (errHw: any) {
-      if (!isVieScolaire) {
+      if (!isStaff) {
         const errMsg = `Erreur devoirs semaine ${weekNum}: ${errHw?.message || errHw}`
         syncErrors.push(errMsg)
         console.warn(`[PronoteSync] ${errMsg}`)

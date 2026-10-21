@@ -22168,7 +22168,7 @@ var y = class extends Error {
     super("The file upload failed"), this.name = "UploadFailedError";
   }
 };
-var M = { STUDENT: 6, PARENT: 7, TEACHER: 8, VIE_SCOLAIRE: 14 };
+var M = { STUDENT: 6, PARENT: 7, TEACHER: 8, VIE_SCOLAIRE: 14, DIRECTION: 16 };
 var P = { None: 0, Paper: 1, FileUpload: 2, Kiosk: 3, AudioRecording: 4 };
 var x = { Link: 0, File: 1 };
 var V = { lu: "lu", nonLu: "nonLu", archiver: "archiver", desarchiver: "desarchiver", transferer: "transferer", signaler: "signaler", modifierCategories: "modifierCategories", fermerDiscussion: "fermerDiscussion", ouvrirDiscussion: "ouvrirDiscussion", signalerSuppression: "signalerSuppression", Trash: "corbeille", Restore: "restauration", Delete: "suppression", brouillon: "brouillon", plus: "plus", purger: "purger", discussionEnFenetre: "discussionEnFenetre", entrerSortirDiscussion: "entrerSortirDiscussion", modificationObjetDiscussion: "modificationObjetDiscussion", afficherDestinataires: "afficherDestinataires", copierContenuVisu: "copierContenuVisu", repondreMessage: "repondreMessage", afficherDiscussion: "afficherDiscussion" };
@@ -22208,6 +22208,12 @@ var K = async (s2, t2 = e.defaultFetcher) => {
         break;
       case M.VIE_SCOLAIRE:
         s3 = "viescolaire";
+        break;
+      case M.DIRECTION:
+      case 15:
+      case 16:
+        s3 = "direction";
+        break;
     }
     return `mobile.${s3}.html`;
   })(s2.kind));
@@ -22426,6 +22432,9 @@ var de = (e2, s2) => {
     case M.STUDENT:
     case M.TEACHER:
     case M.VIE_SCOLAIRE:
+    case M.DIRECTION:
+    case 15:
+    case 16:
       t2 = e2.ressource ? [e2.ressource] : (e2.listeRessources?.V || e2.listeRessources || [primaryRes]);
       break;
     case M.PARENT:
@@ -22444,8 +22453,11 @@ var de = (e2, s2) => {
   })(e3, s2)), authorizations: ce(e2.autorisations, e2.listeOnglets) };
 };
 var pe = (e2) => {
-  const s2 = e2.split(".");
-  switch (s2.pop(), s2.pop()) {
+  const s2 = String(e2).split(".");
+  const p1 = s2.pop() || "";
+  const p2 = s2.pop() || "";
+  const match = (p2 || p1).toLowerCase();
+  switch (match) {
     case "eleve":
       return M.STUDENT;
     case "parent":
@@ -22454,8 +22466,16 @@ var pe = (e2) => {
       return M.TEACHER;
     case "viescolaire":
       return M.VIE_SCOLAIRE;
+    case "direction":
+    case "administrateur":
+      return M.DIRECTION;
     default:
-      throw new v("decodeAccountKindFromPath");
+      if (String(e2).includes("direction") || String(e2).includes("administrateur")) return M.DIRECTION;
+      if (String(e2).includes("viescolaire")) return M.VIE_SCOLAIRE;
+      if (String(e2).includes("eleve")) return M.STUDENT;
+      if (String(e2).includes("professeur")) return M.TEACHER;
+      if (String(e2).includes("parent")) return M.PARENT;
+      throw new v("decodeAccountKindFromPath: " + e2);
   }
 };
 function me(e2, s2) {
@@ -22513,6 +22533,8 @@ var Ae = (e2, s2, t2) => {
 };
 var Ce = (e2) => Boolean(e2.actionsDoubleAuth);
 var ve = async (e2, s2, t2, n2) => {
+  e2.authData = s2;
+  e2.identData = t2;
   try {
     const uReq = new Y(e2, "ParametresUtilisateur", {}), uRes = await uReq.send();
     if (uRes?.data?.[W(e2).data]) {
@@ -22523,14 +22545,64 @@ var ve = async (e2, s2, t2, n2) => {
     e2.paramError = String(ign?.message || ign);
   }
   if (!e2.user) {
-    const defRes = { id: 0, kind: e2.information.accountKind, name: t2.login ?? n2 };
-    e2.user = { id: 0, kind: e2.information.accountKind, name: t2.login ?? n2, resources: [defRes], authorizations: { tabs: [] } };
+    const defRes = { id: 0, kind: e2.information.accountKind, name: t2?.login ?? n2 };
+    e2.user = { id: 0, kind: e2.information.accountKind, name: t2?.login ?? n2, resources: [defRes], authorizations: { tabs: [] } };
   }
   if (!e2.user.resources || e2.user.resources.length === 0) {
-    e2.user.resources = [{ id: e2.user.id ?? 0, kind: e2.user.kind ?? e2.information.accountKind, name: e2.user.name ?? t2.login ?? n2 }];
+    e2.user.resources = [{ id: e2.user.id ?? 0, kind: e2.user.kind ?? e2.information.accountKind, name: e2.user.name ?? t2?.login ?? n2 }];
   }
+
+  // Extract authorized tabs from s2.listeOnglets if not present
+  const rawTabs = s2?.listeOnglets || s2?.donnees?.listeOnglets || e2.rawUserData?.listeOnglets;
+  if (rawTabs && (!e2.user.authorizations?.tabs || e2.user.authorizations.tabs.length === 0)) {
+    const tabList = Array.isArray(rawTabs) ? rawTabs : (Array.isArray(rawTabs.V) ? rawTabs.V : []);
+    const tabIds = [];
+    const walkTabs = (item) => {
+      if (!item) return;
+      if (item.G !== undefined) tabIds.push(item.G);
+      if (Array.isArray(item.Onglet)) item.Onglet.forEach(walkTabs);
+      if (Array.isArray(item.Onglet?.V)) item.Onglet.V.forEach(walkTabs);
+    };
+    tabList.forEach(walkTabs);
+    if (!e2.user.authorizations) e2.user.authorizations = { tabs: [] };
+    e2.user.authorizations.tabs = tabIds;
+  }
+
+  // Extract classes from s2 / rawUserData / identData
+  const classCandidates = [
+    s2?.listeClasses,
+    s2?.donnees?.listeClasses,
+    s2?.parametres?.listeClasses,
+    s2?.ressource?.listeClasses,
+    e2.rawUserData?.listeClasses,
+    e2.rawUserData?.donnees?.listeClasses,
+    e2.rawUserData?.ressource?.listeClasses,
+    t2?.listeClasses,
+    s2?.listeRessources,
+    e2.rawUserData?.listeRessources
+  ];
+  let foundClasses = [];
+  for (const cand of classCandidates) {
+    if (!cand) continue;
+    const list = Array.isArray(cand) ? cand : (Array.isArray(cand.V) ? cand.V : []);
+    if (list.length > 0) {
+      const filtered = (cand === s2?.listeRessources || cand === e2.rawUserData?.listeRessources)
+        ? list.filter(r => r.G === 1 || r.G === 26 || r.G === 2)
+        : list;
+      if (filtered.length > 0) {
+        foundClasses = filtered;
+        break;
+      }
+    }
+  }
+  e2.classes = foundClasses.map(c => ({
+    id: c.N,
+    name: c.L,
+    kind: c.G !== undefined ? c.G : 1
+  }));
+
   me(e2, 0);
-  return { token: s2.jetonConnexionAppliMobile ?? s2.token ?? n2, username: t2.login ?? n2, kind: e2.information.accountKind, url: e2.information.url, navigatorIdentifier: e2.instance.navigatorIdentifier };
+  return { token: s2.jetonConnexionAppliMobile ?? s2.token ?? n2, username: t2?.login ?? n2, kind: e2.information.accountKind, url: e2.information.url, navigatorIdentifier: e2.instance.navigatorIdentifier };
 };
 var Ee = (e2, s2, t2) => {
   e2.kind === _.TextInput || e2.kind === _.InformationText ? e2.textInputAnswer = s2 : (e2.selectedAnswers = s2, e2.textInputAnswer = t2), e2.answered = void 0 !== s2, e2.answerDate = e2.answered ? /* @__PURE__ */ new Date() : void 0;
@@ -22954,8 +23026,8 @@ var Us = (e2, s2) => ({ absences: e2.absences, withCanceledClasses: e2.avecCours
 })(e3, s2)).sort((e3, s3) => e3.startDate.getTime() - s3.startDate.getTime()) });
 var Gs = async (e2, s2 = {}, targetResource = null) => {
   const t2 = W(e2);
-  const isVieScolaire = e2.information?.accountKind === M.VIE_SCOLAIRE;
-  const tabId = s2.onglet ? s2.onglet : (isVieScolaire ? 60 : G.Timetable);
+  const isStaff = e2.information?.accountKind === M.VIE_SCOLAIRE || e2.information?.accountKind === M.DIRECTION || e2.information?.accountKind === 14 || e2.information?.accountKind === 16;
+  let tabId = s2.onglet ? s2.onglet : (isStaff ? 60 : G.Timetable);
   let resObj = targetResource;
   if (!resObj) {
     if (s2.ressource) {
@@ -22966,32 +23038,72 @@ var Gs = async (e2, s2 = {}, targetResource = null) => {
       resObj = { G: e2.information.accountKind, L: e2.user?.name || "Vie Scolaire", N: 0 };
     }
   }
-  const payload = {
-    estEDTAnnuel: false,
-    estEDTPermanence: false,
-    avecAbsencesEleve: false,
-    avecRessourcesLibrePiedHoraire: false,
-    avecAbsencesRessource: true,
-    avecInfosPrefsGrille: true,
-    avecConseilDeClasse: true,
-    avecCoursSortiePeda: true,
-    avecDisponibilites: !isVieScolaire,
-    avecRetenuesEleve: true,
-    ...Fs("ressource", resObj),
-    ...s2
-  };
-  if (tabId === 16) {
-    payload.edt = { G: 16, L: "Emploi du temps" };
-  } else {
-    delete payload.edt;
+
+  // Normaliser les propriétés de ressource
+  const cleanRes = { ...resObj };
+  if (cleanRes.kind !== undefined && cleanRes.G === undefined) {
+    cleanRes.G = cleanRes.kind;
   }
-  delete payload.onglet;
-  const n2 = new Y(e2, "PageEmploiDuTemps", {
-    [t2.signature]: { onglet: tabId },
-    [t2.data]: payload
-  });
-  const a2 = await n2.send();
-  return Us(a2.data[t2.data], e2);
+  if (cleanRes.id !== undefined && cleanRes.N === undefined) {
+    cleanRes.N = cleanRes.id;
+  }
+  if (cleanRes.name !== undefined && cleanRes.L === undefined) {
+    cleanRes.L = cleanRes.name;
+  }
+
+  const makePayload = (curTab) => {
+    const payload = {
+      estEDTAnnuel: false,
+      estEDTPermanence: false,
+      avecAbsencesEleve: false,
+      avecRessourcesLibrePiedHoraire: false,
+      avecAbsencesRessource: true,
+      avecInfosPrefsGrille: true,
+      avecConseilDeClasse: true,
+      avecCoursSortiePeda: true,
+      avecDisponibilites: !isStaff,
+      avecRetenuesEleve: true,
+      ...Fs("ressource", cleanRes),
+      ...s2
+    };
+    // edt est seulement pour le compte élève personnel sur l'onglet 16
+    if (curTab === 16 && cleanRes.G === 1) {
+      payload.edt = { G: 16, L: "Emploi du temps" };
+    } else {
+      delete payload.edt;
+    }
+    delete payload.onglet;
+    return payload;
+  };
+
+  const executeTab = async (curTab) => {
+    const payload = makePayload(curTab);
+    const n2 = new Y(e2, "PageEmploiDuTemps", {
+      [t2.signature]: { onglet: curTab },
+      [t2.data]: payload
+    });
+    const a2 = await n2.send();
+    return Us(a2.data[t2.data], e2);
+  };
+
+  try {
+    return await executeTab(tabId);
+  } catch (err) {
+    const msg = String(err?.message || err);
+    if (msg.includes("droits sont insuffisants") || msg.includes("Server Error")) {
+      const altTab = tabId === 60 ? 16 : 60;
+      try {
+        return await executeTab(altTab);
+      } catch (err2) {
+        try {
+          return await executeTab(59);
+        } catch (err3) {
+          throw err;
+        }
+      }
+    }
+    throw err;
+  }
 };
 exports.AccessDeniedError = u, exports.AccountDisabledError = l, exports.AccountKind = M, exports.AssignmentDifficulty = { None: 0, Easy: 1, Medium: 2, Hard: 3 }, exports.AssignmentReturnKind = P, exports.AttachmentKind = x, exports.AuthenticateError = c, exports.BadCredentialsError = o, exports.BusyPageError = w, exports.DiscussionActionError = d, exports.DiscussionCommand = V, exports.DiscussionFolderKind = { OCEM_Utilisateur: 0, OCEM_Pre_Reception: 1, OCEM_Pre_Archive: 2, OCEM_Pre_Envoye: 3, OCEM_Pre_Brouillon: 4, OCEM_Pre_Poubelle: 5, OCEM_Pre_Signalement: 6, OCEM_Expl_Bleu: 7, OCEM_Expl_Vert: 8, OCEM_Expl_Rouge: 9, OCEM_Pre_CarnetLiaison: 10, OCEM_Pre_Alerte: 11, OCEM_Pre_ContactVS: 12, OCEM_Pre_Conversation: 13, OCEM_Pre_InvisiblePlageDesactivee: 14 }, exports.DiscussionMessagesMissingError = p, exports.DiscussionSendAction = S, exports.DishKind = N, exports.DocumentFileFormat = { UNKNOWN: 0, TEXT: 1, PDF: 2, EXCEL: 3, ARCHIVE: 4, IMAGE: 5, SOUND: 6, VIDEO: 7, DIAPORAMA: 8, GEOGEBRA: 9 }, exports.DocumentKind = I, exports.DoubleAuthClientAction = L, exports.DoubleAuthMode = { MGDA_PasEncoreChoisi: 0, MGDA_Inactive: 1, MGDA_NotificationSeulement: 2, MGDA_SaisieCodePIN: 3 }, exports.DoubleAuthServerAction = R, exports.EntityKind = T, exports.EntityState = k, exports.GradeKind = O, exports.MealKind = F, exports.NewsQuestionKind = _, exports.NewsView = { Reception: 0, Broadcast: 1, Draft: 2, Template: 3 }, exports.NotebookObservationKind = { LogBookIssue: 0, Observation: 1, Encouragement: 2, Other: 3 }, exports.PageUnavailableError = b, exports.RateLimitedError = A, exports.ResourceContentCategory = { NONE: 0, LESSON: 1, CORRECTION: 2, DST: 3, ORAL_INTERROGATION: 4, TD: 5, TP: 6, EVALUATION_COMPETENCES: 7, EPI: 8, AP: 9, VISIO: 12 }, exports.SecurityError = f, exports.SecuritySourceTooLongError = h, exports.ServerSideError = C, exports.SessionAccessKind = U, exports.SessionExpiredError = D, exports.SuspendedIPError = g, exports.TabLocation = G, exports.UnreachableError = v, exports.UploadFailedError = y, exports.UploadSizeError = E, exports.account = async (e2) => {
   const s2 = W(e2), t2 = new Y(e2, "PageInfosPerso", { [s2.signature]: { onglet: G.Account } });
@@ -23313,5 +23425,7 @@ exports.AccessDeniedError = u, exports.AccountDisabledError = l, exports.Account
   const res = await req.send();
   return res.data[dataKey];
 };
+exports.sessionClasses = (session) => session.classes || [];
+
 
 
