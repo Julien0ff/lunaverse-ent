@@ -292,6 +292,7 @@ export async function syncPronoteData() {
       deviceUUID: creds.deviceUUID || randomUUID(),
       navigatorIdentifier: creds.navigatorIdentifier,
     })
+    console.log(`[PronoteSync] Login successful for ${creds.username}, kind=${creds.kind}, url=${creds.url}`)
     if (loginRes?.token && loginRes.token !== creds.token) {
       console.log('[PronoteSync] Nouveau jeton mobile renouvelé reçu de Pronote.')
       effectiveToken = loginRes.token
@@ -364,6 +365,7 @@ export async function syncPronoteData() {
   const syncLogs: string[] = []
   const syncErrors: string[] = []
 
+  syncLogs.push(`Credentials: username=${creds.username}, kind=${creds.kind}, url=${creds.url}`)
   syncLogs.push(`Session: user=${session.user?.name} (id=${session.user?.id}), userResource=${session.userResource?.name} (id=${session.userResource?.id}), firstMonday=${session.instance?.firstMonday}, currentWeek=${currentWeek}`)
 
   for (const weekNum of weeksToFetch) {
