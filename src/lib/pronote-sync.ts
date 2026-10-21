@@ -345,30 +345,43 @@ export async function syncPronoteData() {
     }
   }
 
-  // Calcul des semaines à synchroniser (semaine passée, en cours, et les 3 prochaines)
+  // Calcul des semaines à synchroniser (élargi pour couvrir les cours actuels et à venir)
   const now = new Date()
   const currentWeek = translateToWeekNumber(now, session.instance.firstMonday)
   const weeksToFetch = Array.from(new Set([
+    Math.max(1, currentWeek - 2),
     Math.max(1, currentWeek - 1),
     currentWeek,
     currentWeek + 1,
     currentWeek + 2,
-    currentWeek + 3
+    currentWeek + 3,
+    currentWeek + 4,
+    currentWeek + 5,
   ]))
 
   const preparedCourses: any[] = []
   const preparedHomeworks: any[] = []
+  const syncLogs: string[] = []
+  const syncErrors: string[] = []
+
+  syncLogs.push(`Session: user=${session.user?.name} (id=${session.user?.id}), userResource=${session.userResource?.name} (id=${session.userResource?.id}), firstMonday=${session.instance?.firstMonday}, currentWeek=${currentWeek}`)
 
   for (const weekNum of weeksToFetch) {
     try {
       const timetable = await timetableFromWeek(session, weekNum)
+      const classesCount = timetable?.classes?.length || 0
+      syncLogs.push(`Semaine ${weekNum}: ${classesCount} cours bruts reçus de Pronote`)
+
       for (const item of timetable.classes || []) {
         if (item.is !== 'lesson') continue
         const lesson = item as TimetableClassLesson
 
         const start = new Date(lesson.startDate)
         const end = new Date(lesson.endDate)
-        const dayOfWeek = start.getDay() // 0 = Dimanche, 1 = Lundi, ..., 6 = Samedi
+        const dayOfWeek = start.getDay() // 6 = Samedi, 0 = Dimanche
+
+        // Strictement Samedi (6) ou Dimanche (0) pour LunaVerse RP
+        if (dayOfWeek !== 6 && dayOfWeek !== 0) continue
 
         // Statut du cours
         let status = 'normal'
@@ -410,20 +423,24 @@ export async function syncPronoteData() {
           status_note: lesson.status || null,
         })
       }
-    } catch (errWeek) {
-      console.warn(`[PronoteSync] Erreur lors de la récupération de la semaine ${weekNum}:`, errWeek)
+    } catch (errWeek: any) {
+      const errMsg = `Erreur EDT semaine ${weekNum}: ${errWeek?.message || errWeek}`
+      syncErrors.push(errMsg)
+      console.warn(`[PronoteSync] ${errMsg}`)
     }
 
     try {
       const assignments = await assignmentsFromWeek(session, weekNum)
+      const hwCount = assignments?.length || 0
+      syncLogs.push(`Semaine ${weekNum}: ${hwCount} devoirs bruts reçus de Pronote`)
+
       for (const assign of assignments || []) {
         if (!assign.deadline) continue
         const dueDate = new Date(assign.deadline).toISOString().split('T')[0]
         const rawGroup = assign.themes?.[0]?.name || ''
         let targetClass = matchPronoteToEntClass(rawGroup, registeredClasses)
         if (targetClass === 'all' || targetClass === rawGroup) {
-          // Attribuer à la classe active principale (3GA)
-          const defaultClass = registeredClasses.find(c => !['2gt1', '3pm', '2pro1'].includes(c.name.toLowerCase()))?.name || '3GA'
+          const defaultClass = registeredClasses.find(c => !['2gt1', '3pm', '2pro1'].includes(c.name.toLowerCase()))?.name || '3eA'
           targetClass = defaultClass
         }
 
@@ -436,8 +453,10 @@ export async function syncPronoteData() {
           due_date: dueDate,
         })
       }
-    } catch (errHw) {
-      console.warn(`[PronoteSync] Erreur devoirs semaine ${weekNum}:`, errHw)
+    } catch (errHw: any) {
+      const errMsg = `Erreur devoirs semaine ${weekNum}: ${errHw?.message || errHw}`
+      syncErrors.push(errMsg)
+      console.warn(`[PronoteSync] ${errMsg}`)
     }
   }
 
@@ -966,9 +985,12 @@ async function sendDiscordNewsNotification({
     const newsData = await news(session)
     if (newsData && Array.isArray(newsData.items)) {
       pronoteNewsItems = newsData.items
+      syncLogs.push(`Actualités: ${pronoteNewsItems.length} annonces/sondages bruts reçus de Pronote`)
     }
   } catch (newsErr: any) {
-    console.warn('[PronoteSync] Actualités Pronote non disponibles ou erreur:', newsErr?.message || newsErr)
+    const errMsg = `Erreur actualités: ${newsErr?.message || newsErr}`
+    syncErrors.push(errMsg)
+    console.warn('[PronoteSync]', errMsg)
   }
 
   if (pronoteNewsItems.length > 0) {
@@ -1092,5 +1114,7 @@ async function sendDiscordNewsNotification({
     alertsSent: results.alertsSent,
     newsSent: results.newsSent,
     syncedAt: nowIso,
+    syncLogs,
+    syncErrors,
   }
 }

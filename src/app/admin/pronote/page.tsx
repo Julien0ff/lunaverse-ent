@@ -103,9 +103,12 @@ export default function AdminPronotePage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erreur lors de la synchronisation.')
+      const errorDetails = Array.isArray(data.syncErrors) && data.syncErrors.length > 0
+        ? ` — Erreurs détectées : ${data.syncErrors.slice(0, 2).join(' ; ')}`
+        : ''
       setFeedbackMsg({
-        type: 'success',
-        text: `Synchronisation réussie ! (${data.coursesCount} cours traités, ${data.homeworksCount} devoirs${data.newsSent ? `, ${data.newsSent} annonce(s)/sondage(s)` : ''}${typeof data.alertsSent === 'number' ? `, ${data.alertsSent} alerte(s) Discord` : ''})`,
+        type: data.syncErrors?.length && data.coursesCount === 0 ? 'error' : 'success',
+        text: `Synchronisation terminée ! (${data.coursesCount} cours traités, ${data.homeworksCount} devoirs${data.newsSent ? `, ${data.newsSent} annonce(s)/sondage(s)` : ''}${typeof data.alertsSent === 'number' ? `, ${data.alertsSent} alerte(s) Discord` : ''})${errorDetails}`,
       })
       await loadPronoteStatus()
     } catch (err: any) {

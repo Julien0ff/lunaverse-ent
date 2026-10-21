@@ -132,22 +132,11 @@ export default function TimetablePage() {
   }, [apiStudentClass, roles, classes, profile])
 
   // Déterminer les jours disponibles (Lundi à Dimanche)
-  const availableDays = useMemo(() => {
-    const courseDays = new Set(courses.map(c => c.day_of_week))
-
-    const ALL_DAYS = [
-      { day: 1, label: 'Lundi' },
-      { day: 2, label: 'Mardi' },
-      { day: 3, label: 'Mercredi' },
-      { day: 4, label: 'Jeudi' },
-      { day: 5, label: 'Vendredi' },
-      { day: 6, label: 'Samedi' },
-      { day: 0, label: 'Dimanche' },
-    ]
-
-    const filtered = ALL_DAYS.filter(d => courseDays.has(d.day))
-    return filtered.length > 0 ? filtered : ALL_DAYS
-  }, [courses])
+  // Déterminer les jours disponibles (Strictement Samedi et Dimanche pour LunaVerse RP)
+  const availableDays = useMemo(() => [
+    { day: 6, label: 'Samedi' },
+    { day: 0, label: 'Dimanche' },
+  ], [])
 
   const loadData = async () => {
     try {
