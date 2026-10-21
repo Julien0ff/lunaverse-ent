@@ -498,7 +498,7 @@ export default function TimetablePage() {
                       </span>
                       {selectedDay === -1 && (
                         <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-discord-blurple/20 text-discord-blurple border border-discord-blurple/30">
-                          {course.day_of_week === 6 ? 'Samedi' : course.day_of_week === 0 ? 'Dimanche' : `Jour ${course.day_of_week}`}
+                          {['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][course.day_of_week] || 'Jour'}
                         </span>
                       )}
                     </div>

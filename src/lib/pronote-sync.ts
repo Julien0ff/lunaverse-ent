@@ -802,7 +802,7 @@ async function sendDiscordNewsNotification({
       if (hasChanged) {
         const target = getClassNotificationTarget(item.target_class, registeredClasses)
         if (target) {
-          const dayName = item.day_of_week === 6 ? 'Samedi' : item.day_of_week === 0 ? 'Dimanche' : `Jour ${item.day_of_week}`
+          const dayName = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][item.day_of_week] || 'Jour'
           const startStr = item.start_time.slice(0, 5)
           const endStr = item.end_time.slice(0, 5)
 
@@ -867,7 +867,7 @@ async function sendDiscordNewsNotification({
       if (item.status === 'annule' || item.status === 'prof_absent' || item.status === 'modifie' || item.status === 'deplace') {
         const target = getClassNotificationTarget(item.target_class, registeredClasses)
         if (target) {
-          const dayName = item.day_of_week === 6 ? 'Samedi' : item.day_of_week === 0 ? 'Dimanche' : `Jour ${item.day_of_week}`
+          const dayName = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][item.day_of_week] || 'Jour'
           const startStr = item.start_time.slice(0, 5)
           const endStr = item.end_time.slice(0, 5)
           const isCancel = item.status === 'annule' || item.status === 'prof_absent'

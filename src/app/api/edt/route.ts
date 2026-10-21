@@ -237,7 +237,8 @@ async function sendCourseAlertDiscord(supabase: any, course: any, actionType: 'c
     if (!channelId) return
 
     const roleMention = targetClass?.roleId ? `<@&${String(targetClass.roleId).trim().replace(/[<@&>]/g, '')}>` : ''
-    const dayName = course.day_of_week === 6 ? 'Samedi' : 'Dimanche'
+    const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+    const dayName = dayNames[course.day_of_week] || 'Jour'
     const startStr = course.start_time?.slice(0, 5) || ''
     const endStr = course.end_time?.slice(0, 5) || ''
 
