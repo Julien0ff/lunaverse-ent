@@ -1,4 +1,5 @@
-import { Fetcher, FormDataFile } from '@literate.ink/utilities';
+export type Fetcher = any;
+export type FormDataFile = any;
 
 /**
  * Cleans a given URL by removing unwanted data and ensuring it has a consistent format.

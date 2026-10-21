@@ -10,9 +10,7 @@ import {
   news,
 } from './pawnote/index.js'
 import { createSupabaseAdmin } from './supabase-admin'
-import { randomUUID } from 'crypto'
-// @ts-ignore
-import forge from 'node-forge'
+import crypto, { randomUUID } from 'crypto'
 
 export interface PronoteCredentials {
   url: string
@@ -97,17 +95,13 @@ export function matchPronoteToEntClass(
 
 function decryptLoginWithPin(hexStr: string, pin: string): string | null {
   try {
-    const pinBuf = forge.util.createBuffer(pin)
-    const key = forge.md.md5.create().update(pinBuf.bytes()).digest()
-    const iv = forge.util.createBuffer().fillWithByte(0, 16)
-    const cipherBytes = forge.util.createBuffer(forge.util.binary.hex.decode(hexStr))
-    const decipher = forge.cipher.createDecipher('AES-CBC', key)
-    decipher.start({ iv })
-    decipher.update(cipherBytes)
-    if (!decipher.finish()) return null
-    const text = decipher.output.toString()
-    if (/^[a-zA-Z0-9._\-@]{2,50}$/.test(text)) {
-      return text
+    const key = crypto.createHash('md5').update(pin, 'utf8').digest()
+    const iv = Buffer.alloc(16, 0)
+    const decipher = crypto.createDecipheriv('aes-128-cbc', key, iv)
+    let decrypted = decipher.update(hexStr, 'hex', 'utf8')
+    decrypted += decipher.final('utf8')
+    if (/^[a-zA-Z0-9._\-@]{2,50}$/.test(decrypted)) {
+      return decrypted
     }
     return null
   } catch {

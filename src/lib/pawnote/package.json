@@ -2,12 +2,12 @@
   "name": "pawnote-local",
   "version": "1.0.0",
   "main": "./index.js",
-  "module": "./index.mjs",
+  "module": "./index.js",
   "types": "./index.d.ts",
   "exports": {
     ".": {
       "types": "./index.d.ts",
-      "import": "./index.mjs",
+      "import": "./index.js",
       "require": "./index.js",
       "default": "./index.js"
     }
