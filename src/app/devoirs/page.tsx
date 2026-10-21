@@ -99,9 +99,10 @@ export default function DevoirsPage() {
       const clean = r.name.toLowerCase().replace(/[^a-z0-9]/g, '')
       return clean.includes('3a') || clean.includes('3ga') || clean.includes('3ea')
     })
-    if (has3A) return '3GA'
+    const class3 = classes.find(c => areClassesMatching(c.name, '3eA') || areClassesMatching(c.name, '3GA'))
+    if (has3A && class3) return class3.name
 
-    // 4. Chercher dans le pseudo RP (ex: "3GA・Pseudo")
+    // 4. Chercher dans le pseudo RP (ex: "3eA・Pseudo" ou "3GA・Pseudo")
     if (profile?.nickname_rp && profile.nickname_rp.includes('・')) {
       const prefix = profile.nickname_rp.split('・')[0].trim()
       const foundInClasses = classes.find(c => areClassesMatching(c.name, prefix))
@@ -109,11 +110,11 @@ export default function DevoirsPage() {
       if (prefix) return prefix
     }
 
-    // 5. Classe par défaut dans LunaVerse pour les élèves
-    const class3 = classes.find(c => areClassesMatching(c.name, '3GA'))
+    // 5. Première classe enregistrée dans l'établissement
     if (class3) return class3.name
+    if (classes.length > 0) return classes[0].name
 
-    return '3GA'
+    return '3eA'
   }, [apiStudentClass, roles, classes, profile])
 
   const loadData = async () => {

@@ -113,9 +113,10 @@ export default function TimetablePage() {
       const clean = r.name.toLowerCase().replace(/[^a-z0-9]/g, '')
       return clean.includes('3a') || clean.includes('3ga') || clean.includes('3ea')
     })
-    if (has3A) return '3GA'
+    const class3 = classes.find(c => areClassesMatching(c.name, '3eA') || areClassesMatching(c.name, '3GA'))
+    if (has3A && class3) return class3.name
 
-    // 4. Chercher dans le pseudo RP (ex: "3GA・Pseudo")
+    // 4. Chercher dans le pseudo RP (ex: "3eA・Pseudo" ou "3GA・Pseudo")
     if (profile?.nickname_rp && profile.nickname_rp.includes('・')) {
       const prefix = profile.nickname_rp.split('・')[0].trim()
       const foundInClasses = classes.find(c => areClassesMatching(c.name, prefix))
@@ -123,30 +124,29 @@ export default function TimetablePage() {
       if (prefix) return prefix
     }
 
-    // 5. Classe par défaut dans LunaVerse pour les élèves
-    const class3 = classes.find(c => areClassesMatching(c.name, '3GA'))
+    // 5. Première classe enregistrée dans l'établissement
     if (class3) return class3.name
+    if (classes.length > 0) return classes[0].name
 
-    return '3GA'
+    return '3eA'
   }, [apiStudentClass, roles, classes, profile])
 
-  // Déterminer les jours disponibles (Samedi, Dimanche, et tout autre jour ayant des cours enregistrés)
+  // Déterminer les jours disponibles (Lundi à Dimanche)
   const availableDays = useMemo(() => {
     const courseDays = new Set(courses.map(c => c.day_of_week))
-    courseDays.add(6) // Samedi
-    courseDays.add(0) // Dimanche
 
     const ALL_DAYS = [
-      { day: 6, label: 'Samedi' },
-      { day: 0, label: 'Dimanche' },
       { day: 1, label: 'Lundi' },
       { day: 2, label: 'Mardi' },
       { day: 3, label: 'Mercredi' },
       { day: 4, label: 'Jeudi' },
       { day: 5, label: 'Vendredi' },
+      { day: 6, label: 'Samedi' },
+      { day: 0, label: 'Dimanche' },
     ]
 
-    return ALL_DAYS.filter(d => courseDays.has(d.day))
+    const filtered = ALL_DAYS.filter(d => courseDays.has(d.day))
+    return filtered.length > 0 ? filtered : ALL_DAYS
   }, [courses])
 
   const loadData = async () => {

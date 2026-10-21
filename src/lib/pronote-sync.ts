@@ -34,24 +34,27 @@ export function matchPronoteToEntClass(
   pronoteName: string,
   registeredClasses: Array<{ name: string }>
 ): string {
-  if (!pronoteName) return '3GA'
+  // Déterminer la classe principale de l'établissement (ex: 3eA)
+  const defaultClass = registeredClasses.find(c => !['2gt1', '3pm', '2pro1'].includes(c.name.toLowerCase()))?.name || '3eA'
+
+  if (!pronoteName) return defaultClass
   const trimmed = pronoteName.trim()
   const upper = trimmed.toUpperCase()
   const clean = upper.replace(/[^A-Z0-9]/g, '')
 
-  // 1. Mappings connus pour la classe de 3ème (3GA, 3A, 3EA, 3ème A, 3eme A, 3°A, 3-GA, 3-A, etc.)
+  // 1. Mappings connus pour la classe de 3ème (3eA, 3GA, 3A, 3EA, 3ème A, 3eme A, 3°A, etc.)
   const is3A =
-    ['3GA', '3A', '3EA', '3EMEA', '3MEA', '3E', '3'].includes(clean) ||
+    ['3EA', '3GA', '3A', '3EMEA', '3MEA', '3E', '3'].includes(clean) ||
     (clean.startsWith('3') && (clean.includes('A') || clean.includes('GA') || clean.includes('EA'))) ||
     upper.includes('3EME') || upper.includes('3ÈME') || upper.includes('3È') || upper.includes('3°') || upper.includes('TROISIEME')
 
   if (is3A) {
     const found = registeredClasses.find(c => {
       const low = c.name.toLowerCase().replace(/[^a-z0-9]/g, '')
-      return low === '3ga' || low === '3a' || low === '3ea' || low === '3emea'
+      return low === '3ea' || low === '3ga' || low === '3a' || low === '3emea'
     })
     if (found) return found.name
-    return '3GA'
+    return defaultClass
   }
 
   // 2. 3PM
@@ -245,12 +248,17 @@ export async function getPronoteStatus() {
     .maybeSingle()
 
   if (!data?.value || !data.value.token) {
-    return { isConnected: false }
+    return { isConnected: false, tokenExpired: false, lastError: null }
   }
 
-  const creds = data.value as PronoteCredentials
+  const creds = data.value as any
+  const isExpired = !!creds.last_error && creds.last_error.toLowerCase().includes('expiré')
+
   return {
-    isConnected: true,
+    isConnected: !isExpired,
+    tokenExpired: isExpired,
+    lastError: creds.last_error || null,
+    lastErrorAt: creds.last_error_at || null,
     url: creds.url,
     username: creds.username,
     accountName: creds.account_name || creds.username,
@@ -279,8 +287,10 @@ export async function syncPronoteData() {
   const session = createSessionHandle()
 
   // Reconnexion avec le jeton mobile permanent
+  let loginRes: any
+  let effectiveToken = creds.token
   try {
-    await loginToken(session, {
+    loginRes = await loginToken(session, {
       url: creds.url,
       kind: (Number(creds.kind) || 14) as AccountKind,
       username: creds.username,
@@ -288,15 +298,37 @@ export async function syncPronoteData() {
       deviceUUID: creds.deviceUUID || randomUUID(),
       navigatorIdentifier: creds.navigatorIdentifier,
     })
+    if (loginRes?.token && loginRes.token !== creds.token) {
+      console.log('[PronoteSync] Nouveau jeton mobile renouvelé reçu de Pronote.')
+      effectiveToken = loginRes.token
+      await admin.from('server_settings').update({
+        value: {
+          ...creds,
+          token: effectiveToken,
+          last_error: null,
+          last_error_at: null,
+        },
+        updated_at: new Date().toISOString(),
+      }).eq('key', 'pronote_credentials')
+    }
   } catch (err: any) {
     if (
       err?.name === 'BadCredentialsError' ||
       err?.message?.includes('challenge') ||
       err?.message?.includes('credentials')
     ) {
-      throw new Error(
-        "Le jeton de connexion Pronote a expiré ou a été révoqué par le serveur Pronote. Veuillez déconnecter le compte et réappairer avec un nouveau QR Code."
-      )
+      const errorMsg = "Le jeton de connexion Pronote a expiré ou a été révoqué par le serveur Pronote. Veuillez déconnecter le compte et réappairer avec un nouveau QR Code."
+      try {
+        await admin.from('server_settings').update({
+          value: {
+            ...creds,
+            last_error: errorMsg,
+            last_error_at: new Date().toISOString(),
+          },
+          updated_at: new Date().toISOString(),
+        }).eq('key', 'pronote_credentials')
+      } catch (ign) {}
+      throw new Error(errorMsg)
     }
     throw err
   }
@@ -317,19 +349,6 @@ export async function syncPronoteData() {
     } else if (typeof classSetting.value === 'object' && Array.isArray((classSetting.value as any).classes)) {
       registeredClasses = (classSetting.value as any).classes
     }
-  }
-
-  // Normalisation automatique des anciennes dénominations vers la classe canonique 3GA
-  try {
-    await admin.from('timetable_courses')
-      .update({ target_class: '3GA' })
-      .in('target_class', ['3ea', '3EA', '3a', '3A', '3-GA', '3-A', '3ème A', '3eme A'])
-
-    await admin.from('homeworks')
-      .update({ target_class: '3GA' })
-      .in('target_class', ['3ea', '3EA', '3a', '3A', '3-GA', '3-A', '3ème A', '3eme A'])
-  } catch (e) {
-    console.warn('[PronoteSync] Notice normalisation classes DB:', e)
   }
 
   // Calcul des semaines à synchroniser (semaine passée, en cours, et les 3 prochaines)
@@ -355,10 +374,7 @@ export async function syncPronoteData() {
 
         const start = new Date(lesson.startDate)
         const end = new Date(lesson.endDate)
-        const dayOfWeek = start.getDay() // 6 = Samedi, 0 = Dimanche
-
-        // Strictement Samedi (6) ou Dimanche (0)
-        if (dayOfWeek !== 6 && dayOfWeek !== 0) continue
+        const dayOfWeek = start.getDay() // 0 = Dimanche, 1 = Lundi, ..., 6 = Samedi
 
         // Statut du cours
         let status = 'normal'
@@ -1059,14 +1075,17 @@ async function sendDiscordNewsNotification({
     })
   }
 
-  // Mettre à jour la date de dernière synchronisation
+  // Mettre à jour la date de dernière synchronisation et le jeton renouvelé
   const nowIso = new Date().toISOString()
   await admin
     .from('server_settings')
     .update({
       value: {
         ...creds,
+        token: effectiveToken,
         last_synced_at: nowIso,
+        last_error: null,
+        last_error_at: null,
       },
       updated_at: nowIso,
     })

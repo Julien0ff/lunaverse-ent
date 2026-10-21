@@ -17,6 +17,9 @@ import clsx from 'clsx'
 
 interface PronoteStatus {
   isConnected: boolean
+  tokenExpired?: boolean
+  lastError?: string | null
+  lastErrorAt?: string | null
   url?: string
   username?: string
   accountName?: string
@@ -193,7 +196,11 @@ export default function AdminPronotePage() {
             <div
               className={clsx(
                 'w-12 h-12 rounded-2xl flex items-center justify-center',
-                status?.isConnected ? 'bg-discord-success/20 text-discord-success' : 'bg-amber-500/20 text-amber-500'
+                status?.tokenExpired
+                  ? 'bg-rose-500/20 text-rose-400'
+                  : status?.isConnected
+                  ? 'bg-discord-success/20 text-discord-success'
+                  : 'bg-amber-500/20 text-amber-500'
               )}
             >
               <Smartphone className="w-6 h-6" />
@@ -204,47 +211,80 @@ export default function AdminPronotePage() {
                 <span
                   className={clsx(
                     'px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider',
-                    status?.isConnected
+                    status?.tokenExpired
+                      ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                      : status?.isConnected
                       ? 'bg-discord-success/20 text-discord-success border border-discord-success/30'
                       : 'bg-amber-500/20 text-amber-500 border border-amber-500/30'
                   )}
                 >
-                  {status?.isConnected ? 'Connecté' : 'Non associé'}
+                  {status?.tokenExpired ? 'Session expirée' : status?.isConnected ? 'Connecté' : 'Non associé'}
                 </span>
-                {status?.isConnected && (
+                {status?.isConnected && !status?.tokenExpired && (
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-discord-blurple/20 text-discord-blurple border border-discord-blurple/30 flex items-center gap-1">
                     ⚡ Auto-Synchro (10 min)
                   </span>
                 )}
               </div>
               <p className="text-xs text-discord-muted mt-0.5">
-                {status?.isConnected
+                {status?.tokenExpired
+                  ? '⚠️ Le jeton a expiré : veuillez déconnecter et réappairer pour relancer la synchronisation.'
+                  : status?.isConnected
                   ? `Compte : ${status.accountName || status.username} (${status.url})`
                   : 'Associez votre compte Pronote pour activer la synchronisation automatique de l\'EDT et des devoirs.'}
               </p>
             </div>
           </div>
 
-          {status?.isConnected && (
+          {(status?.isConnected || status?.tokenExpired) && (
             <div className="flex items-center gap-3">
-              <button
-                onClick={handleSyncNow}
-                disabled={syncLoading}
-                className="btn bg-discord-blurple hover:bg-discord-blurple/80 text-white font-bold py-2.5 px-4 rounded-xl flex items-center gap-2 text-sm shadow-lg shadow-discord-blurple/20 transition-all"
-              >
-                {syncLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                Synchroniser maintenant
-              </button>
+              {!status?.tokenExpired && (
+                <button
+                  onClick={handleSyncNow}
+                  disabled={syncLoading}
+                  className="btn bg-discord-blurple hover:bg-discord-blurple/80 text-white font-bold py-2.5 px-4 rounded-xl flex items-center gap-2 text-sm shadow-lg shadow-discord-blurple/20 transition-all"
+                >
+                  {syncLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  Synchroniser maintenant
+                </button>
+              )}
               <button
                 onClick={handleDisconnect}
-                className="btn bg-white/5 hover:bg-discord-error/20 text-discord-muted hover:text-discord-error p-2.5 rounded-xl border border-white/10 transition-colors"
+                className={clsx(
+                  "btn py-2.5 px-4 rounded-xl text-xs font-bold transition-colors flex items-center gap-2",
+                  status?.tokenExpired
+                    ? "bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30"
+                    : "bg-white/5 hover:bg-discord-error/20 text-discord-muted hover:text-discord-error border border-white/10"
+                )}
                 title="Déconnecter le compte Pronote"
               >
                 <Unlink size={16} />
+                {status?.tokenExpired ? 'Réappairer le compte' : 'Déconnecter'}
               </button>
             </div>
           )}
         </div>
+
+        {/* Alerte si le jeton est expiré */}
+        {status?.tokenExpired && (
+          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fadeIn">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-6 h-6 text-rose-400 shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-white">Jeton Pronote révoqué par le serveur Pronote</p>
+                <p className="text-xs text-rose-300/80">
+                  Pronote a invalidé la session mobile. Cliquez sur <strong>Réappairer le compte</strong>, générez un nouveau QR Code sur Pronote (« Code à flasher »), et validez pour remettre à jour l'EDT et les devoirs.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleDisconnect}
+              className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs shrink-0 transition-colors shadow-lg shadow-rose-500/20"
+            >
+              Réappairer maintenant
+            </button>
+          </div>
+        )}
 
         {/* Message de notification */}
         {feedbackMsg && (

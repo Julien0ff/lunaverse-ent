@@ -28,23 +28,16 @@ export async function GET(request: NextRequest) {
     const targetClass = searchParams.get('class')
     const day = searchParams.get('day') // '6' for Samedi, '0' for Dimanche
 
-    // Normalisation à la volée des dénominations de classe si nécessaire
-    try {
-      await admin.from('timetable_courses')
-        .update({ target_class: '3GA' })
-        .in('target_class', ['3ea', '3EA', '3a', '3A', '3-GA', '3-A', '3ème A', '3eme A'])
-    } catch (ign) {}
-
     let query = admin
       .from('timetable_courses')
       .select('*')
-      .order('day_of_week', { ascending: false }) // Samedi (6) first, then Dimanche (0)
+      .order('day_of_week', { ascending: true })
       .order('start_time', { ascending: true })
 
     if (targetClass && targetClass !== 'all') {
       const clean = targetClass.toLowerCase().replace(/[^a-z0-9]/g, '')
-      if (['3ga', '3a', '3ea', '3emea'].includes(clean)) {
-        query = query.or('target_class.eq.3GA,target_class.eq.3ga,target_class.eq.3ea,target_class.eq.3EA,target_class.eq.3a,target_class.eq.3A,target_class.eq.all')
+      if (['3ea', '3ga', '3a', '3emea'].includes(clean)) {
+        query = query.or('target_class.eq.3eA,target_class.eq.3ea,target_class.eq.3EA,target_class.eq.3GA,target_class.eq.3ga,target_class.eq.3a,target_class.eq.3A,target_class.eq.all')
       } else {
         query = query.or(`target_class.eq.${targetClass},target_class.eq.all`)
       }
@@ -56,8 +49,11 @@ export async function GET(request: NextRequest) {
 
     const { data: courses, error } = await query
 
-    if (error && error.code === '42P01') {
-      return NextResponse.json({ courses: [], classes: [] })
+    if (error) {
+      console.error('[API EDT GET] Database error:', error)
+      if (error.code === '42P01') {
+        return NextResponse.json({ courses: [], classes: [] })
+      }
     }
 
     // Get classes from server_settings
