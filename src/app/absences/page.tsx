@@ -228,15 +228,20 @@ export default function AbsencesPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="text-right flex-shrink-0">
+                      <div className="text-right flex-shrink-0 flex flex-col items-end gap-1">
                         <span className={clsx(
                           "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                          abs.status === 'accepted' ? "bg-discord-success/10 text-discord-success border-discord-success/20" :
-                          abs.status === 'refused' ? "bg-discord-error/10 text-discord-error border-discord-error/20" :
+                          (abs.status === 'accepted' || abs.status === 'justified') ? "bg-discord-success/10 text-discord-success border-discord-success/20" :
+                          (abs.status === 'refused' || abs.status === 'rejected') ? "bg-discord-error/10 text-discord-error border-discord-error/20" :
                           "bg-discord-warning/10 text-discord-warning border-discord-warning/20"
                         )}>
                           {getStatusText(abs.status)}
                         </span>
+                        {abs.status !== 'pending' && (
+                          <span className="text-[10px] text-discord-muted font-medium">
+                            {abs.reviewer ? `Par ${abs.reviewer.nickname_rp || abs.reviewer.username}` : "Par l'administration"}
+                          </span>
+                        )}
                       </div>
                     </div>
                     {abs.attachments && (

@@ -71,16 +71,35 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl)
     }
 
-    // ── Admin routes: require 'admin' role ────────────────────────────────
+    // ── Admin routes: require 'admin' role, or 'AED' role for absences only ──
     if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin/')) {
         // Exception: allow non-admin POST to suggestions (all authenticated users can submit suggestions)
         if (pathname === '/api/admin/suggestions' && request.method === 'POST') {
             return supabaseResponse
         }
 
-        const isAdmin = await checkAdminRole(user.id, user)
-        if (!isAdmin) {
-            // Never redirect API routes to an HTML page, return JSON 403 instead
+        const { isAdmin, isAED } = await checkUserRoles(user.id, user)
+
+        // Super-admin or user with 'admin' role has unrestricted access to admin
+        if (isAdmin) {
+            return supabaseResponse
+        }
+
+        // AED role has access to ONE and ONLY ONE page: /admin/absences (and its APIs)
+        if (isAED) {
+            // Direct /admin or /admin/ redirect straight to /admin/absences
+            if (pathname === '/admin' || pathname === '/admin/') {
+                const absencesUrl = request.nextUrl.clone()
+                absencesUrl.pathname = '/admin/absences'
+                return NextResponse.redirect(absencesUrl)
+            }
+
+            // Allow /admin/absences and /api/admin/absences
+            if (pathname.startsWith('/admin/absences') || pathname.startsWith('/api/admin/absences')) {
+                return supabaseResponse
+            }
+
+            // Strictly deny access to any other admin page
             if (pathname.startsWith('/api/')) {
                 return NextResponse.json({ error: 'forbidden' }, { status: 403 })
             }
@@ -89,27 +108,36 @@ export async function middleware(request: NextRequest) {
             unauthorizedUrl.searchParams.set('reason', 'admin_required')
             return NextResponse.redirect(unauthorizedUrl)
         }
+
+        // Neither admin nor AED
+        if (pathname.startsWith('/api/')) {
+            return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+        }
+        const unauthorizedUrl = request.nextUrl.clone()
+        unauthorizedUrl.pathname = '/unauthorized'
+        unauthorizedUrl.searchParams.set('reason', 'admin_required')
+        return NextResponse.redirect(unauthorizedUrl)
     }
 
     return supabaseResponse
 }
 
 /**
- * Checks if a user has admin privileges.
+ * Checks if a user has admin privileges or AED role.
  * Uses the service role key to bypass RLS and read the user_roles table.
  * Also checks the ADMIN_DISCORD_IDS env var for super-admins.
  */
-async function checkAdminRole(userId: string, user: any): Promise<boolean> {
+async function checkUserRoles(userId: string, user: any): Promise<{ isAdmin: boolean; isAED: boolean }> {
     // 1. Check ENV super-admins via Discord ID
     const discordId = user.user_metadata?.provider_id || user.user_metadata?.sub || ''
     const envAdmins = (process.env.ADMIN_DISCORD_IDS || '').split(',').map(s => s.trim()).filter(Boolean)
-    if (discordId && envAdmins.includes(discordId)) return true
+    const isEnvAdmin = Boolean(discordId && envAdmins.includes(discordId))
 
     // 2. Check DB roles using service role (bypasses RLS)
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!serviceKey) {
-        console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY not set — cannot verify admin role in middleware')
-        return false
+        console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY not set — cannot verify admin/aed role in middleware')
+        return { isAdmin: isEnvAdmin, isAED: false }
     }
 
     const adminClient = createClient(
@@ -123,7 +151,11 @@ async function checkAdminRole(userId: string, user: any): Promise<boolean> {
         .select('role:roles(name)')
         .eq('user_id', userId)
 
-    return (userRoles || []).some((ur: any) => ur.role?.name === 'admin')
+    const roleNames = (userRoles || []).map((ur: any) => ur.role?.name).filter(Boolean)
+    const isAdmin = isEnvAdmin || roleNames.some((r: string) => r.toLowerCase() === 'admin')
+    const isAED = roleNames.some((r: string) => r.toUpperCase() === 'AED')
+
+    return { isAdmin, isAED }
 }
 
 export const config = {

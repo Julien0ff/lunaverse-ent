@@ -1,4 +1,5 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { NextResponse } from 'next/server'
 
 export async function GET(req: Request) {
@@ -7,18 +8,19 @@ export async function GET(req: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Check if admin
+    // Check if staff/admin/aed
     const { data: roles } = await supabase
       .from('user_roles')
       .select('role:roles(name)')
       .eq('user_id', user.id)
     
-    const adminRoles = ['admin', 'staff', 'principal']
+    const adminRoles = ['admin', 'staff', 'principal', 'aed']
     const isAdmin = roles?.some((r: any) => adminRoles.includes(r.role?.name?.toLowerCase()))
     
-    let query = supabase
+    const client = isAdmin ? createSupabaseAdmin() : supabase
+    let query = client
       .from('absences')
-      .select('*, profile:profiles!absences_user_id_fkey(username, nickname_rp, avatar_url)')
+      .select('*, profile:profiles!absences_user_id_fkey(username, nickname_rp, avatar_url), reviewer:profiles!absences_processed_by_fkey(id, username, nickname_rp, avatar_url)')
     
     if (!isAdmin) {
       query = query.eq('user_id', user.id)

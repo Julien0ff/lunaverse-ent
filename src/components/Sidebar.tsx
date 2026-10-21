@@ -89,8 +89,12 @@ export default function Sidebar() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
 
-  // Admin check: env-hardcoded IDs handled server-side; here we just check DB roles
-  const isAdmin = roles.some(r => r.name === 'admin')
+  // Admin & AED check: env-hardcoded IDs handled server-side; here we check DB roles
+  const isAdmin = roles.some(r => r.name?.toLowerCase() === 'admin')
+  const isAED = roles.some(r => r.name?.toUpperCase() === 'AED')
+  const adminNavItems = isAdmin
+    ? ADMIN_NAV
+    : (isAED ? ADMIN_NAV.filter(item => item.href === '/admin/absences') : [])
 
   useEffect(() => {
     setIsMobileMenuOpen(false)
@@ -267,12 +271,12 @@ export default function Sidebar() {
         </div>
 
         {/* Admin section */}
-        {isAdmin && (
+        {adminNavItems.length > 0 && (
           <div className="mt-4">
             <p className="px-3 mb-1 text-[10px] font-black uppercase tracking-widest" style={{ color: '#8D9299' }}>
               Administration
             </p>
-            {ADMIN_NAV.map(item => {
+            {adminNavItems.map(item => {
               const Icon = item.icon
               const active = pathname === item.href
               return (

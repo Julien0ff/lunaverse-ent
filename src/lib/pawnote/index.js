@@ -22261,10 +22261,16 @@ var z = class {
     try {
       const e3 = JSON.parse(n2);
       if (e3.Erreur) {
-        const s3 = e3.Erreur.Titre || "Server Error";
+        console.error("[Pawnote Error Response]", JSON.stringify(e3.Erreur));
+        const s3 = e3.Erreur.Message || e3.Erreur.Texte || e3.Erreur.Titre || (typeof e3.Erreur === "string" ? e3.Erreur : JSON.stringify(e3.Erreur)) || "Erreur serveur Pronote";
         throw new C(s3);
       }
-      if (this.data = e3[t2.secureData], this.session.information.skipEncryption || this.decrypt(), this.session.information.skipCompression || this.decompress(), "string" == typeof this.data && (this.data = JSON.parse(this.data)), void 0 !== this.data?.[t2.signature]?.Erreur) throw new C(this.data[t2.signature].MessageErreur);
+      if (this.data = e3[t2.secureData], this.session.information.skipEncryption || this.decrypt(), this.session.information.skipCompression || this.decompress(), "string" == typeof this.data && (this.data = JSON.parse(this.data)), void 0 !== this.data?.[t2.signature]?.Erreur) {
+        const sigErr = this.data[t2.signature];
+        console.error("[Pawnote Signature Error]", JSON.stringify(sigErr));
+        const sigMsg = sigErr.MessageErreur || sigErr.Message || sigErr.Texte || (typeof sigErr === "string" ? sigErr : JSON.stringify(sigErr)) || "Erreur Pronote";
+        throw new C(sigMsg);
+      }
     } catch (e3) {
       if (e3 instanceof C) throw e3;
       if (n2.includes("La page a expir")) throw new D();
@@ -23090,7 +23096,7 @@ var Gs = async (e2, s2 = {}, targetResource = null) => {
     return await executeTab(tabId);
   } catch (err) {
     const msg = String(err?.message || err);
-    if (msg.includes("droits sont insuffisants") || msg.includes("Server Error")) {
+    if (msg.includes("droits sont insuffisants") || msg.includes("Server Error") || msg.includes("Erreur serveur") || err instanceof C) {
       const altTab = tabId === 60 ? 16 : 60;
       try {
         return await executeTab(altTab);
