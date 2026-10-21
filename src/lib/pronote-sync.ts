@@ -1003,8 +1003,6 @@ async function sendDiscordNewsNotification({
       return dateA - dateB
     })
 
-    const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000
-
     for (const item of sortedNews) {
       if (!item || !item.id) continue
       const itemId = String(item.id)
@@ -1015,8 +1013,10 @@ async function sendDiscordNewsNotification({
 
       const itemCreationTime = item.creationDate ? new Date(item.creationDate).getTime() : 0
 
-      // Si c'est la toute première synchronisation, ne publier que les annonces récentes (< 3 jours)
-      if (isFirstNewsSync && itemCreationTime > 0 && itemCreationTime < threeDaysAgo) {
+      // Si c'est la toute première synchronisation, ne publier que les annonces actuellement actives ou récentes (< 7 jours)
+      const isActive = item.endDate ? new Date(item.endDate).getTime() >= Date.now() : false
+      const isRecent = itemCreationTime > 0 && itemCreationTime >= (Date.now() - 7 * 24 * 60 * 60 * 1000)
+      if (isFirstNewsSync && !isActive && !isRecent) {
         announcedIds.add(itemId)
         continue
       }
