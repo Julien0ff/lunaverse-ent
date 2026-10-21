@@ -22348,10 +22348,13 @@ var ae = async (e2, s2 = null) => {
 };
 var re = async (e2, s2) => {
   const t2 = W(e2), n2 = new Y(e2, "Identification", { [t2.data]: { genreConnexion: 0, genreEspace: e2.information.accountKind, identifiant: s2.username, pourENT: s2.useCAS, enConnexionAuto: false, demandeConnexionAuto: false, enConnexionAppliMobile: s2.reuseMobileAuthentication, demandeConnexionAppliMobile: s2.requestFirstMobileAuthentication, demandeConnexionAppliMobileJeton: s2.requestFromQRCode, uuidAppliMobile: s2.deviceUUID, loginTokenSAV: "", informationsAppareil: { modele: "iPhone18,3", platforme: "iOS" } } });
-  return (await n2.send()).data[t2.data];
+  const data = (await n2.send()).data[t2.data];
+  e2.identData = data;
+  return data;
 };
 var oe = async (e2, s2) => {
   const t2 = W(e2), n2 = new Y(e2, "Authentification", { [t2.data]: { connexion: 0, challenge: s2, espace: e2.information.accountKind } }), i2 = (await n2.send()).data[t2.data];
+  e2.authData = i2;
   if ("number" == typeof i2.Acces && 0 !== i2.Acces) switch (i2.Acces) {
     case 1:
       throw new o();

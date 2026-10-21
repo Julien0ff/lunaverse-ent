@@ -8,6 +8,7 @@ import {
   TimetableClassLesson,
   AccountKind,
   news,
+  homepage,
 } from './pawnote/index.js'
 import { createSupabaseAdmin } from './supabase-admin'
 import crypto, { randomUUID } from 'crypto'
@@ -368,6 +369,20 @@ export async function syncPronoteData() {
   syncLogs.push(`Credentials: username=${creds.username}, kind=${creds.kind}, url=${creds.url}`)
   syncLogs.push(`Session: user=${session.user?.name} (id=${session.user?.id}), userResource=${session.userResource?.name} (id=${session.userResource?.id}), firstMonday=${session.instance?.firstMonday}, currentWeek=${currentWeek}`)
   if ((session as any).paramError) syncLogs.push(`ParamError: ${(session as any).paramError}`)
+  if ((session as any).authData) {
+    const authKeys = Object.keys((session as any).authData).filter(k => k !== 'cle').join(', ')
+    syncLogs.push(`AuthData keys: ${authKeys}`)
+    const safeAuth: any = {}
+    for (const [k, v] of Object.entries((session as any).authData)) {
+      if (['cle', 'jetonConnexionAppliMobile'].includes(k)) continue
+      safeAuth[k] = v
+    }
+    syncLogs.push(`AuthData: ${JSON.stringify(safeAuth).slice(0, 300)}`)
+  }
+  if ((session as any).identData) {
+    const identKeys = Object.keys((session as any).identData).join(', ')
+    syncLogs.push(`IdentData keys: ${identKeys}`)
+  }
   if ((session as any).rawUserData) {
     const rawKeys = Object.keys((session as any).rawUserData).join(', ')
     syncLogs.push(`ParamUserData keys: ${rawKeys}`)
@@ -376,6 +391,13 @@ export async function syncPronoteData() {
     if ((session as any).rawUserData.ressource) {
       syncLogs.push(`Raw ressource: ${JSON.stringify((session as any).rawUserData.ressource)}`)
     }
+  }
+
+  try {
+    const hp = await homepage(session)
+    syncLogs.push(`Homepage success: ${JSON.stringify(hp).slice(0, 200)}`)
+  } catch (hpErr: any) {
+    syncLogs.push(`Homepage error: ${hpErr?.message || hpErr}`)
   }
 
   for (const weekNum of weeksToFetch) {
