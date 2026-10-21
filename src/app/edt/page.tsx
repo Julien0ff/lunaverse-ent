@@ -179,35 +179,18 @@ export default function TimetablePage() {
     }
   }, [classes, isStudent])
 
-  // Sélection intelligente du jour initial dès que les cours sont chargés
+  // Sélection intelligente du jour initial (strictement Samedi ou Dimanche)
   useEffect(() => {
     if (!initialDaySet.current && courses.length > 0) {
       const today = new Date().getDay()
-      const relevantCourses = courses.filter(c => {
-        if (isHiddenClass(c.target_class)) return false
-        if (isStudent) return areClassesMatching(c.target_class, studentClass)
-        return true
-      })
-
-      const hasTodayCourses = relevantCourses.some(c => c.day_of_week === today)
-      if (hasTodayCourses) {
+      if (today === 0 || today === 6) {
         setSelectedDay(today)
       } else {
-        const hasSaturdayCourses = relevantCourses.some(c => c.day_of_week === 6)
-        if (hasSaturdayCourses) {
-          setSelectedDay(6)
-        } else {
-          const firstDay = relevantCourses[0]
-          if (firstDay) {
-            setSelectedDay(firstDay.day_of_week)
-          } else {
-            setSelectedDay(6)
-          }
-        }
+        setSelectedDay(6) // Samedi par défaut en semaine
       }
       initialDaySet.current = true
     }
-  }, [courses, isStudent, studentClass])
+  }, [courses])
 
   // Nombre de cours par jour pour l'utilisateur connecté
   const dayCourseCount = useMemo(() => {

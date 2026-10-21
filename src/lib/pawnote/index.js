@@ -22337,6 +22337,8 @@ var ae = async (e2, s2 = null) => {
   let a2;
   a2 = e2.information.rsaFromConstants ? i.default.util.encode64(e2.information.http ? t2.encrypt(n2) : n2, 64) : i.default.util.encode64(t2.encrypt(n2));
   const r2 = { identifiantNav: s2, Uuid: a2 }, o2 = new Y(e2, "FonctionParametres", { data: r2, donnees: r2 }), c2 = await o2.send();
+  const rawData = c2.data.data || c2.data.donnees;
+  e2.rawInstanceData = rawData;
   return ((e3) => {
     const s3 = /* @__PURE__ */ new Map();
     for (const t3 of [1, 2]) {
@@ -22344,7 +22346,7 @@ var ae = async (e2, s2 = null) => {
       for (const i2 of n3) s3.set(i2, { label: e3.General.LibellesFrequences[t3], fortnight: t3 });
     }
     return { version: e3.General.versionPN.split(".").map(Number), nextBusinessDay: te(e3.General.JourOuvre.V), firstMonday: te(e3.General.PremierLundi.V), firstDate: te(e3.General.PremiereDate.V), lastDate: te(e3.General.DerniereDate.V), navigatorIdentifier: e3.identifiantNav, endings: e3.General.ListeHeuresFin.V.map((e4) => e4.L), periods: e3.General.ListePeriodes.map(ie), holidays: e3.General.listeJoursFeries.V.map(ne), weekFrequencies: s3, blocksPerDay: e3.General.PlacesParJour };
-  })(c2.data.data || c2.data.donnees);
+  })(rawData);
 };
 var re = async (e2, s2) => {
   const t2 = W(e2), n2 = new Y(e2, "Identification", { [t2.data]: { genreConnexion: 0, genreEspace: e2.information.accountKind, identifiant: s2.username, pourENT: s2.useCAS, enConnexionAuto: false, demandeConnexionAuto: false, enConnexionAppliMobile: s2.reuseMobileAuthentication, demandeConnexionAppliMobile: s2.requestFirstMobileAuthentication, demandeConnexionAppliMobileJeton: s2.requestFromQRCode, uuidAppliMobile: s2.deviceUUID, loginTokenSAV: "", informationsAppareil: { modele: "iPhone18,3", platforme: "iOS" } } });
@@ -23182,4 +23184,13 @@ exports.AccessDeniedError = u, exports.AccountDisabledError = l, exports.Account
 }, exports.timetableFromIntervals = async (e2, s2, t2) => Gs(e2, { ...Fs("dateDebut", { _T: 7, V: us(s2) }), ...t2 && Fs("dateFin", { _T: 7, V: us(t2) }) }), exports.timetableFromWeek = async (e2, s2) => Gs(e2, Fs("numeroSemaine", s2)), exports.timetableICalURL = (e2, s2, t2 = "timetable") => {
   const n2 = e2.instance.version.join(".");
   return `${e2.information.url}/ical/${t2}.ics?icalsecurise=${s2}&version=${n2}&param=266f3d32`;
-}, exports.translateToWeekNumber = Le, exports.use = me;
+}, exports.translateToWeekNumber = Le, exports.use = me, exports.callPronoteFunction = async (session, functionName, payload = {}, tabId = 16) => {
+  const t2 = W(session);
+  const sig = t2.signature || "Signature";
+  const dataKey = t2.data || "data";
+  const body = { [sig]: { onglet: tabId }, [dataKey]: payload };
+  const req = new Y(session, functionName, body);
+  const res = await req.send();
+  return res.data[dataKey];
+};
+

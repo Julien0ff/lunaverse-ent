@@ -9,6 +9,7 @@ import {
   AccountKind,
   news,
   homepage,
+  callPronoteFunction,
 } from './pawnote/index.js'
 import { createSupabaseAdmin } from './supabase-admin'
 import crypto, { randomUUID } from 'crypto'
@@ -398,6 +399,43 @@ export async function syncPronoteData() {
     syncLogs.push(`Homepage success: ${JSON.stringify(hp).slice(0, 200)}`)
   } catch (hpErr: any) {
     syncLogs.push(`Homepage error: ${hpErr?.message || hpErr}`)
+  }
+
+  // Diagnostic probe for Pronote functions
+  try {
+    const resNav = await callPronoteFunction(session, "Navigation", { onglet: 16, ongletPrec: 16 }, 16)
+    syncLogs.push(`Probe Navigation: ok, ${JSON.stringify(resNav).slice(0, 100)}`)
+  } catch (e: any) {
+    syncLogs.push(`Probe Navigation: error ${e?.message || e}`)
+  }
+
+  try {
+    const resEDTNoRes = await callPronoteFunction(session, "PageEmploiDuTemps", {
+      estEDTAnnuel: false,
+      edt: { G: 16, L: "Emploi du temps" },
+      numeroSemaine: currentWeek,
+    }, 16)
+    syncLogs.push(`Probe EDT without ressource: ok, keys=${Object.keys(resEDTNoRes || {}).join(',')}`)
+  } catch (e: any) {
+    syncLogs.push(`Probe EDT without ressource: error ${e?.message || e}`)
+  }
+
+  try {
+    const resActus = await callPronoteFunction(session, "PageActualites", {
+      modesAffActus: { _T: 26, V: "[1]" }
+    }, 8)
+    syncLogs.push(`Probe Actus mode 1: ok, keys=${Object.keys(resActus || {}).join(',')}`)
+  } catch (e: any) {
+    syncLogs.push(`Probe Actus mode 1: error ${e?.message || e}`)
+  }
+
+  try {
+    const resCDT89 = await callPronoteFunction(session, "PageCahierDeTexte", {
+      domaine: { _T: 8, V: `[${currentWeek}]` }
+    }, 89)
+    syncLogs.push(`Probe CDT tab 89: ok, keys=${Object.keys(resCDT89 || {}).join(',')}`)
+  } catch (e: any) {
+    syncLogs.push(`Probe CDT tab 89: error ${e?.message || e}`)
   }
 
   for (const weekNum of weeksToFetch) {
