@@ -22311,6 +22311,17 @@ var Y = class {
     });
   }
 };
+var securityCheckPINInternal = async (e2, s2) => {
+  const t2 = W(e2), n2 = Q(e2), i2 = new Y(e2, "SecurisationCompteDoubleAuth", { [t2.data]: { action: R.csch_VerifierPIN, codePin: J.encrypt(s2, n2.key, n2.iv) } });
+  return (await i2.send()).data[t2.data].result;
+};
+var securitySaveInternal = async (e2, s2, t2) => {
+  const n2 = { action: R.csch_EnregistrerChoixUtilisateur }, i2 = Q(e2);
+  "number" == typeof t2.mode && (n2.mode = t2.mode), t2.password && (n2.nouveauMDP = J.encrypt(t2.password, i2.key, i2.iv)), t2.pin && (n2.codePin = J.encrypt(t2.pin, i2.key, i2.iv)), t2.deviceName && (n2.avecIdentification = true, n2.strIdentification = t2.deviceName);
+  const a2 = W(e2), r2 = new Y(e2, "SecurisationCompteDoubleAuth", { [a2.data]: n2 }), o2 = (await r2.send()).data[a2.data]?.jetonConnexionAppliMobile;
+  o2 && s2?.context?.authentication && (s2.context.authentication.jetonConnexionAppliMobile = o2);
+  return o2;
+};
 var Z = /^\d{2}\/\d{2}\/\d{4}$/;
 var X = /^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2}$/;
 var ee = /^\d{2}\/\d{2}\/\d{2} \d{2}h\d{2}$/;
@@ -22463,6 +22474,20 @@ var he = async (e2, s2) => {
   const o2 = De(a2, s2.username, s2.token), c2 = we(e2, a2, o2), u2 = await oe(e2, c2);
   Ae(e2, u2, o2);
   if (!u2.jetonConnexionAppliMobile) u2.jetonConnexionAppliMobile = s2.token;
+  if (Ce(u2) && s2.pin) {
+    try {
+      await securityCheckPINInternal(e2, s2.pin);
+    } catch (pinErr) {
+      try {
+        const savedTok = await securitySaveInternal(e2, { context: { authentication: u2 } }, {
+          pin: s2.pin,
+          deviceName: "LunaVerse ENT",
+          mode: u2.modeSecurisationParDefaut || 3
+        });
+        if (savedTok) u2.jetonConnexionAppliMobile = savedTok;
+      } catch (saveErr) {}
+    }
+  }
   return ve(e2, u2, a2, s2.username);
 };
 var ge = (e2, s2) => he(e2, { url: e2.information.url, kind: e2.information.accountKind, username: s2.username, token: s2.token, deviceUUID: s2.deviceUUID, navigatorIdentifier: e2.instance.navigatorIdentifier });
@@ -23069,8 +23094,22 @@ exports.AccessDeniedError = u, exports.AccountDisabledError = l, exports.Account
   e2.information = o2, e2.instance = { version: c2 }, e2.instance = await ae(e2, s2.navigatorIdentifier);
   const u2 = await re(e2, { username: r2.username, deviceUUID: s2.deviceUUID, requestFirstMobileAuthentication: true, reuseMobileAuthentication: false, requestFromQRCode: true, useCAS: false });
   be(r2, "token", u2);
-  const l2 = De(u2, r2.username, r2.token), d2 = we(e2, u2, l2), p2 = await oe(e2, d2);
-  return Ae(e2, p2, l2), Ce(p2) ? ge(e2, { token: p2.jetonConnexionAppliMobile, username: u2.login ?? r2.username, deviceUUID: s2.deviceUUID }) : ve(e2, p2, u2, r2.username);
+  Ae(e2, p2, l2);
+  if (Ce(p2) && s2.pin) {
+    try {
+      const savedTok = await securitySaveInternal(e2, { context: { authentication: p2 } }, {
+        pin: s2.pin,
+        deviceName: "LunaVerse ENT",
+        mode: p2.modeSecurisationParDefaut || 3
+      });
+      if (savedTok) p2.jetonConnexionAppliMobile = savedTok;
+    } catch (secErr) {
+      try {
+        await securityCheckPINInternal(e2, s2.pin);
+      } catch (pinErr) {}
+    }
+  }
+  return ve(e2, p2, u2, r2.username);
 }, exports.loginToken = he, exports.menus = async (e2, s2 = /* @__PURE__ */ new Date()) => {
   const t2 = W(e2), n2 = new Y(e2, "PageMenus", { [t2.signature]: { onglet: G.Menus }, [t2.data]: { date: { _T: 7, V: us(s2) } } }), i2 = await n2.send();
   return { containsLunch: (a2 = i2.data[t2.data]).AvecRepasMidi, containsDinner: a2.AvecRepasSoir, days: a2.ListeJours.V.map(Ds), weeks: m(a2.DomaineDePresence.V), allergens: a2.ListeAllergenes.V.map(fs), labels: a2.Listelabels.V.map(hs) };
@@ -23167,15 +23206,7 @@ exports.AccessDeniedError = u, exports.AccountDisabledError = l, exports.Account
 }, exports.securityCheckCustomPassword = async (e2, s2) => {
   const t2 = W(e2), n2 = Q(e2), i2 = new Y(e2, "SecurisationCompteDoubleAuth", { [t2.data]: { action: R.csch_VerifierMotDePassePersonnalise, nouveauMDP: J.encrypt(s2, n2.key, n2.iv) } });
   return (await i2.send()).data[t2.data].result;
-}, exports.securityCheckPIN = async (e2, s2) => {
-  const t2 = W(e2), n2 = Q(e2), i2 = new Y(e2, "SecurisationCompteDoubleAuth", { [t2.data]: { action: R.csch_VerifierPIN, codePin: J.encrypt(s2, n2.key, n2.iv) } });
-  return (await i2.send()).data[t2.data].result;
-}, exports.securitySave = async (e2, s2, t2) => {
-  const n2 = { action: R.csch_EnregistrerChoixUtilisateur }, i2 = Q(e2);
-  "number" == typeof t2.mode && (n2.mode = t2.mode), t2.password && (n2.nouveauMDP = J.encrypt(t2.password, i2.key, i2.iv)), t2.pin && (n2.codePin = J.encrypt(t2.pin, i2.key, i2.iv)), t2.deviceName && (n2.avecIdentification = true, n2.strIdentification = t2.deviceName);
-  const a2 = W(e2), r2 = new Y(e2, "SecurisationCompteDoubleAuth", { [a2.data]: n2 }), o2 = (await r2.send()).data[a2.data].jetonConnexionAppliMobile;
-  o2 && (s2.context.authentication.jetonConnexionAppliMobile = o2);
-}, exports.securitySource = async (e2, s2) => {
+}, exports.securityCheckPIN = securityCheckPINInternal, exports.securitySave = securitySaveInternal, exports.securitySource = async (e2, s2) => {
   if (s2.length > 30) throw new h(30);
   const t2 = W(e2), n2 = new Y(e2, "SecurisationCompteDoubleAuth", { [t2.data]: { action: R.csch_LibellesSourceConnexionDejaConnus, libelle: s2 } });
   return (await n2.send()).data[t2.data].dejaConnu;

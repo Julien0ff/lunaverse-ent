@@ -24,6 +24,7 @@ export interface PronoteCredentials {
   connected_at: string
   last_synced_at: string | null
   account_name?: string
+  pin?: string
 }
 
 /**
@@ -201,6 +202,7 @@ export async function pairPronoteWithQr({ qr, pin }: { qr: string | any; pin: st
     connected_at: new Date().toISOString(),
     last_synced_at: null,
     account_name: (session.user as any)?.name || refreshInfo.username,
+    pin: effectivePin,
   }
 
   // Enregistrer le token dans server_settings
@@ -293,6 +295,7 @@ export async function syncPronoteData() {
       token: creds.token,
       deviceUUID: creds.deviceUUID || randomUUID(),
       navigatorIdentifier: creds.navigatorIdentifier,
+      pin: creds.pin,
     })
     console.log(`[PronoteSync] Login successful for ${creds.username}, kind=${creds.kind}, url=${creds.url}`)
     if (loginRes?.token && loginRes.token !== creds.token) {

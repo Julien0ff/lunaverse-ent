@@ -42,6 +42,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(syncResult)
     }
 
+    if (action === 'verify_pin') {
+      const { pin } = body
+      if (!pin) {
+        return NextResponse.json({ error: 'Le code PIN est obligatoire.' }, { status: 400 })
+      }
+      const { data: credsData } = await admin
+        .from('server_settings')
+        .select('value')
+        .eq('key', 'pronote_credentials')
+        .maybeSingle()
+
+      if (!credsData?.value?.token) {
+        return NextResponse.json({ error: "Aucun compte Pronote n'est configuré." }, { status: 400 })
+      }
+
+      const creds = credsData.value as any
+      creds.pin = String(pin).trim()
+
+      await admin.from('server_settings').update({
+        value: creds,
+        updated_at: new Date().toISOString(),
+      }).eq('key', 'pronote_credentials')
+
+      const syncResult = await syncPronoteData()
+      return NextResponse.json({ success: true, message: 'Code PIN enregistré et synchronisation exécutée.', sync: syncResult })
+    }
+
     if (action === 'disconnect') {
       await admin.from('server_settings').delete().eq('key', 'pronote_credentials')
       return NextResponse.json({ success: true, message: 'Compte Pronote déconnecté avec succès.' })

@@ -35,6 +35,8 @@ export default function AdminPronotePage() {
   const [status, setStatus] = useState<PronoteStatus | null>(null)
   const [qrInput, setQrInput] = useState('')
   const [pinInput, setPinInput] = useState('')
+  const [pinUnlockInput, setPinUnlockInput] = useState('')
+  const [verifyPinLoading, setVerifyPinLoading] = useState(false)
   const [pairingLoading, setPairingLoading] = useState(false)
   const [syncLoading, setSyncLoading] = useState(false)
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -115,6 +117,34 @@ export default function AdminPronotePage() {
       setFeedbackMsg({ type: 'error', text: err.message || 'Erreur lors de la synchronisation.' })
     } finally {
       setSyncLoading(false)
+    }
+  }
+
+  const handleVerifyPin = async () => {
+    if (!pinUnlockInput.trim()) {
+      setFeedbackMsg({ type: 'error', text: 'Veuillez saisir votre code PIN à 4 chiffres.' })
+      return
+    }
+    setVerifyPinLoading(true)
+    setFeedbackMsg(null)
+    try {
+      const res = await fetch('/api/admin/pronote/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify_pin', pin: pinUnlockInput.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erreur lors de la validation du code PIN.')
+      setFeedbackMsg({
+        type: data.sync?.syncErrors?.length && data.sync?.coursesCount === 0 ? 'error' : 'success',
+        text: `Code PIN validé avec succès ! Synchronisation terminée (${data.sync?.coursesCount ?? 0} cours, ${data.sync?.homeworksCount ?? 0} devoirs${data.sync?.newsSent ? `, ${data.sync.newsSent} actualité(s)` : ''}).`,
+      })
+      setPinUnlockInput('')
+      await loadPronoteStatus()
+    } catch (err: any) {
+      setFeedbackMsg({ type: 'error', text: err.message || 'Erreur lors de la validation du code PIN.' })
+    } finally {
+      setVerifyPinLoading(false)
     }
   }
 
@@ -343,6 +373,37 @@ export default function AdminPronotePage() {
             <div className="p-4 rounded-xl bg-white/5 border border-white/5">
               <span className="text-[10px] uppercase font-bold text-discord-muted block">Classes Synchronisées</span>
               <p className="text-sm font-semibold text-discord-blurple mt-1">3GA (2GT1, 3PM, 2PRO1 masquées)</p>
+            </div>
+
+            {/* Validation Code PIN (Double authentification) */}
+            <div className="sm:col-span-3 p-4 rounded-xl bg-discord-blurple/10 border border-discord-blurple/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <span className="text-xs font-bold text-white flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-discord-blurple" />
+                  Code PIN de confirmation (Double authentification)
+                </span>
+                <p className="text-xs text-discord-muted">
+                  Si Pronote bloque les droits ou que la synchronisation remonte 0 cours/devoirs, entrez votre code PIN à 4 chiffres ici pour valider l'appareil auprès de Pronote.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <input
+                  type="password"
+                  maxLength={6}
+                  placeholder="Code PIN"
+                  className="glass-input bg-white/5 border-white/10 text-white font-mono text-center tracking-widest text-sm w-28 py-2 focus:border-discord-blurple"
+                  value={pinUnlockInput}
+                  onChange={e => setPinUnlockInput(e.target.value)}
+                />
+                <button
+                  onClick={handleVerifyPin}
+                  disabled={verifyPinLoading}
+                  className="btn bg-discord-blurple hover:bg-discord-blurple/80 text-white font-bold py-2 px-3.5 rounded-xl flex items-center gap-1.5 text-xs whitespace-nowrap shadow-md shadow-discord-blurple/20 transition-all"
+                >
+                  {verifyPinLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check size={14} />}
+                  Valider le PIN
+                </button>
+              </div>
             </div>
           </div>
         ) : (

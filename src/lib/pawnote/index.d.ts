@@ -236,6 +236,8 @@ interface TokenAuthenticationParams extends BaseAuthenticationParams {
     token: string;
     /** Password should not be present */
     password?: never;
+    /** Optional PIN for double authentication verification */
+    pin?: string;
 }
 /**
  * Combined type for all authentication methods
