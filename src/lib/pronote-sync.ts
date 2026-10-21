@@ -3,6 +3,8 @@ import {
   loginQrCode,
   loginToken,
   timetableFromWeek,
+  timetableResources,
+  classesAndGroups,
   assignmentsFromWeek,
   translateToWeekNumber,
   TimetableClassLesson,
@@ -368,78 +370,207 @@ export async function syncPronoteData() {
     currentWeek + 2,
   ]))
 
+  const isVieScolaire = Number(creds.kind) === 14
+  let pronoteClassesToFetch: Array<{ id: string | number; name: string; kind: number }> = []
+
+  if (isVieScolaire) {
+    try {
+      const resEDT = await timetableResources(session)
+      const resList = Array.isArray(resEDT?.listeRessources)
+        ? resEDT.listeRessources
+        : (resEDT?.listeRessources?.V || [])
+
+      for (const group of resList) {
+        const subList = Array.isArray(group?.liste)
+          ? group.liste
+          : (group?.liste?.V || (group?.G === 1 ? [group] : []))
+        for (const item of subList) {
+          if (item && item.N !== undefined && item.L) {
+            pronoteClassesToFetch.push({
+              id: item.N,
+              name: item.L,
+              kind: item.G || 1,
+            })
+          }
+        }
+      }
+      if (pronoteClassesToFetch.length > 0) {
+        console.log(`[PronoteSync] ${pronoteClassesToFetch.length} classes détectées sur Pronote via RessourceEDT : ${pronoteClassesToFetch.map(c => `${c.name} (#${c.id})`).join(', ')}`)
+      }
+    } catch (resErr: any) {
+      console.warn('[PronoteSync] RessourceEDT non accessible, tentative via listeClassesGroupes:', resErr?.message || resErr)
+      try {
+        const cAndG = await classesAndGroups(session)
+        const cList = Array.isArray(cAndG?.listeClasses) ? cAndG.listeClasses : (cAndG?.listeClasses?.V || [])
+        for (const item of cList) {
+          if (item && item.N !== undefined && item.L) {
+            pronoteClassesToFetch.push({
+              id: item.N,
+              name: item.L,
+              kind: item.G || 1,
+            })
+          }
+        }
+        if (pronoteClassesToFetch.length > 0) {
+          console.log(`[PronoteSync] ${pronoteClassesToFetch.length} classes détectées sur Pronote via listeClassesGroupes : ${pronoteClassesToFetch.map(c => `${c.name} (#${c.id})`).join(', ')}`)
+        }
+      } catch (cgErr: any) {
+        console.warn('[PronoteSync] listeClassesGroupes non accessible:', cgErr?.message || cgErr)
+      }
+    }
+
+    // Fallback : si Pronote n'a pas retourné de liste, utiliser les classes déclarées dans LunaVerse ENT
+    if (pronoteClassesToFetch.length === 0 && registeredClasses.length > 0) {
+      console.log('[PronoteSync] Utilisation des classes LunaVerse ENT comme cibles de consultation EDT.')
+      pronoteClassesToFetch = registeredClasses.map(rc => ({
+        id: rc.name,
+        name: rc.name,
+        kind: 1,
+      }))
+    }
+  }
+
   const preparedCourses: any[] = []
   const preparedHomeworks: any[] = []
   const syncLogs: string[] = []
   const syncErrors: string[] = []
 
   for (const weekNum of weeksToFetch) {
-    try {
-      const timetable = await timetableFromWeek(session, weekNum)
-      const classesCount = timetable?.classes?.length || 0
-      syncLogs.push(`Semaine ${weekNum}: ${classesCount} cours bruts reçus de Pronote`)
+    if (isVieScolaire && pronoteClassesToFetch.length > 0) {
+      // Pour un compte Vie Scolaire, interroger l'emploi du temps de chaque classe
+      for (const pClass of pronoteClassesToFetch) {
+        try {
+          const classResource = { G: pClass.kind, N: pClass.id, L: pClass.name }
+          const timetable = await timetableFromWeek(session, weekNum, classResource)
+          const classesCount = timetable?.classes?.length || 0
+          if (classesCount > 0) {
+            syncLogs.push(`Semaine ${weekNum} (${pClass.name}): ${classesCount} cours reçus de Pronote`)
+          }
 
-      for (const item of timetable.classes || []) {
-        if (item.is !== 'lesson') continue
-        const lesson = item as TimetableClassLesson
+          for (const item of timetable?.classes || []) {
+            if (item.is !== 'lesson') continue
+            const lesson = item as TimetableClassLesson
 
-        const start = new Date(lesson.startDate)
-        const end = new Date(lesson.endDate)
-        const dayOfWeek = start.getDay() // 6 = Samedi, 0 = Dimanche
+            const start = new Date(lesson.startDate)
+            const end = new Date(lesson.endDate)
+            const dayOfWeek = start.getDay() // 6 = Samedi, 0 = Dimanche
 
-        // Strictement Samedi (6) ou Dimanche (0) pour LunaVerse RP
-        if (dayOfWeek !== 6 && dayOfWeek !== 0) continue
+            // Strictement Samedi (6) ou Dimanche (0) pour LunaVerse RP
+            if (dayOfWeek !== 6 && dayOfWeek !== 0) continue
 
-        // Statut du cours
-        let status = 'normal'
-        if (lesson.canceled) {
-          status = 'annule'
-        } else if (lesson.status?.toLowerCase().includes('absent')) {
-          status = 'prof_absent'
-        } else if (
-          lesson.status?.toLowerCase().includes('déplacé') ||
-          lesson.status?.toLowerCase().includes('deplace')
-        ) {
-          status = 'deplace'
-        } else if (lesson.status?.toLowerCase().includes('modifi')) {
-          status = 'modifie'
+            // Statut du cours
+            let status = 'normal'
+            if (lesson.canceled) {
+              status = 'annule'
+            } else if (lesson.status?.toLowerCase().includes('absent')) {
+              status = 'prof_absent'
+            } else if (
+              lesson.status?.toLowerCase().includes('déplacé') ||
+              lesson.status?.toLowerCase().includes('deplace')
+            ) {
+              status = 'deplace'
+            } else if (lesson.status?.toLowerCase().includes('modifi')) {
+              status = 'modifie'
+            }
+
+            const rawGroup = lesson.groupNames?.[0] || lesson.personalNames?.[0] || pClass.name
+            const targetClass = matchPronoteToEntClass(rawGroup, registeredClasses)
+
+            const startTimeStr = `${String(start.getHours()).padStart(2, '0')}:${String(
+              start.getMinutes()
+            ).padStart(2, '0')}:00`
+            const endTimeStr = `${String(end.getHours()).padStart(2, '0')}:${String(
+              end.getMinutes()
+            ).padStart(2, '0')}:00`
+
+            preparedCourses.push({
+              pronote_id: lesson.id ? String(lesson.id) : undefined,
+              target_class: targetClass,
+              subject: lesson.subject?.name || 'Matière générale',
+              teacher_name: lesson.teacherNames?.[0] || 'Enseignant',
+              room: lesson.classrooms?.[0] || 'Salle à définir',
+              day_of_week: dayOfWeek,
+              start_time: startTimeStr,
+              end_time: endTimeStr,
+              color: lesson.backgroundColor || '#5865F2',
+              status,
+              status_note: lesson.status || null,
+            })
+          }
+        } catch (errClassWeek: any) {
+          const errMsg = `Erreur EDT semaine ${weekNum} (classe ${pClass.name}): ${errClassWeek?.message || errClassWeek}`
+          syncErrors.push(errMsg)
+          console.warn(`[PronoteSync] ${errMsg}`)
         }
-
-        // Classe ou groupe
-        const rawGroup = lesson.groupNames?.[0] || lesson.personalNames?.[0] || ''
-        const targetClass = matchPronoteToEntClass(rawGroup, registeredClasses)
-
-        const startTimeStr = `${String(start.getHours()).padStart(2, '0')}:${String(
-          start.getMinutes()
-        ).padStart(2, '0')}:00`
-        const endTimeStr = `${String(end.getHours()).padStart(2, '0')}:${String(
-          end.getMinutes()
-        ).padStart(2, '0')}:00`
-
-        preparedCourses.push({
-          pronote_id: lesson.id ? String(lesson.id) : undefined,
-          target_class: targetClass,
-          subject: lesson.subject?.name || 'Matière générale',
-          teacher_name: lesson.teacherNames?.[0] || 'Enseignant',
-          room: lesson.classrooms?.[0] || 'Salle à définir',
-          day_of_week: dayOfWeek,
-          start_time: startTimeStr,
-          end_time: endTimeStr,
-          color: lesson.backgroundColor || '#5865F2',
-          status,
-          status_note: lesson.status || null,
-        })
       }
-    } catch (errWeek: any) {
-      const errMsg = `Erreur EDT semaine ${weekNum}: ${errWeek?.message || errWeek}`
-      syncErrors.push(errMsg)
-      console.warn(`[PronoteSync] ${errMsg}`)
+    } else {
+      // Compte élève ou enseignant standard
+      try {
+        const timetable = await timetableFromWeek(session, weekNum)
+        const classesCount = timetable?.classes?.length || 0
+        syncLogs.push(`Semaine ${weekNum}: ${classesCount} cours bruts reçus de Pronote`)
+
+        for (const item of timetable.classes || []) {
+          if (item.is !== 'lesson') continue
+          const lesson = item as TimetableClassLesson
+
+          const start = new Date(lesson.startDate)
+          const end = new Date(lesson.endDate)
+          const dayOfWeek = start.getDay() // 6 = Samedi, 0 = Dimanche
+
+          if (dayOfWeek !== 6 && dayOfWeek !== 0) continue
+
+          let status = 'normal'
+          if (lesson.canceled) {
+            status = 'annule'
+          } else if (lesson.status?.toLowerCase().includes('absent')) {
+            status = 'prof_absent'
+          } else if (
+            lesson.status?.toLowerCase().includes('déplacé') ||
+            lesson.status?.toLowerCase().includes('deplace')
+          ) {
+            status = 'deplace'
+          } else if (lesson.status?.toLowerCase().includes('modifi')) {
+            status = 'modifie'
+          }
+
+          const rawGroup = lesson.groupNames?.[0] || lesson.personalNames?.[0] || ''
+          const targetClass = matchPronoteToEntClass(rawGroup, registeredClasses)
+
+          const startTimeStr = `${String(start.getHours()).padStart(2, '0')}:${String(
+            start.getMinutes()
+          ).padStart(2, '0')}:00`
+          const endTimeStr = `${String(end.getHours()).padStart(2, '0')}:${String(
+            end.getMinutes()
+          ).padStart(2, '0')}:00`
+
+          preparedCourses.push({
+            pronote_id: lesson.id ? String(lesson.id) : undefined,
+            target_class: targetClass,
+            subject: lesson.subject?.name || 'Matière générale',
+            teacher_name: lesson.teacherNames?.[0] || 'Enseignant',
+            room: lesson.classrooms?.[0] || 'Salle à définir',
+            day_of_week: dayOfWeek,
+            start_time: startTimeStr,
+            end_time: endTimeStr,
+            color: lesson.backgroundColor || '#5865F2',
+            status,
+            status_note: lesson.status || null,
+          })
+        }
+      } catch (errWeek: any) {
+        const errMsg = `Erreur EDT semaine ${weekNum}: ${errWeek?.message || errWeek}`
+        syncErrors.push(errMsg)
+        console.warn(`[PronoteSync] ${errMsg}`)
+      }
     }
 
     try {
       const assignments = await assignmentsFromWeek(session, weekNum)
       const hwCount = assignments?.length || 0
-      syncLogs.push(`Semaine ${weekNum}: ${hwCount} devoirs bruts reçus de Pronote`)
+      if (hwCount > 0) {
+        syncLogs.push(`Semaine ${weekNum}: ${hwCount} devoirs bruts reçus de Pronote`)
+      }
 
       for (const assign of assignments || []) {
         if (!assign.deadline) continue
@@ -461,9 +592,11 @@ export async function syncPronoteData() {
         })
       }
     } catch (errHw: any) {
-      const errMsg = `Erreur devoirs semaine ${weekNum}: ${errHw?.message || errHw}`
-      syncErrors.push(errMsg)
-      console.warn(`[PronoteSync] ${errMsg}`)
+      if (!isVieScolaire) {
+        const errMsg = `Erreur devoirs semaine ${weekNum}: ${errHw?.message || errHw}`
+        syncErrors.push(errMsg)
+        console.warn(`[PronoteSync] ${errMsg}`)
+      }
     }
   }
 
@@ -992,12 +1125,18 @@ async function sendDiscordNewsNotification({
     const newsData = await news(session)
     if (newsData && Array.isArray(newsData.items)) {
       pronoteNewsItems = newsData.items
-      syncLogs.push(`Actualités: ${pronoteNewsItems.length} annonces/sondages bruts reçus de Pronote`)
+      if (pronoteNewsItems.length > 0) {
+        syncLogs.push(`Actualités: ${pronoteNewsItems.length} annonces/sondages reçus de Pronote`)
+      }
     }
   } catch (newsErr: any) {
     const errMsg = `Erreur actualités: ${newsErr?.message || newsErr}`
-    syncErrors.push(errMsg)
-    console.warn('[PronoteSync]', errMsg)
+    if (!newsErr?.message?.includes("droits sont insuffisants")) {
+      syncErrors.push(errMsg)
+      console.warn('[PronoteSync]', errMsg)
+    } else {
+      console.log('[PronoteSync] Module Actualités non accessible avec ce compte Vie Scolaire (droits restreints sur Pronote).')
+    }
   }
 
   if (pronoteNewsItems.length > 0) {

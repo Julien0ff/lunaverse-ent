@@ -22952,28 +22952,43 @@ var Us = (e2, s2) => ({ absences: e2.absences, withCanceledClasses: e2.avecCours
   }
   return e4.AvecCdT && e4.cahierDeTextes && (c2 = e4.cahierDeTextes.V.N), { is: "lesson", ..._s(e4, s3), kind: e4.G, status: e4.Statut, canceled: e4.estAnnule ?? false, exempted: e4.dispenseEleve ?? false, test: e4.cahierDeTextes?.V.estDevoir ?? false, virtualClassrooms: t2, personalNames: i2, teacherNames: n2, classrooms: a2, groupNames: r2, subject: o2, lessonResourceID: c2 };
 })(e3, s2)).sort((e3, s3) => e3.startDate.getTime() - s3.startDate.getTime()) });
-var Gs = async (e2, s2 = {}) => {
+var Gs = async (e2, s2 = {}, targetResource = null) => {
   const t2 = W(e2);
-  const resObj = e2.userResource
-    ? { G: e2.userResource.kind, L: e2.userResource.name, N: e2.userResource.id }
-    : { G: e2.information.accountKind, L: e2.user?.name || "Vie Scolaire", N: 0 };
-  const n2 = new Y(e2, "PageEmploiDuTemps", {
-    [t2.signature]: { onglet: G.Timetable },
-    [t2.data]: {
-      estEDTAnnuel: false,
-      estEDTPermanence: false,
-      avecAbsencesEleve: false,
-      avecRessourcesLibrePiedHoraire: false,
-      avecAbsencesRessource: true,
-      avecInfosPrefsGrille: true,
-      avecConseilDeClasse: true,
-      avecCoursSortiePeda: true,
-      avecDisponibilites: true,
-      avecRetenuesEleve: true,
-      edt: { G: 16, L: "Emploi du temps" },
-      ...Fs("ressource", resObj),
-      ...s2
+  const isVieScolaire = e2.information?.accountKind === M.VIE_SCOLAIRE;
+  const tabId = s2.onglet ? s2.onglet : (isVieScolaire ? 60 : G.Timetable);
+  let resObj = targetResource;
+  if (!resObj) {
+    if (s2.ressource) {
+      resObj = s2.ressource;
+    } else if (e2.userResource) {
+      resObj = { G: e2.userResource.kind, L: e2.userResource.name, N: e2.userResource.id };
+    } else {
+      resObj = { G: e2.information.accountKind, L: e2.user?.name || "Vie Scolaire", N: 0 };
     }
+  }
+  const payload = {
+    estEDTAnnuel: false,
+    estEDTPermanence: false,
+    avecAbsencesEleve: false,
+    avecRessourcesLibrePiedHoraire: false,
+    avecAbsencesRessource: true,
+    avecInfosPrefsGrille: true,
+    avecConseilDeClasse: true,
+    avecCoursSortiePeda: true,
+    avecDisponibilites: !isVieScolaire,
+    avecRetenuesEleve: true,
+    ...Fs("ressource", resObj),
+    ...s2
+  };
+  if (tabId === 16) {
+    payload.edt = { G: 16, L: "Emploi du temps" };
+  } else {
+    delete payload.edt;
+  }
+  delete payload.onglet;
+  const n2 = new Y(e2, "PageEmploiDuTemps", {
+    [t2.signature]: { onglet: tabId },
+    [t2.data]: payload
   });
   const a2 = await n2.send();
   return Us(a2.data[t2.data], e2);
@@ -23002,10 +23017,20 @@ exports.AccessDeniedError = u, exports.AccountDisabledError = l, exports.Account
   const n2 = await Ge(e2, G.Assignments, s2, t2);
   return Be(e2, n2).filter((e3) => s2 <= e3.deadline && e3.deadline <= t2);
 }, exports.assignmentsFromWeek = async (e2, s2, t2) => {
+  if (e2.information?.accountKind === M.VIE_SCOLAIRE) {
+    try {
+      const home = await exports.homepage(e2);
+      if (home && Array.isArray(home.homeworks)) return home.homeworks;
+    } catch (ign) {}
+    return [];
+  }
   try {
     const n2 = await Ue(e2, G.Assignments, s2, t2);
     return Be(e2, n2);
   } catch (err) {
+    if (err?.message?.includes("droits sont insuffisants")) {
+      return [];
+    }
     try {
       const cdt = await exports.resourcesFromWeek(e2, s2, t2);
       const hwList = [];
@@ -23026,6 +23051,9 @@ exports.AccessDeniedError = u, exports.AccountDisabledError = l, exports.Account
       }
       return hwList;
     } catch (cdtErr) {
+      if (cdtErr?.message?.includes("droits sont insuffisants")) {
+        return [];
+      }
       throw err;
     }
   }
@@ -23135,31 +23163,48 @@ exports.AccessDeniedError = u, exports.AccountDisabledError = l, exports.Account
   return (await i2.send()).data[t2.data].listeRessourcesPourCommunication.V.filter((e3) => e3.avecDiscussion).map(As);
 }, exports.news = async (e2, requestedModes) => {
   const s2 = W(e2);
+  const isVieScolaire = e2.information?.accountKind === M.VIE_SCOLAIRE;
+  const tabsToTry = isVieScolaire ? [8, 7] : [G.News];
   const modesToTry = requestedModes ? [requestedModes] : [[0], [1], [0, 1]];
   let lastErr = null;
-  for (const modes of modesToTry) {
-    try {
-      const t2 = new Y(e2, "PageActualites", { [s2.signature]: { onglet: G.News }, [s2.data]: { modesAffActus: { _T: 26, V: Cs(modes) } } });
-      const resp = await t2.send();
-      const e3 = resp.data[s2.data];
-      if (!e3) continue;
-      const t3 = (e3.listeCategories?.V || e3.listeCategories || []).map(Vs);
-      const allItems = [];
-      const modesAffList = e3.listeModesAff || [];
-      for (const m of modesAffList) {
-        const actList = m.listeActualites?.V || m.listeActualites || [];
-        for (const e4 of actList) {
-          let n2;
-          if (e4.estInformation) n2 = xs;
-          else if (e4.estSondage) n2 = Ss;
-          else continue;
-          allItems.push(n2(e4, e2, t3));
+  for (const tabId of tabsToTry) {
+    for (const modes of modesToTry) {
+      try {
+        const payload = {
+          modesAffActus: { _T: 26, V: Cs(modes) },
+        };
+        if (isVieScolaire) {
+          payload.genreRequeteActualite = 0;
         }
+        const t2 = new Y(e2, "PageActualites", {
+          [s2.signature]: { onglet: tabId },
+          [s2.data]: payload
+        });
+        const resp = await t2.send();
+        const e3 = resp.data[s2.data];
+        if (!e3) continue;
+        const t3 = (e3.listeCategories?.V || e3.listeCategories || []).map(Vs);
+        const allItems = [];
+        const modesAffList = e3.listeModesAff?.V || e3.listeModesAff || [];
+        for (const m of modesAffList) {
+          const actList = m.listeActualites?.V || m.listeActualites || [];
+          for (const e4 of actList) {
+            let n2;
+            if (e4.estInformation) n2 = xs;
+            else if (e4.estSondage) n2 = Ss;
+            else continue;
+            allItems.push(n2(e4, e2, t3));
+          }
+        }
+        return { categories: t3, items: allItems };
+      } catch (err) {
+        lastErr = err;
       }
-      return { categories: t3, items: allItems };
-    } catch (err) {
-      lastErr = err;
     }
+  }
+  if (lastErr?.message?.includes("droits sont insuffisants")) {
+    console.warn("[Pronote] Note: Le compte Pronote Vie Scolaire n'a pas accès au module PageActualites (autorisations restreintes sur ce serveur Pronote).");
+    return { categories: [], items: [] };
   }
   throw lastErr;
 }, exports.newsDelete = async (e2, s2) => {
@@ -23225,10 +23270,41 @@ exports.AccessDeniedError = u, exports.AccountDisabledError = l, exports.Account
   return (await n2.send()).data[t2.data].dejaConnu;
 }, exports.sessionInformation = K, exports.startPresenceInterval = (e2, s2 = 12e4) => {
   Ve(e2), e2.presence = setInterval(() => xe(e2), s2);
-}, exports.timetableFromIntervals = async (e2, s2, t2) => Gs(e2, { ...Fs("dateDebut", { _T: 7, V: us(s2) }), ...t2 && Fs("dateFin", { _T: 7, V: us(t2) }) }), exports.timetableFromWeek = async (e2, s2) => Gs(e2, Fs("numeroSemaine", s2)), exports.timetableICalURL = (e2, s2, t2 = "timetable") => {
+}, exports.timetableFromIntervals = async (e2, s2, t2, targetResource = null, options = {}) => Gs(e2, { ...Fs("dateDebut", { _T: 7, V: us(s2) }), ...t2 && Fs("dateFin", { _T: 7, V: us(t2) }), ...options }, targetResource), exports.timetableFromWeek = async (e2, s2, targetResource = null, options = {}) => Gs(e2, { ...Fs("numeroSemaine", s2), ...options }, targetResource), exports.timetableICalURL = (e2, s2, t2 = "timetable") => {
   const n2 = e2.instance.version.join(".");
   return `${e2.information.url}/ical/${t2}.ics?icalsecurise=${s2}&version=${n2}&param=266f3d32`;
-}, exports.translateToWeekNumber = Le, exports.use = me, exports.callPronoteFunction = async (session, functionName, payload = {}, tabId = 16) => {
+}, exports.translateToWeekNumber = Le, exports.use = me, exports.timetableResources = async (e2) => {
+  const t2 = W(e2);
+  const isVieScolaire = e2.information?.accountKind === M.VIE_SCOLAIRE;
+  const tabId = isVieScolaire ? 60 : 16;
+  const n2 = new Y(e2, "RessourceEDT", {
+    [t2.signature]: { onglet: tabId },
+    [t2.data]: {}
+  });
+  try {
+    const res = await n2.send();
+    return res.data[t2.data];
+  } catch (err) {
+    try {
+      const n3 = new Y(e2, "RessourceEDT", {
+        [t2.signature]: { onglet: 7 },
+        [t2.data]: {}
+      });
+      const res3 = await n3.send();
+      return res3.data[t2.data];
+    } catch (err2) {
+      throw err;
+    }
+  }
+}, exports.classesAndGroups = async (e2) => {
+  const t2 = W(e2);
+  const n2 = new Y(e2, "listeClassesGroupes", {
+    [t2.signature]: { onglet: 60 },
+    [t2.data]: {}
+  });
+  const res = await n2.send();
+  return res.data[t2.data];
+}, exports.callPronoteFunction = async (session, functionName, payload = {}, tabId = 16) => {
   const t2 = W(session);
   const sig = t2.signature || "Signature";
   const dataKey = t2.data || "data";
@@ -23237,4 +23313,5 @@ exports.AccessDeniedError = u, exports.AccountDisabledError = l, exports.Account
   const res = await req.send();
   return res.data[dataKey];
 };
+
 
